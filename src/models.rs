@@ -1,8 +1,10 @@
 use chrono::{DateTime, Utc};
-use diesel::{Insertable, Queryable};
+use diesel::{Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl};
+use failure::{err_msg, Error};
 use std::borrow::Cow;
 use std::fmt;
 
+use crate::pgpool::{PgPool, PgPoolConn};
 use crate::schema::{instance_family, instance_list, instance_pricing};
 
 #[derive(Queryable, Clone, Debug)]
@@ -28,6 +30,53 @@ impl<'a> From<InstanceFamily<'a>> for InstanceFamilyInsert<'a> {
     }
 }
 
+impl InstanceFamily<'_> {
+    fn _existing_entries(
+        f_name: &str,
+        f_type: &str,
+        conn: &PgPoolConn,
+    ) -> Result<Vec<Self>, Error> {
+        use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
+        instance_family
+            .filter(family_name.eq(f_name))
+            .filter(family_type.eq(f_type))
+            .load(conn)
+            .map_err(err_msg)
+    }
+
+    pub fn existing_entries(f_name: &str, f_type: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
+        let conn = pool.get()?;
+        Self::_existing_entries(f_name, f_type, &conn)
+    }
+}
+
+impl InstanceFamilyInsert<'_> {
+    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+        use crate::schema::instance_family::dsl::instance_family;
+
+        diesel::insert_into(instance_family)
+            .values(self)
+            .execute(conn)
+            .map_err(err_msg)
+            .map(|_| ())
+    }
+
+    pub fn insert_entry(&self, pool: &PgPool) -> Result<bool, Error> {
+        let conn = pool.get()?;
+
+        conn.transaction(|| {
+            let existing_entries =
+                InstanceFamily::_existing_entries(&self.family_name, &self.family_type, &conn)?;
+            if existing_entries.is_empty() {
+                self._insert_entry(&conn)?;
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        })
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum AwsGeneration {
     HVM,
@@ -50,6 +99,45 @@ pub struct InstanceList<'a> {
     pub n_cpu: i32,
     pub memory_gib: f64,
     pub generation: Cow<'a, str>,
+}
+
+impl InstanceList<'_> {
+    fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
+        use crate::schema::instance_list::dsl::{instance_list, instance_type};
+        instance_list
+            .filter(instance_type.eq(instance_type_))
+            .load(conn)
+            .map_err(err_msg)
+    }
+
+    pub fn get_by_instance_type(instance_type_: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
+        let conn = pool.get()?;
+        Self::_get_by_instance_type(instance_type_, &conn)
+    }
+
+    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+        use crate::schema::instance_list::dsl::instance_list;
+
+        diesel::insert_into(instance_list)
+            .values(self)
+            .execute(conn)
+            .map_err(err_msg)
+            .map(|_| ())
+    }
+
+    pub fn insert_entry(&self, pool: &PgPool) -> Result<bool, Error> {
+        let conn = pool.get()?;
+
+        conn.transaction(|| {
+            let existing_entries = Self::_get_by_instance_type(&self.instance_type, &conn)?;
+            if existing_entries.is_empty() {
+                self._insert_entry(&conn)?;
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        })
+    }
 }
 
 #[derive(Queryable, Clone)]

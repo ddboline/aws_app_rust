@@ -4,17 +4,11 @@ use select::document::Document;
 use select::node::Node;
 use select::predicate::{Class, Name};
 
+use crate::config::Config;
 use crate::models::{AwsGeneration, InstanceFamilyInsert, InstanceList};
+use crate::pgpool::PgPool;
 
-pub fn scrape_instance_info(
-    generation: AwsGeneration,
-) -> Result<
-    (
-        Vec<InstanceFamilyInsert<'static>>,
-        Vec<InstanceList<'static>>,
-    ),
-    Error,
-> {
+pub fn scrape_instance_info(generation: AwsGeneration) -> Result<(), Error> {
     let url: Url = match generation {
         AwsGeneration::HVM => "https://aws.amazon.com/ec2/instance-types/",
         AwsGeneration::PV => "https://aws.amazon.com/ec2/previous-generation/",
@@ -22,20 +16,11 @@ pub fn scrape_instance_info(
     .parse()?;
 
     let body = reqwest::get(url)?.text()?;
-    let results = parse_result(&body, generation)?;
-    Ok(results)
+    parse_result(&body, generation)?;
+    Ok(())
 }
 
-fn parse_result(
-    text: &str,
-    generation: AwsGeneration,
-) -> Result<
-    (
-        Vec<InstanceFamilyInsert<'static>>,
-        Vec<InstanceList<'static>>,
-    ),
-    Error,
-> {
+fn parse_result(text: &str, generation: AwsGeneration) -> Result<(), Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let doc = Document::from(text);
@@ -62,7 +47,6 @@ fn parse_result(
                     instance_families.push(ifam);
                 }
             }
-
             for t in doc.find(Name("tbody")) {
                 instance_types.extend_from_slice(&extract_instance_types_hvm(&t)?);
             }
@@ -70,19 +54,26 @@ fn parse_result(
         AwsGeneration::PV => {
             for t in doc.find(Name("tbody")) {
                 let (inst_fam, inst_list) = extract_instance_types_pv(&t)?;
-                println!("{}", inst_fam.len());
-                println!("{}", inst_list.len());
+                instance_families.extend_from_slice(&inst_fam);
+                instance_types.extend_from_slice(&inst_list);
             }
         }
     }
 
+    let config = Config::init_config()?;
+    let pool = PgPool::new(&config.database_url);
+
     for t in &instance_families {
-        println!("{:?}", t);
+        if t.insert_entry(&pool)? {
+            println!("{:?}", t);
+        }
     }
     for t in &instance_types {
-        println!("{:?}", t);
+        if t.insert_entry(&pool)? {
+            println!("{:?}", t);
+        }
     }
-    Ok((instance_families, instance_types))
+    Ok(())
 }
 
 fn extract_instance_types_pv<'a>(
@@ -125,32 +116,14 @@ fn extract_instance_types_pv<'a>(
             }
         }
 
-        if final_indicies.iter().any(|x| *x == -1) {
-            println!("{:?}", rows[0]);
-            println!("{:?}", rows[1]);
-            println!("{:?}", final_indicies);
-        } else {
-            return rows[1..]
-                .iter()
-                .map(|row| {
-                    let fam = extract_instance_family_object_pv(row, final_indicies)?;
-                    match extract_instance_type_object_pv(row, final_indicies) {
-                        Ok(x) => {
-                            if x.instance_type == "1" || x.instance_type == "8" {
-                                println!("{:?}", final_indicies);
-                                println!("{:?}", rows[0]);
-                                println!("row {:?}", row);
-                            }
-                            Ok((fam, x))
-                        }
-                        Err(e) => {
-                            println!("{:?}", final_indicies);
-                            println!("{:?}", row);
-                            Err(e)
-                        }
-                    }
-                })
-                .collect();
+        if final_indicies.iter().all(|x| *x != -1) {
+            let mut instance_families = Vec::new();
+            let mut instance_types = Vec::new();
+            for row in &rows[1..] {
+                instance_families.push(extract_instance_family_object_pv(row, final_indicies)?);
+                instance_types.push(extract_instance_type_object_pv(row, final_indicies)?);
+            }
+            return Ok((instance_families, instance_types));
         }
     }
     Ok((Vec::new(), Vec::new()))
@@ -160,8 +133,8 @@ fn extract_instance_family_object_pv(
     row: &[String],
     indicies: [isize; 4],
 ) -> Result<InstanceFamilyInsert<'static>, Error> {
-    let family_name = row[indicies[0] as usize].to_string();
-    let family_type = row[indicies[1] as usize]
+    let family_type = row[indicies[0] as usize].to_string();
+    let family_name = row[indicies[1] as usize]
         .split(".")
         .nth(0)
         .ok_or_else(|| err_msg("No family type"))?
@@ -299,6 +272,6 @@ fn extract_instance_type_object_pv(
         instance_type: instance_type.into(),
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::HVM.to_string().into(),
+        generation: AwsGeneration::PV.to_string().into(),
     })
 }
