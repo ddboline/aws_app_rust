@@ -1,17 +1,18 @@
 use chrono::{DateTime, Utc};
 use diesel::{Insertable, Queryable};
 use std::borrow::Cow;
+use std::fmt;
 
 use crate::schema::{instance_family, instance_list, instance_pricing};
 
-#[derive(Queryable)]
+#[derive(Queryable, Clone, Debug)]
 pub struct InstanceFamily<'a> {
     pub id: i32,
     pub family_name: Cow<'a, str>,
     pub family_type: Cow<'a, str>,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone, Debug)]
 #[table_name = "instance_family"]
 pub struct InstanceFamilyInsert<'a> {
     pub family_name: Cow<'a, str>,
@@ -33,7 +34,16 @@ pub enum AwsGeneration {
     PV,
 }
 
-#[derive(Queryable, Insertable)]
+impl fmt::Display for AwsGeneration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AwsGeneration::HVM => write!(f, "hvm"),
+            AwsGeneration::PV => write!(f, "pv"),
+        }
+    }
+}
+
+#[derive(Queryable, Insertable, Clone, Debug)]
 #[table_name = "instance_list"]
 pub struct InstanceList<'a> {
     pub instance_type: Cow<'a, str>,
@@ -42,7 +52,7 @@ pub struct InstanceList<'a> {
     pub generation: Cow<'a, str>,
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, Clone)]
 pub struct InstancePricing<'a> {
     pub id: i32,
     pub instance_type: Cow<'a, str>,
