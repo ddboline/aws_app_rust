@@ -3,6 +3,7 @@ extern crate diesel;
 
 pub mod config;
 pub mod ec2_instance;
+pub mod ecr_instance;
 pub mod models;
 pub mod pgpool;
 pub mod schema;

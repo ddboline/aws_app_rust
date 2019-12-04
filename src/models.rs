@@ -96,6 +96,12 @@ pub struct InstanceList<'a> {
 }
 
 impl InstanceList<'_> {
+    pub fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
+        use crate::schema::instance_list::dsl::instance_list;
+        let conn = pool.get()?;
+        instance_list.load(&conn).map_err(err_msg)
+    }
+
     fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_list::dsl::{instance_list, instance_type};
         instance_list
