@@ -1,0 +1,9 @@
+FROM rust_stable:latest
+MAINTAINER Daniel Boline
+
+WORKDIR /aws_app_rust
+
+ADD Cargo.toml /aws_app_rust
+ADD src /aws_app_rust/src
+ADD scripts /aws_app_rust/scripts
+ADD Makefile /aws_app_rust
