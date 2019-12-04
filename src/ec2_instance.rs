@@ -1,10 +1,24 @@
+use chrono::{Duration, Utc};
 use failure::{err_msg, Error};
 use rusoto_core::Region;
-use rusoto_ec2::{DescribeImagesRequest, DescribeRegionsRequest, Ec2, Ec2Client, Filter};
+use rusoto_ec2::{
+    DescribeImagesRequest, DescribeInstancesRequest, DescribeRegionsRequest,
+    DescribeReservedInstancesRequest, DescribeSpotPriceHistoryRequest, Ec2, Ec2Client, Filter,
+};
 use std::collections::HashMap;
 use std::fmt;
 
 use crate::config::Config;
+
+macro_rules! some {
+    ($expr : expr) => {
+        if let Some(v) = $expr {
+            v
+        } else {
+            return None;
+        }
+    };
+}
 
 pub struct Ec2Instance {
     ec2_client: Ec2Client,
@@ -51,12 +65,7 @@ impl Ec2Instance {
                 l.images
                     .unwrap_or_else(|| Vec::new())
                     .into_iter()
-                    .map(|image| {
-                        (
-                            image.name.unwrap_or_else(|| "".to_string()),
-                            image.image_id.unwrap_or_else(|| "".to_string()),
-                        )
-                    })
+                    .filter_map(|image| Some((some!(image.name), some!(image.image_id))))
                     .collect()
             })
     }
@@ -71,13 +80,136 @@ impl Ec2Instance {
                     .unwrap_or_else(|| Vec::new())
                     .into_iter()
                     .filter_map(|region| {
-                        region.region_name.as_ref().and_then(|region_name| {
-                            region.opt_in_status.as_ref().map(|opt_in_status| {
-                                (region_name.to_string(), opt_in_status.to_string())
-                            })
+                        Some((some!(region.region_name), some!(region.opt_in_status)))
+                    })
+                    .collect()
+            })
+    }
+
+    pub fn get_all_instances(&self) -> Result<Vec<Ec2InstanceInfo>, Error> {
+        self.ec2_client
+            .describe_instances(DescribeInstancesRequest::default())
+            .sync()
+            .map_err(err_msg)
+            .map(|instances| {
+                instances
+                    .reservations
+                    .unwrap_or_else(|| Vec::new())
+                    .into_iter()
+                    .filter_map(|res| {
+                        res.instances.map(|instances| {
+                            instances
+                                .into_iter()
+                                .filter_map(|inst| {
+                                    let tags: HashMap<String, String> = inst
+                                        .tags
+                                        .unwrap_or_else(|| Vec::new())
+                                        .into_iter()
+                                        .filter_map(|tag| Some((some!(tag.key), some!(tag.value))))
+                                        .collect();
+                                    Some(Ec2InstanceInfo {
+                                        id: some!(inst.instance_id),
+                                        dns_name: some!(inst.public_dns_name),
+                                        state: some!(some!(inst.state).name),
+                                        instance_type: some!(inst.instance_type),
+                                        availability_zone: some!(
+                                            some!(inst.placement).availability_zone
+                                        ),
+                                        tags,
+                                    })
+                                })
+                                .collect::<Vec<Ec2InstanceInfo>>()
+                        })
+                    })
+                    .flatten()
+                    .collect::<Vec<Ec2InstanceInfo>>()
+            })
+    }
+
+    pub fn get_reserved_instances(&self) -> Result<Vec<ReservedInstanceInfo>, Error> {
+        self.ec2_client
+            .describe_reserved_instances(DescribeReservedInstancesRequest::default())
+            .sync()
+            .map_err(err_msg)
+            .map(|res| {
+                res.reserved_instances
+                    .unwrap_or_else(|| Vec::new())
+                    .into_iter()
+                    .filter_map(|inst| {
+                        let state = some!(inst.state.as_ref());
+                        if state == "retired" {
+                            return None;
+                        }
+                        Some(ReservedInstanceInfo {
+                            id: some!(inst.reserved_instances_id),
+                            price: some!(inst.fixed_price),
+                            state: some!(inst.state),
+                            availability_zone: inst
+                                .availability_zone
+                                .unwrap_or_else(|| "".to_string()),
                         })
                     })
                     .collect()
             })
     }
+
+    pub fn get_latest_spot_inst_prices(&self) -> Result<HashMap<String, String>, Error> {
+        let start_time = Utc::now() - Duration::hours(4);
+        self.ec2_client
+            .describe_spot_price_history(DescribeSpotPriceHistoryRequest {
+                start_time: Some(start_time.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
+                filters: Some(vec![
+                    Filter {
+                        name: Some("product-description".to_string()),
+                        values: Some(vec!["Linux/UNIX".to_string()]),
+                    },
+                    Filter {
+                        name: Some("availability-zone".to_string()),
+                        values: Some(vec![
+                            "us-east-1a".to_string(),
+                            "us-east-1b".to_string(),
+                            "us-east-1c".to_string(),
+                            "us-east-1d".to_string(),
+                            "us-east-1e".to_string(),
+                            "us-east-1f".to_string(),
+                        ]),
+                    },
+                ]),
+                ..Default::default()
+            })
+            .sync()
+            .map_err(err_msg)
+            .map(|spot_hist| {
+                println!("{:?}", spot_hist.next_token);
+                spot_hist
+                    .spot_price_history
+                    .unwrap_or_else(|| Vec::new())
+                    .into_iter()
+                    .filter_map(|spot_price| {
+                        Some((
+                            some!(spot_price.instance_type),
+                            some!(spot_price.spot_price),
+                        ))
+                    })
+                    .collect()
+            })
+    }
+}
+
+#[derive(Debug)]
+pub struct Ec2InstanceInfo {
+    pub id: String,
+    pub dns_name: String,
+    pub state: String,
+    pub instance_type: String,
+    pub availability_zone: String,
+    pub tags: HashMap<String, String>,
+}
+
+#[derive(Debug)]
+pub struct ReservedInstanceInfo {
+    pub id: String,
+    pub price: f32,
+    pub state: String,
+    pub availability_zone: String,
 }
