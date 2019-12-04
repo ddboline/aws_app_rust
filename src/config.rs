@@ -8,6 +8,7 @@ use std::sync::Arc;
 pub struct ConfigInner {
     pub database_url: String,
     pub aws_region_name: String,
+    pub my_owner_id: Option<String>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -50,10 +51,12 @@ impl Config {
         let database_url =
             var("DATABASE_URL").map_err(|e| format_err!("DATABASE_URL must be set {}", e))?;
         let aws_region_name = var("AWS_REGION_NAME").unwrap_or_else(|_| "us-east-1".to_string());
+        let my_owner_id = var("MY_OWNER_ID").ok();
 
         let conf = ConfigInner {
             database_url,
             aws_region_name,
+            my_owner_id,
         };
 
         Ok(Config(Arc::new(conf)))

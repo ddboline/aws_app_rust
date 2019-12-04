@@ -77,12 +77,6 @@ impl InstanceFamilyInsert<'_> {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum AwsGeneration {
-    HVM,
-    PV,
-}
-
 impl fmt::Display for AwsGeneration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -140,7 +134,7 @@ impl InstanceList<'_> {
     }
 }
 
-#[derive(Queryable, Clone)]
+#[derive(Queryable, Clone, Debug)]
 pub struct InstancePricing<'a> {
     pub id: i32,
     pub instance_type: Cow<'a, str>,
@@ -149,7 +143,7 @@ pub struct InstancePricing<'a> {
     pub price_timestamp: DateTime<Utc>,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Debug)]
 #[table_name = "instance_pricing"]
 pub struct InstancePricingInsert<'a> {
     pub instance_type: Cow<'a, str>,
@@ -167,4 +161,83 @@ impl<'a> From<InstancePricing<'a>> for InstancePricingInsert<'a> {
             price_timestamp: item.price_timestamp,
         }
     }
+}
+
+impl InstancePricing<'_> {
+    fn _existing_entries(
+        i_type: &str,
+        p_type: &str,
+        conn: &PgPoolConn,
+    ) -> Result<Vec<Self>, Error> {
+        use crate::schema::instance_pricing::dsl::{instance_pricing, instance_type, price_type};
+        instance_pricing
+            .filter(instance_type.eq(i_type))
+            .filter(price_type.eq(p_type))
+            .load(conn)
+            .map_err(err_msg)
+    }
+
+    pub fn existing_entries(i_type: &str, p_type: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
+        let conn = pool.get()?;
+        Self::_existing_entries(i_type, p_type, &conn)
+    }
+}
+
+impl InstancePricingInsert<'_> {
+    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+        use crate::schema::instance_pricing::dsl::instance_pricing;
+
+        diesel::insert_into(instance_pricing)
+            .values(self)
+            .execute(conn)
+            .map_err(err_msg)
+            .map(|_| ())
+    }
+
+    fn _update_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+        use crate::schema::instance_pricing::dsl::{
+            instance_pricing, instance_type, price, price_timestamp, price_type,
+        };
+        diesel::update(
+            instance_pricing
+                .filter(instance_type.eq(&self.instance_type))
+                .filter(price_type.eq(&self.price_type)),
+        )
+        .set((
+            price.eq(self.price),
+            price_timestamp.eq(self.price_timestamp),
+        ))
+        .execute(conn)
+        .map_err(err_msg)
+        .map(|_| ())
+    }
+
+    pub fn upsert_entry(&self, pool: &PgPool) -> Result<bool, Error> {
+        let conn = pool.get()?;
+
+        conn.transaction(|| {
+            let existing_entries =
+                InstancePricing::_existing_entries(&self.instance_type, &self.price_type, &conn)?;
+            if existing_entries.is_empty() {
+                self._insert_entry(&conn)?;
+                Ok(true)
+            } else {
+                self._update_entry(&conn)?;
+                Ok(false)
+            }
+        })
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum AwsGeneration {
+    HVM,
+    PV,
+}
+
+#[derive(Clone, Copy)]
+pub enum PricingType {
+    Reserved,
+    OnDemand,
+    Spot,
 }

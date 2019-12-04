@@ -4,11 +4,10 @@ use select::document::Document;
 use select::node::Node;
 use select::predicate::{Class, Name};
 
-use crate::config::Config;
 use crate::models::{AwsGeneration, InstanceFamilyInsert, InstanceList};
 use crate::pgpool::PgPool;
 
-pub fn scrape_instance_info(generation: AwsGeneration) -> Result<(), Error> {
+pub fn scrape_instance_info(generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
     let url: Url = match generation {
         AwsGeneration::HVM => "https://aws.amazon.com/ec2/instance-types/",
         AwsGeneration::PV => "https://aws.amazon.com/ec2/previous-generation/",
@@ -16,11 +15,11 @@ pub fn scrape_instance_info(generation: AwsGeneration) -> Result<(), Error> {
     .parse()?;
 
     let body = reqwest::get(url)?.text()?;
-    parse_result(&body, generation)?;
+    parse_result(&body, generation, pool)?;
     Ok(())
 }
 
-fn parse_result(text: &str, generation: AwsGeneration) -> Result<(), Error> {
+fn parse_result(text: &str, generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let doc = Document::from(text);
@@ -59,9 +58,6 @@ fn parse_result(text: &str, generation: AwsGeneration) -> Result<(), Error> {
             }
         }
     }
-
-    let config = Config::init_config()?;
-    let pool = PgPool::new(&config.database_url);
 
     for t in &instance_families {
         if t.insert_entry(&pool)? {
@@ -158,6 +154,7 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
         ["Instance", "Logical Proc*", "Mem (TiB)"],
         ["Name", "Logical Processors*", "RAM (GiB)"],
         ["Instance", "vCPU", "Mem (GB)"],
+        ["Instance Size", "vCPU", "Memory (GiB)"],
     ];
 
     let rows: Vec<_> = table
