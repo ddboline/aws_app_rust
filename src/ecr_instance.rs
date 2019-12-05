@@ -52,7 +52,7 @@ impl EcrInstance {
             .map_err(err_msg)
             .map(|r| {
                 r.repositories
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|repo| repo.repository_name)
                     .collect()
@@ -69,7 +69,7 @@ impl EcrInstance {
             .map_err(err_msg)
             .map(|i| {
                 i.image_details
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|image| {
                         Some(ImageInfo {

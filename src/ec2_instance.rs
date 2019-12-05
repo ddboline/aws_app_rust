@@ -72,7 +72,7 @@ impl Ec2Instance {
             .map_err(err_msg)
             .map(|l| {
                 l.images
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|image| {
                         Some(AmiInfo {
@@ -96,7 +96,7 @@ impl Ec2Instance {
             .map_err(err_msg)
             .map(|r| {
                 r.regions
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|region| {
                         Some((some!(region.region_name), some!(region.opt_in_status)))
@@ -113,7 +113,7 @@ impl Ec2Instance {
             .map(|instances| {
                 instances
                     .reservations
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|res| {
                         res.instances.map(|instances| {
@@ -122,7 +122,7 @@ impl Ec2Instance {
                                 .filter_map(|inst| {
                                     let tags: HashMap<String, String> = inst
                                         .tags
-                                        .unwrap_or_else(|| Vec::new())
+                                        .unwrap_or_else(Vec::new)
                                         .into_iter()
                                         .filter_map(|tag| Some((some!(tag.key), some!(tag.value))))
                                         .collect();
@@ -152,7 +152,7 @@ impl Ec2Instance {
             .map_err(err_msg)
             .map(|res| {
                 res.reserved_instances
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|inst| {
                         let state = some!(inst.state.as_ref());
@@ -213,7 +213,7 @@ impl Ec2Instance {
                 println!("{:?}", spot_hist.next_token);
                 spot_hist
                     .spot_price_history
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|spot_price| {
                         Some((
@@ -232,7 +232,7 @@ impl Ec2Instance {
             .map_err(err_msg)
             .map(|s| {
                 s.spot_instance_requests
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|inst| {
                         Some(SpotInstanceRequestInfo {
@@ -254,7 +254,7 @@ impl Ec2Instance {
             .map_err(err_msg)
             .map(|v| {
                 v.volumes
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|v| {
                         Some(VolumeInfo {
@@ -291,7 +291,7 @@ impl Ec2Instance {
             .map_err(err_msg)
             .map(|s| {
                 s.snapshots
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|snap| {
                         Some(SnapshotInfo {

@@ -33,7 +33,7 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
 fn extract_json_url(url: Url) -> Result<Url, Error> {
     let body: String = reqwest::get(url)?.text()?;
     let condition = |l: &&str| l.contains("data-service-url") && l.contains("/linux/");
-    body.split("\n")
+    body.split('\n')
         .filter(condition)
         .nth(0)
         .and_then(|line| {
@@ -41,7 +41,7 @@ fn extract_json_url(url: Url) -> Result<Url, Error> {
                 .filter(condition)
                 .nth(0)
                 .and_then(|entry| {
-                    entry.split("=").nth(1).and_then(|s| {
+                    entry.split('=').nth(1).and_then(|s| {
                         s.replace('"', "")
                             .replace(r#"{{region}}"#, "us-east-1")
                             .parse()

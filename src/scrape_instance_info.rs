@@ -36,7 +36,7 @@ fn parse_result(text: &str, generation: AwsGeneration, pool: &PgPool) -> Result<
                 }
                 for d in c.find(Class("lb-txt-none")) {
                     let family_name = d.text().trim().to_lowercase();
-                    if family_name.contains(" ") {
+                    if family_name.contains(' ') {
                         continue;
                     }
                     let ifam = InstanceFamilyInsert {
@@ -83,7 +83,7 @@ fn extract_instance_types_pv<'a>(
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if row.len() > 0 && !row.iter().all(|x| x == "") {
+            if !row.is_empty() && !row.iter().all(|x| x == "") {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
@@ -94,7 +94,7 @@ fn extract_instance_types_pv<'a>(
                     return None;
                 }
 
-                if row.len() > 0 {
+                if !row.is_empty() {
                     Some(row)
                 } else {
                     None
@@ -131,7 +131,7 @@ fn extract_instance_family_object_pv(
 ) -> Result<InstanceFamilyInsert<'static>, Error> {
     let family_type = row[indicies[0] as usize].to_string();
     let family_name = row[indicies[1] as usize]
-        .split(".")
+        .split('.')
         .nth(0)
         .ok_or_else(|| err_msg("No family type"))?
         .to_string();
@@ -164,7 +164,7 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if row.len() > 0 && !row.iter().all(|x| x == "") {
+            if !row.is_empty() && !row.iter().all(|x| x == "") {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
@@ -175,7 +175,7 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                     return None;
                 }
 
-                if row.len() > 0 {
+                if !row.is_empty() {
                     Some(row)
                 } else {
                     None
@@ -233,15 +233,17 @@ fn extract_instance_type_object_hvm(
     row: &[String],
     indicies: [isize; 3],
 ) -> Result<InstanceList<'static>, Error> {
-    let mut instance_type: String = row[indicies[0] as usize].replace("*", "").to_string();
-    let mut n_cpu: i32 = row[indicies[1] as usize].replace("*", "").parse()?;
-    let mut memory_gib: f64 = row[indicies[2] as usize].replace(",", "").parse()?;
+    let idx = if row[indicies[0] as usize].parse::<i32>().is_ok() {
+        1
+    } else {
+        0
+    };
 
-    if let Ok(_) = row[indicies[0] as usize].parse::<i32>() {
-        instance_type = row[(indicies[0] - 1) as usize].replace("*", "").to_string();
-        n_cpu = row[(indicies[1] - 1) as usize].replace("*", "").parse()?;
-        memory_gib = row[(indicies[2] - 1) as usize].replace(",", "").parse()?;
-    }
+    let instance_type: String = row[(indicies[0] - idx) as usize]
+        .replace("*", "")
+        .to_string();
+    let n_cpu: i32 = row[(indicies[1] - idx) as usize].replace("*", "").parse()?;
+    let memory_gib: f64 = row[(indicies[2] - 1) as usize].replace(",", "").parse()?;
 
     Ok(InstanceList {
         instance_type: instance_type.into(),
@@ -255,15 +257,17 @@ fn extract_instance_type_object_pv(
     row: &[String],
     indicies: [isize; 4],
 ) -> Result<InstanceList<'static>, Error> {
-    let mut instance_type: String = row[indicies[1] as usize].replace("*", "").to_string();
-    let mut n_cpu: i32 = row[indicies[2] as usize].replace("*", "").parse()?;
-    let mut memory_gib: f64 = row[indicies[3] as usize].replace(",", "").parse()?;
+    let idx = if row[indicies[1] as usize].parse::<i32>().is_ok() {
+        1
+    } else {
+        0
+    };
 
-    if let Ok(_) = row[indicies[1] as usize].parse::<i32>() {
-        instance_type = row[(indicies[1] - 1) as usize].replace("*", "").to_string();
-        n_cpu = row[(indicies[2] - 1) as usize].replace("*", "").parse()?;
-        memory_gib = row[(indicies[3] - 1) as usize].replace(",", "").parse()?;
-    }
+    let instance_type: String = row[(indicies[1] - idx) as usize]
+        .replace("*", "")
+        .to_string();
+    let n_cpu: i32 = row[(indicies[2] - idx) as usize].replace("*", "").parse()?;
+    let memory_gib: f64 = row[(indicies[3] - idx) as usize].replace(",", "").parse()?;
 
     Ok(InstanceList {
         instance_type: instance_type.into(),
