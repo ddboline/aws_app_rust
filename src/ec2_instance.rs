@@ -5,7 +5,7 @@ use rusoto_ec2::{
     DescribeImagesRequest, DescribeInstancesRequest, DescribeRegionsRequest,
     DescribeReservedInstancesRequest, DescribeSnapshotsRequest,
     DescribeSpotInstanceRequestsRequest, DescribeSpotPriceHistoryRequest, DescribeVolumesRequest,
-    Ec2, Ec2Client, Filter,
+    Ec2, Ec2Client, Filter, TerminateInstancesRequest,
 };
 use std::collections::HashMap;
 use std::fmt;
@@ -22,9 +22,11 @@ macro_rules! some {
     };
 }
 
+#[derive(Clone)]
 pub struct Ec2Instance {
     ec2_client: Ec2Client,
-    config: Config,
+    my_owner_id: Option<String>,
+    region: Region,
 }
 
 impl fmt::Debug for Ec2Instance {
@@ -35,9 +37,11 @@ impl fmt::Debug for Ec2Instance {
 
 impl Default for Ec2Instance {
     fn default() -> Self {
+        let config = Config::new();
         Self {
             ec2_client: Ec2Client::new(Region::UsEast1),
-            config: Config::new(),
+            my_owner_id: config.my_owner_id.clone(),
+            region: Region::UsEast1,
         }
     }
 }
@@ -50,13 +54,24 @@ impl Ec2Instance {
             .ok()
             .unwrap_or(Region::UsEast1);
         Self {
-            ec2_client: Ec2Client::new(region),
-            config,
+            ec2_client: Ec2Client::new(region.clone()),
+            my_owner_id: config.my_owner_id.clone(),
+            region,
         }
     }
 
+    pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
+        self.region = region.parse()?;
+        self.ec2_client = Ec2Client::new(self.region.clone());
+        Ok(())
+    }
+
+    pub fn set_owner_id(&mut self, owner_id: &str) -> Option<String> {
+        self.my_owner_id.replace(owner_id.to_string())
+    }
+
     pub fn get_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
-        let owner_id = match self.config.my_owner_id.as_ref() {
+        let owner_id = match self.my_owner_id.as_ref() {
             Some(x) => x.to_string(),
             None => return Ok(Vec::new()),
         };
@@ -134,6 +149,7 @@ impl Ec2Instance {
                                         availability_zone: some!(
                                             some!(inst.placement).availability_zone
                                         ),
+                                        launch_time: some!(inst.launch_time),
                                         tags,
                                     })
                                 })
@@ -235,12 +251,14 @@ impl Ec2Instance {
                     .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|inst| {
+                        let launch_spec = some!(inst.launch_specification).clone();
                         Some(SpotInstanceRequestInfo {
                             id: some!(inst.spot_instance_request_id),
                             price: some!(inst.spot_price.and_then(|s| s.parse::<f32>().ok())),
-                            instance_type: some!(some!(inst.launch_specification).instance_type),
+                            instance_type: some!(launch_spec.instance_type),
                             spot_type: some!(inst.type_),
                             status: some!(some!(inst.status).code),
+                            imageid: some!(launch_spec.image_id),
                         })
                     })
                     .collect()
@@ -263,7 +281,9 @@ impl Ec2Instance {
                             size: some!(v.size),
                             iops: some!(v.iops),
                             state: some!(v.state),
-                            tags: some!(v.tags)
+                            tags: v
+                                .tags
+                                .unwrap_or_else(|| Vec::new())
                                 .into_iter()
                                 .filter_map(|t| Some((some!(t.key), some!(t.value))))
                                 .collect(),
@@ -274,7 +294,7 @@ impl Ec2Instance {
     }
 
     pub fn get_all_snapshots(&self) -> Result<Vec<SnapshotInfo>, Error> {
-        let owner_id = match self.config.my_owner_id.as_ref() {
+        let owner_id = match self.my_owner_id.as_ref() {
             Some(x) => x.to_string(),
             None => return Ok(Vec::new()),
         };
@@ -299,7 +319,9 @@ impl Ec2Instance {
                             volume_size: some!(snap.volume_size),
                             state: some!(snap.state),
                             progress: some!(snap.progress),
-                            tags: some!(snap.tags)
+                            tags: snap
+                                .tags
+                                .unwrap_or_else(|| Vec::new())
                                 .into_iter()
                                 .filter_map(|t| Some((some!(t.key), some!(t.value))))
                                 .collect(),
@@ -307,6 +329,17 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+    }
+
+    pub fn terminate_instance(&self, instance_ids: &[String]) -> Result<(), Error> {
+        self.ec2_client
+            .terminate_instances(TerminateInstancesRequest {
+                instance_ids: instance_ids.to_vec(),
+                ..Default::default()
+            })
+            .sync()
+            .map_err(err_msg)
+            .map(|_| ())
     }
 }
 
@@ -325,6 +358,7 @@ pub struct Ec2InstanceInfo {
     pub state: String,
     pub instance_type: String,
     pub availability_zone: String,
+    pub launch_time: String,
     pub tags: HashMap<String, String>,
 }
 
@@ -344,6 +378,7 @@ pub struct SpotInstanceRequestInfo {
     pub instance_type: String,
     pub spot_type: String,
     pub status: String,
+    pub imageid: String,
 }
 
 #[derive(Debug)]

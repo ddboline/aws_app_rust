@@ -15,8 +15,10 @@ macro_rules! some {
     };
 }
 
+#[derive(Clone)]
 pub struct EcrInstance {
     ecr_client: EcrClient,
+    region: Region,
 }
 
 impl fmt::Debug for EcrInstance {
@@ -29,6 +31,7 @@ impl Default for EcrInstance {
     fn default() -> Self {
         Self {
             ecr_client: EcrClient::new(Region::UsEast1),
+            region: Region::UsEast1,
         }
     }
 }
@@ -41,8 +44,15 @@ impl EcrInstance {
             .ok()
             .unwrap_or(Region::UsEast1);
         Self {
-            ecr_client: EcrClient::new(region),
+            ecr_client: EcrClient::new(region.clone()),
+            region,
         }
+    }
+
+    pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
+        self.region = region.parse()?;
+        self.ecr_client = EcrClient::new(self.region.clone());
+        Ok(())
     }
 
     pub fn get_all_repositories(&self) -> Result<Vec<String>, Error> {
@@ -74,7 +84,7 @@ impl EcrInstance {
                     .filter_map(|image| {
                         Some(ImageInfo {
                             digest: some!(image.image_digest),
-                            tags: some!(image.image_tags),
+                            tags: image.image_tags.unwrap_or_else(|| Vec::new()),
                         })
                     })
                     .collect()
