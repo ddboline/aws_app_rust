@@ -9,6 +9,11 @@ pub struct ConfigInner {
     pub database_url: String,
     pub aws_region_name: String,
     pub my_owner_id: Option<String>,
+    pub max_spot_price: f32,
+    pub default_security_group: String,
+    pub spot_security_group: String,
+    pub default_key_name: String,
+    pub script_directory: String,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -52,11 +57,28 @@ impl Config {
             var("DATABASE_URL").map_err(|e| format_err!("DATABASE_URL must be set {}", e))?;
         let aws_region_name = var("AWS_REGION_NAME").unwrap_or_else(|_| "us-east-1".to_string());
         let my_owner_id = var("MY_OWNER_ID").ok();
+        let max_spot_price: f32 = var("MAX_SPOT_PRICE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0.20);
+        let default_security_group: String = var("DEFAULT_SECURITY_GROUP")
+            .map_err(|e| format_err!("DEFAULT_SECURITY_GROUP mut be set {}", e))?;
+        let spot_security_group: String =
+            var("SPOT_SECURITY_GROUP").unwrap_or_else(|_| default_security_group.clone());
+        let default_key_name: String = var("DEFAULT_KEY_NAME")
+            .map_err(|e| format_err!("DEFAULT_KEY_NAME mut be set {}", e))?;
+        let script_directory: String = var("SCRIPT_DIRECTORY")
+            .unwrap_or_else(|_| format!("{}/.config/aws_app_rust/scripts", home_dir));
 
         let conf = ConfigInner {
             database_url,
             aws_region_name,
             my_owner_id,
+            max_spot_price,
+            default_security_group,
+            spot_security_group,
+            default_key_name,
+            script_directory,
         };
 
         Ok(Config(Arc::new(conf)))

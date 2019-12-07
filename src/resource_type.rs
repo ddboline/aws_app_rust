@@ -2,7 +2,7 @@ use failure::{format_err, Error};
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum ResourceType {
     Reserved,
     Spot,

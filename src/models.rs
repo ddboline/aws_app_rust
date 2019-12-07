@@ -48,6 +48,12 @@ impl InstanceFamily<'_> {
         let conn = pool.get()?;
         Self::_existing_entries(f_name, f_type, &conn)
     }
+
+    pub fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
+        use crate::schema::instance_family::dsl::instance_family;
+        let conn = pool.get()?;
+        instance_family.load(&conn).map_err(err_msg)
+    }
 }
 
 impl InstanceFamilyInsert<'_> {
@@ -186,6 +192,12 @@ impl InstancePricing<'_> {
     pub fn existing_entries(i_type: &str, p_type: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
         let conn = pool.get()?;
         Self::_existing_entries(i_type, p_type, &conn)
+    }
+
+    pub fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
+        use crate::schema::instance_pricing::dsl::instance_pricing;
+        let conn = pool.get()?;
+        instance_pricing.load(&conn).map_err(err_msg)
     }
 }
 
