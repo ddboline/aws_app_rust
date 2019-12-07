@@ -238,25 +238,13 @@ impl AwsAppOpts {
             }
             AwsAppOpts::Terminate { instance_ids } => app.terminate(&instance_ids),
             AwsAppOpts::Request(req) => {
-                let mut req = req.into_spot_request(&app.config);
-                let ami_map = app.ec2.get_ami_map()?;
-                if let Some(a) = ami_map.get(&req.ami) {
-                    req.ami = a.to_string();
-                }
-
-                app.ec2.request_spot_instance(&req)
+                app.request_spot_instance(&mut req.into_spot_request(&app.config))
             }
             AwsAppOpts::CancelRequest { instance_ids } => {
                 app.ec2.cancel_spot_instance_request(&instance_ids)
             }
             AwsAppOpts::Run(req) => {
-                let mut req = req.into_instance_request(&app.config);
-                let ami_map = app.ec2.get_ami_map()?;
-                if let Some(a) = ami_map.get(&req.ami) {
-                    req.ami = a.to_string();
-                }
-
-                app.ec2.run_ec2_instance(&req)
+                app.run_ec2_instance(&mut req.into_instance_request(&app.config))
             }
             AwsAppOpts::Price { search } => app.get_ec2_prices(&search),
             AwsAppOpts::ListFamilies => {
@@ -305,26 +293,26 @@ impl AwsAppOpts {
                 snapid,
             } => {
                 println!("{:?} {} {:?}", size, zoneid, snapid);
-                if let Some(id) = app.ec2.create_ebs_volume(&zoneid, size, snapid)? {
+                if let Some(id) = app.create_ebs_volume(&zoneid, size, snapid)? {
                     println!("Created Volume {}", id);
                 }
                 Ok(())
             }
-            AwsAppOpts::DeleteVolume { volid } => app.ec2.delete_ebs_volume(&volid),
+            AwsAppOpts::DeleteVolume { volid } => app.delete_ebs_volume(&volid),
             AwsAppOpts::AttachVolume {
                 volid,
                 instance_id,
                 device_id,
-            } => app.ec2.attach_ebs_volume(&volid, &instance_id, &device_id),
-            AwsAppOpts::DetachVolume { volid } => app.ec2.detach_ebs_volume(&volid),
-            AwsAppOpts::ModifyVolume { volid, size } => app.ec2.modify_ebs_volume(&volid, size),
+            } => app.attach_ebs_volume(&volid, &instance_id, &device_id),
+            AwsAppOpts::DetachVolume { volid } => app.detach_ebs_volume(&volid),
+            AwsAppOpts::ModifyVolume { volid, size } => app.modify_ebs_volume(&volid, size),
             AwsAppOpts::CreateSnapshot { volid, tags } => {
-                if let Some(id) = app.ec2.create_ebs_snapshot(&volid, &get_tags(&tags))? {
+                if let Some(id) = app.create_ebs_snapshot(&volid, &get_tags(&tags))? {
                     println!("Created snapshot {}", id);
                 }
                 Ok(())
             }
-            AwsAppOpts::DeleteSnapshot { snapid } => app.ec2.delete_ebs_snapshot(&snapid),
+            AwsAppOpts::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(&snapid),
             AwsAppOpts::Tag { id, tags } => app.ec2.tag_ec2_instance(&id, &get_tags(&tags)),
             AwsAppOpts::DeleteEcrImages { reponame, imageids } => {
                 app.ecr.delete_ecr_images(&reponame, &imageids)

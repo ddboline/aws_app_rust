@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::collections::{HashMap, HashSet};
 
 use crate::config::Config;
-use crate::ec2_instance::Ec2Instance;
+use crate::ec2_instance::{Ec2Instance, InstanceRequest, SpotRequest};
 use crate::ecr_instance::EcrInstance;
 use crate::models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType};
 use crate::pgpool::PgPool;
@@ -184,8 +184,8 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub fn terminate(&self, instance_ids: &[String]) -> Result<(), Error> {
-        let name_map: HashMap<String, String> = self
+    fn get_name_map(&self) -> Result<HashMap<String, String>, Error> {
+        Ok(self
             .ec2
             .get_all_instances()?
             .into_iter()
@@ -197,16 +197,14 @@ impl AwsAppInterface {
                     .get("Name")
                     .map(|name| (name.to_string(), inst.id.to_string()))
             })
-            .collect();
+            .collect())
+    }
+
+    pub fn terminate(&self, instance_ids: &[String]) -> Result<(), Error> {
+        let name_map = self.get_name_map()?;
         let mapped_inst_ids: Vec<String> = instance_ids
             .iter()
-            .map(|id| {
-                if let Some(id_) = name_map.get(id) {
-                    id_.to_string()
-                } else {
-                    id.to_string()
-                }
-            })
+            .map(|id| map_or_val(&name_map, id))
             .collect();
         self.ec2.terminate_instance(&mapped_inst_ids)
     }
@@ -277,9 +275,120 @@ impl AwsAppInterface {
         }
         Ok(())
     }
+
+    pub fn request_spot_instance(&self, req: &mut SpotRequest) -> Result<(), Error> {
+        let ami_map = self.ec2.get_ami_map()?;
+        if let Some(a) = ami_map.get(&req.ami) {
+            req.ami = a.to_string();
+        }
+
+        self.ec2.request_spot_instance(&req)
+    }
+
+    pub fn run_ec2_instance(&self, req: &mut InstanceRequest) -> Result<(), Error> {
+        let ami_map = self.ec2.get_ami_map()?;
+        if let Some(a) = ami_map.get(&req.ami) {
+            req.ami = a.to_string();
+        }
+
+        self.ec2.run_ec2_instance(&req)
+    }
+
+    pub fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
+        let name_map = self.get_name_map()?;
+        let inst_id = map_or_val(&name_map, inst_id);
+        self.ec2.create_image(&inst_id, name)
+    }
+
+    fn get_snapshot_map(&self) -> Result<HashMap<String, String>, Error> {
+        Ok(self
+            .ec2
+            .get_all_snapshots()?
+            .into_iter()
+            .filter_map(|snap| {
+                snap.tags
+                    .get("Name")
+                    .map(|n| (n.to_string(), snap.id.to_string()))
+            })
+            .collect())
+    }
+
+    pub fn create_ebs_volume(
+        &self,
+        zoneid: &str,
+        size: Option<i64>,
+        snapid: Option<String>,
+    ) -> Result<Option<String>, Error> {
+        let snap_map = self.get_snapshot_map()?;
+        let snapid = snapid.map(|s| map_or_val(&snap_map, &s));
+        self.ec2.create_ebs_volume(zoneid, size, snapid)
+    }
+
+    fn get_volume_map(&self) -> Result<HashMap<String, String>, Error> {
+        Ok(self
+            .ec2
+            .get_all_volumes()?
+            .into_iter()
+            .filter_map(|vol| {
+                vol.tags
+                    .get("Name")
+                    .map(|n| (n.to_string(), vol.id.to_string()))
+            })
+            .collect())
+    }
+
+    pub fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+        let vol_map = self.get_volume_map()?;
+        let volid = map_or_val(&vol_map, volid);
+        self.ec2.delete_ebs_volume(&volid)
+    }
+
+    pub fn attach_ebs_volume(&self, volid: &str, instid: &str, device: &str) -> Result<(), Error> {
+        let vol_map = self.get_volume_map()?;
+        let name_map = self.get_name_map()?;
+        let volid = map_or_val(&vol_map, volid);
+        let instid = map_or_val(&name_map, instid);
+        self.ec2.attach_ebs_volume(&volid, &instid, device)
+    }
+
+    pub fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+        let vol_map = self.get_volume_map()?;
+        let volid = map_or_val(&vol_map, volid);
+        self.ec2.detach_ebs_volume(&volid)
+    }
+
+    pub fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
+        let vol_map = self.get_volume_map()?;
+        let volid = map_or_val(&vol_map, volid);
+        self.ec2.modify_ebs_volume(&volid, size)
+    }
+
+    pub fn create_ebs_snapshot(
+        &self,
+        volid: &str,
+        tags: &HashMap<String, String>,
+    ) -> Result<Option<String>, Error> {
+        let vol_map = self.get_volume_map()?;
+        let volid = map_or_val(&vol_map, volid);
+        self.ec2.create_ebs_snapshot(&volid, tags)
+    }
+
+    pub fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
+        let snap_map = self.get_snapshot_map()?;
+        let snapid = map_or_val(&snap_map, snapid);
+        self.ec2.delete_ebs_snapshot(&snapid)
+    }
 }
 
 fn print_tags(tags: &HashMap<String, String>) -> String {
     let results: Vec<_> = tags.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
     results.join(", ")
+}
+
+fn map_or_val(name_map: &HashMap<String, String>, id: &str) -> String {
+    if let Some(id_) = name_map.get(id) {
+        id_.to_string()
+    } else {
+        id.to_string()
+    }
 }
