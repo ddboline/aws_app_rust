@@ -128,7 +128,11 @@ impl EcrInstance {
                         }
                     })
                     .collect();
-                self.delete_ecr_images(&repo, &imageids)
+                if !imageids.is_empty() {
+                    self.delete_ecr_images(&repo, &imageids)
+                } else {
+                    Ok(())
+                }
             })
             .collect()
     }

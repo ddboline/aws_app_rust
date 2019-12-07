@@ -22,7 +22,7 @@ pub struct SpotRequestOpt {
     script: Option<String>,
     #[structopt(long)]
     price: Option<f32>,
-    #[structopt(short, long)]
+    #[structopt(short, long, long = "tag")]
     tags: Vec<String>,
 }
 
@@ -68,7 +68,7 @@ pub struct InstanceOpt {
     security_group: Option<String>,
     #[structopt(short, long)]
     script: Option<String>,
-    #[structopt(short, long)]
+    #[structopt(short, long, long = "tag")]
     tags: Vec<String>,
     #[structopt(short, long)]
     key_name: Option<String>,
@@ -182,7 +182,7 @@ pub enum AwsAppOpts {
     CreateSnapshot {
         #[structopt(long)]
         volid: String,
-        #[structopt(short, long)]
+        #[structopt(short, long, long = "tag")]
         tags: Vec<String>,
     },
     /// Delete Snapshot
@@ -194,7 +194,7 @@ pub enum AwsAppOpts {
     Tag {
         #[structopt(short, long)]
         id: String,
-        #[structopt(short, long)]
+        #[structopt(short, long, long = "tag")]
         tags: Vec<String>,
     },
     /// Delete ECR Images
