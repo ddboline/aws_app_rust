@@ -568,7 +568,7 @@ impl Ec2Instance {
                     None
                 } else {
                     Some(vec![TagSpecification {
-                        resource_type: Some("volume".to_string()),
+                        resource_type: Some("snapshot".to_string()),
                         tags: Some(
                             tags.iter()
                                 .map(|(k, v)| Tag {
