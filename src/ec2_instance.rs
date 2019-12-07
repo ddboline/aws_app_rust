@@ -396,10 +396,11 @@ impl Ec2Instance {
                                     .collect();
                                 if let Some(Some(instance_id)) = reqs.get(&spot_instance_request_id)
                                 {
+                                    println!("tag {} with {:?}", instance_id, spot.tags);
                                     self.tag_ec2_instance(&instance_id, &spot.tags)?;
                                     break;
                                 }
-                                sleep(time::Duration::from_secs(1));
+                                sleep(time::Duration::from_secs(5));
                             }
                             Ok(())
                         } else {
