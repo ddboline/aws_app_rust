@@ -7,3 +7,4 @@ ADD Cargo.toml /aws_app_rust
 ADD src /aws_app_rust/src
 ADD scripts /aws_app_rust/scripts
 ADD Makefile /aws_app_rust
+ADD templates /aws_app_rust/templates
