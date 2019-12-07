@@ -29,8 +29,8 @@ pub struct SpotRequestOpt {
 fn get_tags(tags: &[String]) -> HashMap<String, String> {
     tags.iter()
         .map(|tag| {
-            if tag.contains(":") {
-                let t: Vec<_> = tag.split(":").collect();
+            if tag.contains(':') {
+                let t: Vec<_> = tag.split(':').collect();
                 if t.len() > 1 {
                     (t[0].to_string(), t[1].to_string())
                 } else {
@@ -279,7 +279,7 @@ impl AwsAppOpts {
                 instances.sort_by_cached_key(|i| i.n_cpu);
                 instances.sort_by_cached_key(|i| {
                     i.instance_type
-                        .split(".")
+                        .split('.')
                         .nth(0)
                         .unwrap_or_else(|| "")
                         .to_string()

@@ -244,7 +244,7 @@ impl AwsAppInterface {
                     .map(|x| x.price);
                 let spot_price = spot_prices.get(&inst);
                 let instance_metadata = instance_list.get(&inst).unwrap();
-                let inst_fam = inst.split(".").nth(0).unwrap();
+                let inst_fam = inst.split('.').nth(0).unwrap();
                 let instance_family = instance_families
                     .get(inst_fam)
                     .unwrap()

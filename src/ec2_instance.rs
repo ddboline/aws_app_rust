@@ -305,7 +305,7 @@ impl Ec2Instance {
                             state: some!(v.state),
                             tags: v
                                 .tags
-                                .unwrap_or_else(|| Vec::new())
+                                .unwrap_or_else(Vec::new)
                                 .into_iter()
                                 .filter_map(|t| Some((some!(t.key), some!(t.value))))
                                 .collect(),
@@ -343,7 +343,7 @@ impl Ec2Instance {
                             progress: some!(snap.progress),
                             tags: snap
                                 .tags
-                                .unwrap_or_else(|| Vec::new())
+                                .unwrap_or_else(Vec::new)
                                 .into_iter()
                                 .filter_map(|t| Some((some!(t.key), some!(t.value))))
                                 .collect(),

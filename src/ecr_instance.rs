@@ -88,7 +88,7 @@ impl EcrInstance {
                     .filter_map(|image| {
                         Some(ImageInfo {
                             digest: some!(image.image_digest),
-                            tags: image.image_tags.unwrap_or_else(|| Vec::new()),
+                            tags: image.image_tags.unwrap_or_else(Vec::new),
                         })
                     })
                     .collect()
