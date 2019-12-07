@@ -130,8 +130,13 @@ impl AwsAppInterface {
                     println!("---\nVolumes:");
                     for vol in &volumes {
                         println!(
-                            "{} {} {} {} {} {:?}",
-                            vol.id, vol.availability_zone, vol.size, vol.iops, vol.state, vol.tags
+                            "{} {} {} {} {} {}",
+                            vol.id,
+                            vol.availability_zone,
+                            vol.size,
+                            vol.iops,
+                            vol.state,
+                            print_tags(&vol.tags)
                         );
                     }
                 }
@@ -143,8 +148,12 @@ impl AwsAppInterface {
                     println!("---\nSnapshots:");
                     for snap in &snapshots {
                         println!(
-                            "{} {} GB {} {} {:?}",
-                            snap.id, snap.volume_size, snap.state, snap.progress, snap.tags
+                            "{} {} GB {} {} {}",
+                            snap.id,
+                            snap.volume_size,
+                            snap.state,
+                            snap.progress,
+                            print_tags(&snap.tags)
                         );
                     }
                 }
@@ -268,4 +277,9 @@ impl AwsAppInterface {
         }
         Ok(())
     }
+}
+
+fn print_tags(tags: &HashMap<String, String>) -> String {
+    let results: Vec<_> = tags.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
+    results.join(", ")
 }
