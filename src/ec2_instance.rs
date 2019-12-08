@@ -383,6 +383,9 @@ impl Ec2Instance {
             .sync()
             .map_err(err_msg)
             .and_then(|req| {
+                if spot.tags.is_empty() {
+                    return Ok(());
+                }
                 req.spot_instance_requests
                     .unwrap_or_else(Vec::new)
                     .into_iter()
