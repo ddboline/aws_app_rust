@@ -324,7 +324,7 @@ impl AwsAppOpts {
                 app.ecr.delete_ecr_images(&reponame, &imageids)
             }
             AwsAppOpts::CleanupEcrImages => app.ecr.cleanup_ecr_images(),
-            AwsAppOpts::Connect {instance_id} => app.connect(&instance_id),
+            AwsAppOpts::Connect { instance_id } => app.connect(&instance_id),
         }
     }
 }
