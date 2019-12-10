@@ -275,11 +275,19 @@ impl Ec2Instance {
                         let launch_spec = some!(inst.launch_specification).clone();
                         Some(SpotInstanceRequestInfo {
                             id: some!(inst.spot_instance_request_id),
-                            price: some!(inst.spot_price.and_then(|s| s.parse::<f32>().ok())),
-                            instance_type: some!(launch_spec.instance_type),
-                            spot_type: some!(inst.type_),
-                            status: some!(some!(inst.status).code),
-                            imageid: some!(launch_spec.image_id),
+                            price: inst
+                                .spot_price
+                                .and_then(|s| s.parse::<f32>().ok())
+                                .unwrap_or(0.0),
+                            instance_type: launch_spec
+                                .instance_type
+                                .unwrap_or_else(|| "".to_string()),
+                            spot_type: inst.type_.unwrap_or_else(|| "".to_string()),
+                            status: match inst.status {
+                                Some(s) => s.code.unwrap_or_else(|| "".to_string()),
+                                None => "".to_string(),
+                            },
+                            imageid: launch_spec.image_id.unwrap_or_else(|| "".to_string()),
                             instance_id: inst.instance_id,
                         })
                     })

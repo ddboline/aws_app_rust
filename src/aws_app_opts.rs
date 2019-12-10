@@ -206,6 +206,12 @@ pub enum AwsAppOpts {
     },
     /// Cleanup ECR Images
     CleanupEcrImages,
+    /// Print ssh command to connect to instance
+    Connect {
+        #[structopt(short, long)]
+        /// Instance ID
+        instance_id: String,
+    },
 }
 
 impl AwsAppOpts {
@@ -318,6 +324,7 @@ impl AwsAppOpts {
                 app.ecr.delete_ecr_images(&reponame, &imageids)
             }
             AwsAppOpts::CleanupEcrImages => app.ecr.cleanup_ecr_images(),
+            AwsAppOpts::Connect {instance_id} => app.connect(&instance_id),
         }
     }
 }

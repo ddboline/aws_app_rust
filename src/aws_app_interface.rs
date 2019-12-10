@@ -1,16 +1,22 @@
 use chrono::Local;
 use failure::Error;
+use lazy_static::lazy_static;
+use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::collections::{HashMap, HashSet};
 
 use crate::config::Config;
-use crate::ec2_instance::{Ec2Instance, InstanceRequest, SpotRequest};
+use crate::ec2_instance::{Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest};
 use crate::ecr_instance::EcrInstance;
 use crate::models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType};
 use crate::pgpool::PgPool;
 use crate::resource_type::ResourceType;
 use crate::scrape_instance_info::scrape_instance_info;
 use crate::scrape_pricing_info::scrape_pricing_info;
+
+lazy_static! {
+    static ref INSTANCE_LIST: RwLock<Vec<Ec2InstanceInfo>> = RwLock::new(Vec::new());
+}
 
 #[derive(Clone)]
 pub struct AwsAppInterface {
@@ -43,14 +49,21 @@ impl AwsAppInterface {
         scrape_pricing_info(PricingType::OnDemand, &self.pool)
     }
 
+    fn fill_instance_list(&self) -> Result<(), Error> {
+        *INSTANCE_LIST.write() = self.ec2.get_all_instances()?;
+        Ok(())
+    }
+
     pub fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
-        let mut instances = self.ec2.get_all_instances()?;
+        self.fill_instance_list()?;
+
+        let mut instances = INSTANCE_LIST.write();
 
         if !instances.is_empty() {
             instances.sort_by_cached_key(|inst| inst.launch_time);
             instances.sort_by_cached_key(|inst| inst.state != "running");
             println!("instances:");
-            for inst in &instances {
+            for inst in instances.iter() {
                 let name = inst
                     .tags
                     .get("Name")
@@ -185,10 +198,9 @@ impl AwsAppInterface {
     }
 
     fn get_name_map(&self) -> Result<HashMap<String, String>, Error> {
-        Ok(self
-            .ec2
-            .get_all_instances()?
-            .into_iter()
+        Ok(INSTANCE_LIST
+            .read()
+            .iter()
             .filter_map(|inst| {
                 if inst.state != "running" {
                     return None;
@@ -201,12 +213,37 @@ impl AwsAppInterface {
     }
 
     pub fn terminate(&self, instance_ids: &[String]) -> Result<(), Error> {
+        self.fill_instance_list()?;
         let name_map = self.get_name_map()?;
         let mapped_inst_ids: Vec<String> = instance_ids
             .iter()
             .map(|id| map_or_val(&name_map, id))
             .collect();
         self.ec2.terminate_instance(&mapped_inst_ids)
+    }
+
+    fn get_id_host_map(&self) -> Result<HashMap<String, String>, Error> {
+        Ok(INSTANCE_LIST
+            .read()
+            .iter()
+            .filter_map(|inst| {
+                if inst.state != "running" {
+                    return None;
+                }
+                Some((inst.id.to_string(), inst.dns_name.to_string()))
+            })
+            .collect())
+    }
+
+    pub fn connect(&self, instance_id: &str) -> Result<(), Error> {
+        self.fill_instance_list()?;
+        let name_map = self.get_name_map()?;
+        let id_host_map = self.get_id_host_map()?;
+        let inst_id = map_or_val(&name_map, instance_id);
+        id_host_map
+            .get(&inst_id)
+            .map(|host| println!("ssh ubuntu@{}", host));
+        Ok(())
     }
 
     pub fn get_ec2_prices(&self, search: &[String]) -> Result<(), Error> {
@@ -295,6 +332,7 @@ impl AwsAppInterface {
     }
 
     pub fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
+        self.fill_instance_list()?;
         let name_map = self.get_name_map()?;
         let inst_id = map_or_val(&name_map, inst_id);
         self.ec2.create_image(&inst_id, name)
@@ -344,6 +382,7 @@ impl AwsAppInterface {
     }
 
     pub fn attach_ebs_volume(&self, volid: &str, instid: &str, device: &str) -> Result<(), Error> {
+        self.fill_instance_list()?;
         let vol_map = self.get_volume_map()?;
         let name_map = self.get_name_map()?;
         let volid = map_or_val(&vol_map, volid);
