@@ -240,9 +240,9 @@ impl AwsAppInterface {
         let name_map = self.get_name_map()?;
         let id_host_map = self.get_id_host_map()?;
         let inst_id = map_or_val(&name_map, instance_id);
-        id_host_map
-            .get(&inst_id)
-            .map(|host| println!("ssh ubuntu@{}", host));
+        if let Some(host) = id_host_map.get(&inst_id) {
+            println!("ssh ubuntu@{}", host)
+        }
         Ok(())
     }
 
