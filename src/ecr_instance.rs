@@ -8,6 +8,7 @@ use rusoto_ecr::{
 use std::fmt;
 
 use crate::config::Config;
+use crate::sts_instance::StsInstance;
 
 macro_rules! some {
     ($expr : expr) => {
@@ -21,6 +22,7 @@ macro_rules! some {
 
 #[derive(Clone)]
 pub struct EcrInstance {
+    sts: StsInstance,
     ecr_client: EcrClient,
     region: Region,
 }
@@ -34,6 +36,7 @@ impl fmt::Debug for EcrInstance {
 impl Default for EcrInstance {
     fn default() -> Self {
         Self {
+            sts: StsInstance::default(),
             ecr_client: EcrClient::new(Region::UsEast1),
             region: Region::UsEast1,
         }
@@ -47,15 +50,17 @@ impl EcrInstance {
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);
+        let sts = StsInstance::new(None).unwrap();
         Self {
-            ecr_client: EcrClient::new(region.clone()),
+            ecr_client: sts.get_ecr_client(region.clone()).unwrap(),
             region,
+            sts,
         }
     }
 
     pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
         self.region = region.parse()?;
-        self.ecr_client = EcrClient::new(self.region.clone());
+        self.ecr_client = self.sts.get_ecr_client(self.region.clone())?;
         Ok(())
     }
 
