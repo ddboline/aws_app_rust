@@ -717,6 +717,6 @@ mod tests {
         )
         .unwrap();
         println!("{}", user_data);
-        assert!(false);
+        assert!(user_data.len() > 0);
     }
 }

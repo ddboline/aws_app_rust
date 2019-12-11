@@ -205,6 +205,7 @@ mod tests {
     use crate::sts_instance::AwsProfileInfo;
 
     #[test]
+    #[ignore]
     fn test_fill_profile_map() {
         let prof_map = AwsProfileInfo::fill_profile_map().unwrap();
         for (k, v) in &prof_map {
@@ -215,6 +216,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_use_sts_profile() {
         let config = Config::new();
         let ec2 = Ec2Instance::new(config);
