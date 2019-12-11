@@ -170,7 +170,7 @@ impl AwsProfileInfo {
                             .to_string();
                         let new_info = profile_map
                             .remove(&new_name)
-                            .unwrap_or_else(|| AwsProfileInfo::default());
+                            .unwrap_or_else(AwsProfileInfo::default);
                         let old_name = current_profile.replace(new_name);
                         let old_info = current_info.replace(new_info);
                         if let Some(name) = old_name {
