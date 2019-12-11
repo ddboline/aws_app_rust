@@ -690,7 +690,7 @@ pub struct SnapshotInfo {
     pub tags: HashMap<String, String>,
 }
 
-fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<String, Error> {
+pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<String, Error> {
     let fname = if !Path::new(script).exists() {
         let fname = format!("{}/{}", default_dir, script);
         if !Path::new(&fname).exists() {
@@ -703,4 +703,20 @@ fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<String, 
     let mut user_data = String::new();
     File::open(fname)?.read_to_string(&mut user_data)?;
     Ok(user_data)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ec2_instance::get_user_data_from_script;
+
+    #[test]
+    fn test_get_user_data_from_script() {
+        let user_data = get_user_data_from_script(
+            "/home/ddboline/.config/aws_app_rust/scripts",
+            "build_rust_repo.sh",
+        )
+        .unwrap();
+        println!("{}", user_data);
+        assert!(false);
+    }
 }
