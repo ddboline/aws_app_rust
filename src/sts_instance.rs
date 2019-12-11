@@ -152,7 +152,7 @@ impl AwsProfileInfo {
         let credential_file = format!("{}/.aws/credentials", home_dir);
         let mut profile_map = HashMap::new();
         let mut current_profile: Option<String> = None;
-        let mut current_info: Option<AwsProfileInfo> = None;
+        let mut current_info: Option<AwsProfileInfo> = Some(AwsProfileInfo::default());
         for fname in &[config_file, credential_file] {
             if !Path::new(fname).exists() {
                 continue;
@@ -168,8 +168,13 @@ impl AwsProfileInfo {
                             .replace("profile ", "")
                             .trim()
                             .to_string();
-                        if let Some(name) = current_profile.replace(new_name) {
-                            if let Some(info) = current_info.replace(AwsProfileInfo::default()) {
+                        let new_info = profile_map
+                            .remove(&new_name)
+                            .unwrap_or_else(|| AwsProfileInfo::default());
+                        let old_name = current_profile.replace(new_name);
+                        let old_info = current_info.replace(new_info);
+                        if let Some(name) = old_name {
+                            if let Some(info) = old_info {
                                 profile_map.insert(name, info);
                             }
                         }
@@ -196,8 +201,8 @@ impl AwsProfileInfo {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::sts_instance::{AwsProfileInfo};
     use crate::ec2_instance::Ec2Instance;
+    use crate::sts_instance::AwsProfileInfo;
 
     #[test]
     fn test_fill_profile_map() {
@@ -206,6 +211,7 @@ mod tests {
             println!("{} {:?}", k, v);
         }
         assert!(prof_map.len() > 0);
+        assert!(prof_map.contains_key("default"));
     }
 
     #[test]
