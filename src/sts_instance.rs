@@ -161,7 +161,7 @@ impl AwsProfileInfo {
                 .lines()
                 .map(|l| {
                     let line = l?.trim().to_string();
-                    if line.starts_with("[") && line.ends_with("]") {
+                    if line.starts_with('[') && line.ends_with(']') {
                         let new_name = line
                             .replace("[", "")
                             .replace("]", "")
