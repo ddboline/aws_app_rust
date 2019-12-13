@@ -1,6 +1,7 @@
 use failure::Error;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::collections::HashMap;
+use std::string::ToString;
 use structopt::StructOpt;
 
 use crate::aws_app_interface::AwsAppInterface;

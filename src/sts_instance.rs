@@ -1,4 +1,6 @@
-use failure::{err_msg, format_err, Error};
+use failure::{format_err, Error};
+use lazy_static::lazy_static;
+use regex::Regex;
 use rusoto_core::{HttpClient, Region};
 use rusoto_credential::{AutoRefreshingProvider, StaticProvider};
 use rusoto_ec2::Ec2Client;
@@ -9,6 +11,11 @@ use std::env::var;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+
+lazy_static! {
+    static ref PROFILE_REGEX: Regex =
+        Regex::new(r"^\[(profile )?([^\]]+)\]$").expect("Failed to compile regex");
+}
 
 macro_rules! get_client_sts {
     ($T:ty, $region:expr) => {
@@ -58,8 +65,8 @@ impl StsInstance {
 
         let region = current_profile
             .region
-            .as_ref()
-            .and_then(|reg| reg.parse().ok())
+            .parse()
+            .ok()
             .unwrap_or(Region::UsEast1);
         let (key, secret) = match current_profile.source_profile.as_ref() {
             Some(prof) => {
@@ -67,25 +74,13 @@ impl StsInstance {
                     .get(prof)
                     .ok_or_else(|| format_err!("Source profile {} doesn't exist", prof))?;
                 (
-                    source_profile
-                        .aws_access_key_id
-                        .as_ref()
-                        .ok_or_else(|| err_msg("No aws_access_key"))?,
-                    source_profile
-                        .aws_secret_access_key
-                        .as_ref()
-                        .ok_or_else(|| err_msg("No aws_secret_key"))?,
+                    source_profile.aws_access_key_id.to_string(),
+                    source_profile.aws_secret_access_key.to_string(),
                 )
             }
             None => (
-                current_profile
-                    .aws_access_key_id
-                    .as_ref()
-                    .ok_or_else(|| err_msg("No aws_access_key"))?,
-                current_profile
-                    .aws_secret_access_key
-                    .as_ref()
-                    .ok_or_else(|| err_msg("No aws_secret_key"))?,
+                current_profile.aws_access_key_id.to_string(),
+                current_profile.aws_secret_access_key.to_string(),
             ),
         };
         let provider = StaticProvider::new_minimal(key.to_string(), secret.to_string());
@@ -127,75 +122,144 @@ impl StsInstance {
 
 #[derive(Default, Clone, Debug)]
 pub struct AwsProfileInfo {
-    pub region: Option<String>,
+    pub name: String,
+    pub region: String,
+    pub aws_access_key_id: String,
+    pub aws_secret_access_key: String,
     pub role_arn: Option<String>,
     pub source_profile: Option<String>,
-    pub aws_access_key_id: Option<String>,
-    pub aws_secret_access_key: Option<String>,
 }
 
 impl AwsProfileInfo {
-    pub fn add(&mut self, key: &str, value: &str) -> Option<String> {
-        match key {
-            "region" => self.region.replace(value.to_string()),
-            "role_arn" => self.role_arn.replace(value.to_string()),
-            "source_profile" => self.source_profile.replace(value.to_string()),
-            "aws_access_key_id" => self.aws_access_key_id.replace(value.to_string()),
-            "aws_secret_access_key" => self.aws_secret_access_key.replace(value.to_string()),
-            _ => None,
+    pub fn from_hashmap(
+        profile_name: &str,
+        profile_map: &HashMap<String, HashMap<String, String>>,
+    ) -> Option<AwsProfileInfo> {
+        let name = profile_name.to_string();
+        let prof_map = match profile_map.get(profile_name) {
+            Some(p) => p,
+            None => return None,
+        };
+        let region = prof_map
+            .get("region")
+            .cloned()
+            .unwrap_or_else(|| "us-east-1".to_string());
+
+        let source_profile = prof_map.get("source_profile").map(|x| x.to_string());
+        let role_arn = prof_map.get("role_arn").map(|x| x.to_string());
+        let mut access_key = prof_map.get("aws_access_key_id").map(|x| x.to_string());
+        let mut access_secret = prof_map.get("aws_secret_access_key").map(|x| x.to_string());
+
+        if let Some(s) = source_profile.as_ref() {
+            let pmap = match profile_map.get(s) {
+                Some(p) => p,
+                None => return None,
+            };
+            pmap.get("aws_access_key_id")
+                .map(|a| access_key.replace(a.to_string()));
+            pmap.get("aws_secret_access_key")
+                .map(|a| access_secret.replace(a.to_string()));
         }
+        let aws_access_key_id = match access_key {
+            Some(a) => a,
+            None => return None,
+        };
+        let aws_secret_access_key = match access_secret {
+            Some(a) => a,
+            None => return None,
+        };
+        Some(AwsProfileInfo {
+            name,
+            region,
+            aws_access_key_id,
+            aws_secret_access_key,
+            role_arn,
+            source_profile,
+        })
     }
 
     pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, Error> {
         let home_dir = var("HOME").map_err(|e| format_err!("No HOME directory {}", e))?;
         let config_file = format!("{}/.aws/config", home_dir);
         let credential_file = format!("{}/.aws/credentials", home_dir);
-        let mut profile_map = HashMap::new();
-        let mut current_profile: Option<String> = None;
-        let mut current_info: Option<AwsProfileInfo> = Some(AwsProfileInfo::default());
+
+        let mut profile_map: HashMap<String, HashMap<String, String>> = HashMap::new();
+
         for fname in &[config_file, credential_file] {
             if !Path::new(fname).exists() {
                 continue;
             }
-            let results: Result<(), Error> = BufReader::new(File::open(fname)?)
-                .lines()
-                .map(|l| {
-                    let line = l?.trim().to_string();
-                    if line.starts_with('[') && line.ends_with(']') {
-                        let new_name = line
-                            .replace("[", "")
-                            .replace("]", "")
-                            .replace("profile ", "")
-                            .trim()
-                            .to_string();
-                        let new_info = profile_map
-                            .remove(&new_name)
-                            .unwrap_or_else(AwsProfileInfo::default);
-                        let old_name = current_profile.replace(new_name);
-                        let old_info = current_info.replace(new_info);
-                        if let Some(name) = old_name {
-                            if let Some(info) = old_info {
-                                profile_map.insert(name, info);
+
+            if let Some(p) = parse_config_file(fname) {
+                if profile_map.is_empty() {
+                    profile_map = p;
+                } else {
+                    for (k, v) in p {
+                        match profile_map.get_mut(&k) {
+                            Some(pm) => {
+                                for (k_, v_) in v {
+                                    pm.insert(k_, v_);
+                                }
+                            }
+                            None => {
+                                profile_map.insert(k, v);
                             }
                         }
-                    } else {
-                        let entries: Vec<_> = line.split('=').map(|x| x.trim()).collect();
-                        if entries.len() >= 2 {
-                            current_info.as_mut().map(|c| c.add(entries[0], entries[1]));
-                        }
                     }
-                    Ok(())
-                })
-                .collect();
-            results?;
-            if let Some(name) = current_profile.take() {
-                if let Some(info) = current_info.take() {
-                    profile_map.insert(name, info);
                 }
             }
         }
+        let profile_map: HashMap<_, _> = profile_map
+            .keys()
+            .filter_map(|k| Self::from_hashmap(k, &profile_map).map(|p| (k.to_string(), p)))
+            .collect();
+
         Ok(profile_map)
     }
+}
+
+/// Stolen from rusoto credential's profile.rs
+fn parse_config_file<P>(file_path: P) -> Option<HashMap<String, HashMap<String, String>>>
+where
+    P: AsRef<Path>,
+{
+    if !file_path.as_ref().exists() || !file_path.as_ref().is_file() {
+        return None;
+    }
+
+    let file = File::open(file_path).expect("expected file");
+    let file_lines = BufReader::new(&file);
+    let result: (HashMap<String, HashMap<String, String>>, Option<String>) = file_lines
+        .lines()
+        .filter_map(|line| {
+            line.ok()
+                .map(|l| l.trim_matches(' ').to_owned())
+                .into_iter()
+                .find(|l| !l.starts_with('#') && !l.is_empty())
+        })
+        .fold(Default::default(), |(mut result, profile), line| {
+            if PROFILE_REGEX.is_match(&line) {
+                let caps = PROFILE_REGEX.captures(&line).unwrap();
+                let next_profile = caps.get(2).map(|value| value.as_str().to_string());
+                (result, next_profile)
+            } else {
+                match &line
+                    .splitn(2, '=')
+                    .map(|value| value.trim_matches(' '))
+                    .collect::<Vec<&str>>()[..]
+                {
+                    [key, value] if !key.is_empty() && !value.is_empty() => {
+                        if let Some(current) = profile.clone() {
+                            let values = result.entry(current).or_insert_with(HashMap::new);
+                            (*values).insert(key.to_string(), value.to_string());
+                        }
+                        (result, profile)
+                    }
+                    _ => (result, profile),
+                }
+            }
+        });
+    Some(result.0)
 }
 
 #[cfg(test)]
