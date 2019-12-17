@@ -120,9 +120,16 @@ impl AwsAppInterface {
                     }
                 }
                 ResourceType::Ami => {
-                    let ami_tags = self.ec2.get_ami_tags()?;
+                    let mut ami_tags = self.ec2.get_ami_tags()?;
                     if ami_tags.is_empty() {
                         continue;
+                    }
+                    let mut ubuntu_amis = self
+                        .ec2
+                        .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
+                    ubuntu_amis.sort_by_key(|x| x.name.clone());
+                    if !ubuntu_amis.is_empty() {
+                        ami_tags.push(ubuntu_amis[ubuntu_amis.len()-1].clone());
                     }
                     println!("---\nAMI's:");
                     for ami in &ami_tags {
