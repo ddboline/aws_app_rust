@@ -660,7 +660,7 @@ impl Ec2Instance {
             .map_err(err_msg)
             .map(|x| {
                 x.key_pairs
-                    .unwrap_or_else(|| Vec::new())
+                    .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|key| {
                         let fingerprint = key.key_fingerprint.unwrap_or_else(|| "".to_string());
