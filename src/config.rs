@@ -14,6 +14,7 @@ pub struct ConfigInner {
     pub spot_security_group: String,
     pub default_key_name: String,
     pub script_directory: String,
+    pub ubuntu_release: String,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -69,6 +70,8 @@ impl Config {
             .map_err(|e| format_err!("DEFAULT_KEY_NAME mut be set {}", e))?;
         let script_directory: String = var("SCRIPT_DIRECTORY")
             .unwrap_or_else(|_| format!("{}/.config/aws_app_rust/scripts", home_dir));
+        let ubuntu_release: String =
+            var("UBUNTU_RELEASE").unwrap_or_else(|_| "bionic-18.04".to_string());
 
         let conf = ConfigInner {
             database_url,
@@ -79,6 +82,7 @@ impl Config {
             spot_security_group,
             default_key_name,
             script_directory,
+            ubuntu_release,
         };
 
         Ok(Config(Arc::new(conf)))

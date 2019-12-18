@@ -121,6 +121,46 @@ impl Ec2Instance {
             })
     }
 
+    pub fn get_latest_ubuntu_ami(&self, ubuntu_release: &str) -> Result<Vec<AmiInfo>, Error> {
+        let ubuntu_owner = "099720109477".to_string();
+        self.ec2_client
+            .describe_images(DescribeImagesRequest {
+                filters: Some(vec![
+                    Filter {
+                        name: Some("owner-id".to_string()),
+                        values: Some(vec![ubuntu_owner]),
+                    },
+                    Filter {
+                        name: Some("name".to_string()),
+                        values: Some(vec![format!(
+                            "ubuntu/images/hvm-ssd/ubuntu-{}-amd64-server*",
+                            ubuntu_release
+                        )]),
+                    },
+                ]),
+                ..Default::default()
+            })
+            .sync()
+            .map_err(err_msg)
+            .map(|l| {
+                l.images
+                    .unwrap_or_else(Vec::new)
+                    .into_iter()
+                    .filter_map(|image| {
+                        Some(AmiInfo {
+                            id: some!(image.image_id),
+                            name: some!(image.name),
+                            state: some!(image.state),
+                            snapshot_ids: some!(image.block_device_mappings)
+                                .into_iter()
+                                .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id))
+                                .collect(),
+                        })
+                    })
+                    .collect()
+            })
+    }
+
     pub fn get_ami_map(&self) -> Result<HashMap<String, String>, Error> {
         Ok(self
             .get_ami_tags()?
@@ -649,7 +689,7 @@ pub struct SpotRequest {
     pub tags: HashMap<String, String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AmiInfo {
     pub id: String,
     pub name: String,
