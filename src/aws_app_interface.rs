@@ -135,6 +135,13 @@ impl AwsAppInterface {
                         );
                     }
                 }
+                ResourceType::Key => {
+                    let keys = self.ec2.get_all_key_pairs()?;
+                    println!("---\nKeys:");
+                    for (key, fingerprint) in keys {
+                        println!("{} {}", key, fingerprint);
+                    }
+                }
                 ResourceType::Volume => {
                     let volumes = self.ec2.get_all_volumes()?;
                     if volumes.is_empty() {

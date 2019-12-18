@@ -10,6 +10,7 @@ pub enum ResourceType {
     Volume,
     Snapshot,
     Ecr,
+    Key,
 }
 
 impl fmt::Display for ResourceType {
@@ -24,6 +25,7 @@ impl fmt::Display for ResourceType {
                 ResourceType::Volume => "volume",
                 ResourceType::Snapshot => "snapshot",
                 ResourceType::Ecr => "ecr",
+                ResourceType::Key => "key",
             }
         )
     }
@@ -40,6 +42,7 @@ impl FromStr for ResourceType {
             "volume" => Ok(ResourceType::Volume),
             "snapshot" => Ok(ResourceType::Snapshot),
             "ecr" => Ok(ResourceType::Ecr),
+            "key" => Ok(ResourceType::Key),
             _ => Err(format_err!("{} is not a ResourceType", s)),
         }
     }

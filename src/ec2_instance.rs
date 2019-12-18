@@ -5,11 +5,11 @@ use rusoto_ec2::{
     AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
     CreateSnapshotRequest, CreateTagsRequest, CreateVolumeRequest, DeleteSnapshotRequest,
     DeleteVolumeRequest, DeregisterImageRequest, DescribeImagesRequest, DescribeInstancesRequest,
-    DescribeRegionsRequest, DescribeReservedInstancesRequest, DescribeSnapshotsRequest,
-    DescribeSpotInstanceRequestsRequest, DescribeSpotPriceHistoryRequest, DescribeVolumesRequest,
-    DetachVolumeRequest, Ec2, Ec2Client, Filter, ModifyVolumeRequest, RequestSpotInstancesRequest,
-    RequestSpotLaunchSpecification, RunInstancesRequest, Tag, TagSpecification,
-    TerminateInstancesRequest,
+    DescribeKeyPairsRequest, DescribeRegionsRequest, DescribeReservedInstancesRequest,
+    DescribeSnapshotsRequest, DescribeSpotInstanceRequestsRequest, DescribeSpotPriceHistoryRequest,
+    DescribeVolumesRequest, DetachVolumeRequest, Ec2, Ec2Client, Filter, ModifyVolumeRequest,
+    RequestSpotInstancesRequest, RequestSpotLaunchSpecification, RunInstancesRequest, Tag,
+    TagSpecification, TerminateInstancesRequest,
 };
 use std::collections::HashMap;
 use std::fmt;
@@ -610,6 +610,23 @@ impl Ec2Instance {
             })
             .sync()
             .map_err(err_msg)
+    }
+
+    pub fn get_all_key_pairs(&self) -> Result<Vec<(String, String)>, Error> {
+        self.ec2_client
+            .describe_key_pairs(DescribeKeyPairsRequest::default())
+            .sync()
+            .map_err(err_msg)
+            .map(|x| {
+                x.key_pairs
+                    .unwrap_or_else(|| Vec::new())
+                    .into_iter()
+                    .filter_map(|key| {
+                        let fingerprint = key.key_fingerprint.unwrap_or_else(|| "".to_string());
+                        key.key_name.map(|x| (x, fingerprint))
+                    })
+                    .collect()
+            })
     }
 }
 
