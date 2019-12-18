@@ -25,6 +25,8 @@ pub struct SpotRequestOpt {
     price: Option<f32>,
     #[structopt(short, long, long = "tag")]
     tags: Vec<String>,
+    #[structopt(short, long)]
+    key_name: Option<String>,
 }
 
 fn get_tags(tags: &[String]) -> HashMap<String, String> {
@@ -53,6 +55,9 @@ impl SpotRequestOpt {
                 .security_group
                 .unwrap_or_else(|| config.spot_security_group.clone()),
             script: self.script.unwrap_or_else(|| "setup_aws.sh".to_string()),
+            key_name: self
+                .key_name
+                .unwrap_or_else(|| config.default_key_name.to_string()),
             price: self.price.unwrap_or(config.max_spot_price),
             tags: get_tags(&self.tags),
         }

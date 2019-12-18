@@ -129,7 +129,7 @@ impl AwsAppInterface {
                         .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
                     ubuntu_amis.sort_by_key(|x| x.name.clone());
                     if !ubuntu_amis.is_empty() {
-                        ami_tags.push(ubuntu_amis[ubuntu_amis.len()-1].clone());
+                        ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
                     }
                     println!("---\nAMI's:");
                     for ami in &ami_tags {

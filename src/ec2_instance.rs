@@ -429,6 +429,7 @@ impl Ec2Instance {
                     instance_type: Some(spot.instance_type.to_string()),
                     security_group_ids: Some(vec![spot.security_group.to_string()]),
                     user_data: Some(base64::encode(&user_data)),
+                    key_name: Some(spot.key_name.to_string()),
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -685,6 +686,7 @@ pub struct SpotRequest {
     pub instance_type: String,
     pub security_group: String,
     pub script: String,
+    pub key_name: String,
     pub price: f32,
     pub tags: HashMap<String, String>,
 }
