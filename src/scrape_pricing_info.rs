@@ -1,5 +1,6 @@
 use chrono::Utc;
 use failure::{err_msg, Error};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -14,7 +15,7 @@ pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<(), Erro
     let results = parse_json(js, ptype)?;
     println!("{}", results.len());
     results
-        .into_iter()
+        .into_par_iter()
         .map(|r| r.upsert_entry(pool).map(|_| ()))
         .collect()
 }

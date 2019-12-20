@@ -1,4 +1,5 @@
 use failure::{err_msg, Error};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::Url;
 use select::document::Document;
 use select::node::Node;
@@ -83,14 +84,14 @@ fn extract_instance_types_pv<'a>(
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.iter().all(|x| x == "") {
+            if !row.is_empty() && !row.par_iter().all(|x| x == "") {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.iter().all(|x| x == "") {
+                if row.par_iter().all(|x| x == "") {
                     return None;
                 }
 
@@ -112,7 +113,7 @@ fn extract_instance_types_pv<'a>(
             }
         }
 
-        if final_indicies.iter().all(|x| *x != -1) {
+        if final_indicies.par_iter().all(|x| *x != -1) {
             let mut instance_families = Vec::new();
             let mut instance_types = Vec::new();
             for row in &rows[1..] {
@@ -165,14 +166,14 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.iter().all(|x| x == "") {
+            if !row.is_empty() && !row.par_iter().all(|x| x == "") {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.iter().all(|x| x == "") {
+                if row.par_iter().all(|x| x == "") {
                     return None;
                 }
 
@@ -195,18 +196,18 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                     }
                 }
             }
-            if indicies.iter().all(|x| *x != -1) {
+            if indicies.par_iter().all(|x| *x != -1) {
                 final_indicies = indicies;
                 break;
             }
         }
-        if final_indicies.iter().any(|x| *x == -1) {
+        if final_indicies.par_iter().any(|x| *x == -1) {
             println!("{:?}", rows[0]);
             println!("{:?}", rows[1]);
             println!("{:?}", final_indicies);
         } else {
             return rows[1..]
-                .iter()
+                .par_iter()
                 .map(
                     |row| match extract_instance_type_object_hvm(row, final_indicies) {
                         Ok(x) => {

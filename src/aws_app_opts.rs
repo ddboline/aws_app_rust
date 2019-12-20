@@ -1,5 +1,6 @@
 use failure::Error;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::slice::ParallelSliceMut;
 use std::collections::HashMap;
 use std::string::ToString;
 use structopt::StructOpt;
@@ -30,7 +31,7 @@ pub struct SpotRequestOpt {
 }
 
 fn get_tags(tags: &[String]) -> HashMap<String, String> {
-    tags.iter()
+    tags.par_iter()
         .map(|tag| {
             if tag.contains(':') {
                 let t: Vec<_> = tag.split(':').collect();
@@ -104,7 +105,7 @@ pub enum AwsAppOpts {
     /// List information about resources
     List {
         #[structopt(short)]
-        /// Possible values are: "reserved", "spot", "ami", "volume", "snapshot", "ecr"
+        /// Possible values are: "reserved", "spot", "ami", "volume", "snapshot", "ecr", "key"
         resources: Vec<ResourceType>,
         #[structopt(short, long)]
         /// List all regions
@@ -267,17 +268,17 @@ impl AwsAppOpts {
             }
             AwsAppOpts::ListInstances { search } => {
                 let mut instances: Vec<_> = InstanceList::get_all_instances(&app.pool)?
-                    .into_iter()
+                    .into_par_iter()
                     .filter(|inst| {
                         if !search.is_empty() {
-                            search.iter().any(|s| inst.instance_type.contains(s))
+                            search.par_iter().any(|s| inst.instance_type.contains(s))
                         } else {
                             true
                         }
                     })
                     .collect();
-                instances.sort_by_cached_key(|i| i.n_cpu);
-                instances.sort_by_cached_key(|i| {
+                instances.par_sort_by_key(|i| i.n_cpu);
+                instances.par_sort_by_key(|i| {
                     i.instance_type
                         .split('.')
                         .nth(0)

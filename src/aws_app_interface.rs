@@ -2,7 +2,8 @@ use chrono::Local;
 use failure::Error;
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::slice::ParallelSliceMut;
 use std::collections::{HashMap, HashSet};
 
 use crate::config::Config;
@@ -60,161 +61,215 @@ impl AwsAppInterface {
         let mut instances = INSTANCE_LIST.write();
 
         if !instances.is_empty() {
-            instances.sort_by_cached_key(|inst| inst.launch_time);
-            instances.sort_by_cached_key(|inst| inst.state != "running");
+            instances.par_sort_by_key(|inst| inst.launch_time);
+            instances.par_sort_by_key(|inst| inst.state != "running");
             println!("instances:");
-            for inst in instances.iter() {
-                let name = inst
-                    .tags
-                    .get("Name")
-                    .cloned()
-                    .unwrap_or_else(|| "".to_string());
-                println!(
-                    "{} {} {} {} {} {} {}",
-                    inst.id,
-                    inst.dns_name,
-                    inst.state,
-                    name,
-                    inst.instance_type,
-                    inst.launch_time.with_timezone(&Local),
-                    inst.availability_zone,
-                );
+            let result: Vec<_> = instances
+                .par_iter()
+                .map(|inst| {
+                    let name = inst
+                        .tags
+                        .get("Name")
+                        .cloned()
+                        .unwrap_or_else(|| "".to_string());
+                    format!(
+                        "{} {} {} {} {} {} {}",
+                        inst.id,
+                        inst.dns_name,
+                        inst.state,
+                        name,
+                        inst.instance_type,
+                        inst.launch_time.with_timezone(&Local),
+                        inst.availability_zone,
+                    )
+                })
+                .collect();
+            for item in result {
+                println!("{}", item);
             }
         }
 
         let mut visited_resources = HashSet::new();
-        for resource in resources {
-            if !visited_resources.insert(resource) {
-                continue;
-            }
-            match resource {
-                ResourceType::Reserved => {
-                    let reserved = self.ec2.get_reserved_instances()?;
-                    if reserved.is_empty() {
-                        continue;
-                    }
-                    println!("---\nGet Reserved Instance\n---");
-                    for res in &reserved {
-                        println!(
-                            "{} {} {} {} {}",
-                            res.id, res.price, res.instance_type, res.state, res.availability_zone
-                        );
-                    }
-                }
-                ResourceType::Spot => {
-                    let requests = self.ec2.get_spot_instance_requests()?;
-                    if requests.is_empty() {
-                        continue;
-                    }
-                    println!("---\nSpot Instance Requests:");
-                    for req in &requests {
-                        println!(
-                            "{} {} {} {} {} {}",
-                            req.id,
-                            req.price,
-                            req.imageid,
-                            req.instance_type,
-                            req.spot_type,
-                            req.status
-                        );
-                    }
-                }
-                ResourceType::Ami => {
-                    let mut ami_tags = self.ec2.get_ami_tags()?;
-                    if ami_tags.is_empty() {
-                        continue;
-                    }
-                    let mut ubuntu_amis = self
-                        .ec2
-                        .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
-                    ubuntu_amis.sort_by_key(|x| x.name.clone());
-                    if !ubuntu_amis.is_empty() {
-                        ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
-                    }
-                    println!("---\nAMI's:");
-                    for ami in &ami_tags {
-                        println!(
-                            "{} {} {} {}",
-                            ami.id,
-                            ami.name,
-                            ami.state,
-                            ami.snapshot_ids.join(" ")
-                        );
-                    }
-                }
-                ResourceType::Key => {
-                    let keys = self.ec2.get_all_key_pairs()?;
-                    println!("---\nKeys:");
-                    for (key, fingerprint) in keys {
-                        println!("{} {}", key, fingerprint);
-                    }
-                }
-                ResourceType::Volume => {
-                    let volumes = self.ec2.get_all_volumes()?;
-                    if volumes.is_empty() {
-                        continue;
-                    }
-                    println!("---\nVolumes:");
-                    for vol in &volumes {
-                        println!(
-                            "{} {} {} {} {} {}",
-                            vol.id,
-                            vol.availability_zone,
-                            vol.size,
-                            vol.iops,
-                            vol.state,
-                            print_tags(&vol.tags)
-                        );
-                    }
-                }
-                ResourceType::Snapshot => {
-                    let snapshots = self.ec2.get_all_snapshots()?;
-                    if snapshots.is_empty() {
-                        continue;
-                    }
-                    println!("---\nSnapshots:");
-                    for snap in &snapshots {
-                        println!(
-                            "{} {} GB {} {} {}",
-                            snap.id,
-                            snap.volume_size,
-                            snap.state,
-                            snap.progress,
-                            print_tags(&snap.tags)
-                        );
-                    }
-                }
-                ResourceType::Ecr => {
-                    let repos = self.ecr.get_all_repositories()?;
-                    if repos.is_empty() {
-                        continue;
-                    }
-                    println!("---\nECR images");
-                    for repo in &repos {
-                        let images = self.ecr.get_all_images(&repo)?;
-                        for image in &images {
-                            println!(
-                                "{} {} {}",
-                                repo,
-                                image
-                                    .tags
-                                    .get(0)
-                                    .map(|s| s.as_str())
-                                    .unwrap_or_else(|| "None"),
-                                image.digest
-                            );
+        let resources: Vec<_> = resources
+            .iter()
+            .filter(|x| visited_resources.insert(*x))
+            .collect();
+
+        let result: Result<Vec<_>, Error> = resources
+            .into_par_iter()
+            .map(|resource| {
+                let mut output = Vec::new();
+                match resource {
+                    ResourceType::Reserved => {
+                        let reserved = self.ec2.get_reserved_instances()?;
+                        if reserved.is_empty() {
+                            return Ok(Vec::new());
                         }
+                        output.push(format!("---\nGet Reserved Instance\n---"));
+                        let result: Vec<_> = reserved
+                            .par_iter()
+                            .map(|res| {
+                                format!(
+                                    "{} {} {} {} {}",
+                                    res.id,
+                                    res.price,
+                                    res.instance_type,
+                                    res.state,
+                                    res.availability_zone
+                                )
+                            })
+                            .collect();
+                        output.extend_from_slice(&result);
                     }
-                }
-            };
+                    ResourceType::Spot => {
+                        let requests = self.ec2.get_spot_instance_requests()?;
+                        if requests.is_empty() {
+                            return Ok(Vec::new());
+                        }
+                        output.push(format!("---\nSpot Instance Requests:"));
+                        let result: Vec<_> = requests
+                            .par_iter()
+                            .map(|req| {
+                                format!(
+                                    "{} {} {} {} {} {}",
+                                    req.id,
+                                    req.price,
+                                    req.imageid,
+                                    req.instance_type,
+                                    req.spot_type,
+                                    req.status
+                                )
+                            })
+                            .collect();
+                        output.extend_from_slice(&result);
+                    }
+                    ResourceType::Ami => {
+                        let mut ami_tags = self.ec2.get_ami_tags()?;
+                        if ami_tags.is_empty() {
+                            return Ok(Vec::new());
+                        }
+                        let mut ubuntu_amis = self
+                            .ec2
+                            .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
+                        ubuntu_amis.par_sort_by_key(|x| x.name.clone());
+                        if !ubuntu_amis.is_empty() {
+                            ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
+                        }
+                        output.push(format!("---\nAMI's:"));
+                        let result: Vec<_> = ami_tags
+                            .par_iter()
+                            .map(|ami| {
+                                format!(
+                                    "{} {} {} {}",
+                                    ami.id,
+                                    ami.name,
+                                    ami.state,
+                                    ami.snapshot_ids.join(" ")
+                                )
+                            })
+                            .collect();
+                        output.extend_from_slice(&result);
+                    }
+                    ResourceType::Key => {
+                        let keys = self.ec2.get_all_key_pairs()?;
+                        output.push(format!("---\nKeys:"));
+                        let result: Vec<_> = keys
+                            .into_par_iter()
+                            .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
+                            .collect();
+                        output.extend_from_slice(&result);
+                    }
+                    ResourceType::Volume => {
+                        let volumes = self.ec2.get_all_volumes()?;
+                        if volumes.is_empty() {
+                            return Ok(Vec::new());
+                        }
+                        output.push(format!("---\nVolumes:"));
+                        let result: Vec<_> = volumes
+                            .par_iter()
+                            .map(|vol| {
+                                format!(
+                                    "{} {} {} {} {} {}",
+                                    vol.id,
+                                    vol.availability_zone,
+                                    vol.size,
+                                    vol.iops,
+                                    vol.state,
+                                    print_tags(&vol.tags)
+                                )
+                            })
+                            .collect();
+                        output.extend_from_slice(&result);
+                    }
+                    ResourceType::Snapshot => {
+                        let snapshots = self.ec2.get_all_snapshots()?;
+                        if snapshots.is_empty() {
+                            return Ok(Vec::new());
+                        }
+                        output.push(format!("---\nSnapshots:"));
+                        let result: Vec<_> = snapshots
+                            .par_iter()
+                            .map(|snap| {
+                                format!(
+                                    "{} {} GB {} {} {}",
+                                    snap.id,
+                                    snap.volume_size,
+                                    snap.state,
+                                    snap.progress,
+                                    print_tags(&snap.tags)
+                                )
+                            })
+                            .collect();
+                        output.extend_from_slice(&result);
+                    }
+                    ResourceType::Ecr => {
+                        let repos = self.ecr.get_all_repositories()?;
+                        if repos.is_empty() {
+                            return Ok(Vec::new());
+                        }
+                        output.push(format!("---\nECR images"));
+                        let result: Result<Vec<_>, Error> = repos
+                            .par_iter()
+                            .map(|repo| {
+                                let images = self.ecr.get_all_images(&repo)?;
+                                let lines: Vec<_> = images
+                                    .par_iter()
+                                    .map(|image| {
+                                        format!(
+                                            "{} {} {}",
+                                            repo,
+                                            image
+                                                .tags
+                                                .get(0)
+                                                .map(|s| s.as_str())
+                                                .unwrap_or_else(|| "None"),
+                                            image.digest
+                                        )
+                                    })
+                                    .collect();
+                                Ok(lines)
+                            })
+                            .collect();
+                        let result: Vec<_> = result?.into_par_iter().flatten().collect();
+                        output.extend_from_slice(&result);
+                    }
+                };
+                Ok(output)
+            })
+            .collect();
+        let output: Vec<_> = result?.into_par_iter().flatten().collect();
+
+        for line in output {
+            println!("{}", line);
         }
+
         Ok(())
     }
 
     fn get_name_map(&self) -> Result<HashMap<String, String>, Error> {
         Ok(INSTANCE_LIST
             .read()
-            .iter()
+            .par_iter()
             .filter_map(|inst| {
                 if inst.state != "running" {
                     return None;
@@ -230,7 +285,7 @@ impl AwsAppInterface {
         self.fill_instance_list()?;
         let name_map = self.get_name_map()?;
         let mapped_inst_ids: Vec<String> = instance_ids
-            .iter()
+            .par_iter()
             .map(|id| map_or_val(&name_map, id))
             .collect();
         self.ec2.terminate_instance(&mapped_inst_ids)
@@ -239,7 +294,7 @@ impl AwsAppInterface {
     fn get_id_host_map(&self) -> Result<HashMap<String, String>, Error> {
         Ok(INSTANCE_LIST
             .read()
-            .iter()
+            .par_iter()
             .filter_map(|inst| {
                 if inst.state != "running" {
                     return None;
@@ -262,23 +317,23 @@ impl AwsAppInterface {
 
     pub fn get_ec2_prices(&self, search: &[String]) -> Result<(), Error> {
         let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)?
-            .into_iter()
+            .into_par_iter()
             .map(|f| (f.family_name.to_string(), f))
             .collect();
         let instance_list: HashMap<_, _> = InstanceList::get_all_instances(&self.pool)?
-            .into_iter()
+            .into_par_iter()
             .map(|i| (i.instance_type.to_string(), i))
             .collect();
         let inst_list: Vec<_> = instance_list
-            .keys()
-            .map(|s| s.to_string())
-            .filter(|inst| search.iter().any(|s| inst.contains(s)))
+            .par_iter()
+            .map(|(k, _)| k.to_string())
+            .filter(|inst| search.par_iter().any(|s| inst.contains(s)))
             .collect();
 
         let spot_prices = self.ec2.get_latest_spot_inst_prices(&inst_list)?;
 
         let prices: HashMap<_, _> = InstancePricing::get_all(&self.pool)?
-            .into_iter()
+            .into_par_iter()
             .map(|p| ((p.instance_type.to_string(), p.price_type.to_string()), p))
             .collect();
 
@@ -319,7 +374,7 @@ impl AwsAppInterface {
                 (instance_metadata.n_cpu, outstr.join(""))
             })
             .collect();
-        outstrings.sort();
+        outstrings.par_sort();
 
         for (_, line) in &outstrings {
             println!("{}", line);
@@ -356,7 +411,7 @@ impl AwsAppInterface {
         Ok(self
             .ec2
             .get_all_snapshots()?
-            .into_iter()
+            .into_par_iter()
             .filter_map(|snap| {
                 snap.tags
                     .get("Name")
@@ -380,7 +435,7 @@ impl AwsAppInterface {
         Ok(self
             .ec2
             .get_all_volumes()?
-            .into_iter()
+            .into_par_iter()
             .filter_map(|vol| {
                 vol.tags
                     .get("Name")
@@ -434,7 +489,10 @@ impl AwsAppInterface {
 }
 
 fn print_tags(tags: &HashMap<String, String>) -> String {
-    let results: Vec<_> = tags.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
+    let results: Vec<_> = tags
+        .par_iter()
+        .map(|(k, v)| format!("{}={}", k, v))
+        .collect();
     results.join(", ")
 }
 

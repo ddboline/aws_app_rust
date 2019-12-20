@@ -1,5 +1,6 @@
 use chrono::{DateTime, Duration, Utc};
 use failure::{err_msg, Error};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rusoto_core::Region;
 use rusoto_ec2::{
     AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
@@ -105,14 +106,14 @@ impl Ec2Instance {
             .map(|l| {
                 l.images
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|image| {
                         Some(AmiInfo {
                             id: some!(image.image_id),
                             name: some!(image.name),
                             state: some!(image.state),
                             snapshot_ids: some!(image.block_device_mappings)
-                                .into_iter()
+                                .into_par_iter()
                                 .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id))
                                 .collect(),
                         })
@@ -145,14 +146,14 @@ impl Ec2Instance {
             .map(|l| {
                 l.images
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|image| {
                         Some(AmiInfo {
                             id: some!(image.image_id),
                             name: some!(image.name),
                             state: some!(image.state),
                             snapshot_ids: some!(image.block_device_mappings)
-                                .into_iter()
+                                .into_par_iter()
                                 .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id))
                                 .collect(),
                         })
@@ -164,7 +165,7 @@ impl Ec2Instance {
     pub fn get_ami_map(&self) -> Result<HashMap<String, String>, Error> {
         Ok(self
             .get_ami_tags()?
-            .into_iter()
+            .into_par_iter()
             .map(|ami| (ami.name, ami.id))
             .collect())
     }
@@ -177,7 +178,7 @@ impl Ec2Instance {
             .map(|r| {
                 r.regions
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|region| {
                         Some((some!(region.region_name), some!(region.opt_in_status)))
                     })
@@ -194,16 +195,16 @@ impl Ec2Instance {
                 instances
                     .reservations
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|res| {
                         res.instances.map(|instances| {
                             instances
-                                .into_iter()
+                                .into_par_iter()
                                 .filter_map(|inst| {
                                     let tags: HashMap<String, String> = inst
                                         .tags
                                         .unwrap_or_else(Vec::new)
-                                        .into_iter()
+                                        .into_par_iter()
                                         .filter_map(|tag| Some((some!(tag.key), some!(tag.value))))
                                         .collect();
                                     Some(Ec2InstanceInfo {
@@ -237,7 +238,7 @@ impl Ec2Instance {
             .map(|res| {
                 res.reserved_instances
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|inst| {
                         let state = some!(inst.state.as_ref());
                         if state == "retired" {
@@ -296,7 +297,7 @@ impl Ec2Instance {
                 spot_hist
                     .spot_price_history
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|spot_price| {
                         Some((
                             some!(spot_price.instance_type),
@@ -315,7 +316,7 @@ impl Ec2Instance {
             .map(|s| {
                 s.spot_instance_requests
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|inst| {
                         let launch_spec = some!(inst.launch_specification).clone();
                         Some(SpotInstanceRequestInfo {
@@ -348,7 +349,7 @@ impl Ec2Instance {
             .map(|v| {
                 v.volumes
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|v| {
                         Some(VolumeInfo {
                             id: some!(v.volume_id),
@@ -359,7 +360,7 @@ impl Ec2Instance {
                             tags: v
                                 .tags
                                 .unwrap_or_else(Vec::new)
-                                .into_iter()
+                                .into_par_iter()
                                 .filter_map(|t| Some((some!(t.key), some!(t.value))))
                                 .collect(),
                         })
@@ -387,7 +388,7 @@ impl Ec2Instance {
             .map(|s| {
                 s.snapshots
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|snap| {
                         Some(SnapshotInfo {
                             id: some!(snap.snapshot_id),
@@ -397,7 +398,7 @@ impl Ec2Instance {
                             tags: snap
                                 .tags
                                 .unwrap_or_else(Vec::new)
-                                .into_iter()
+                                .into_par_iter()
                                 .filter_map(|t| Some((some!(t.key), some!(t.value))))
                                 .collect(),
                         })
@@ -442,13 +443,13 @@ impl Ec2Instance {
                 }
                 req.spot_instance_requests
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .map(|result| {
                         if let Some(spot_instance_request_id) = result.spot_instance_request_id {
                             for _ in 0..20 {
                                 let reqs: HashMap<_, _> = self
                                     .get_spot_instance_requests()?
-                                    .into_iter()
+                                    .into_par_iter()
                                     .map(|r| (r.id, r.instance_id))
                                     .collect();
                                 if let Some(Some(instance_id)) = reqs.get(&spot_instance_request_id)
@@ -488,7 +489,7 @@ impl Ec2Instance {
             .create_tags(CreateTagsRequest {
                 resources: vec![inst_id.to_string()],
                 tags: tags
-                    .iter()
+                    .par_iter()
                     .map(|(k, v)| Tag {
                         key: Some(k.to_string()),
                         value: Some(v.to_string()),
@@ -519,7 +520,7 @@ impl Ec2Instance {
             .and_then(|req| {
                 req.instances
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|inst| inst.instance_id)
                     .map(|inst| self.tag_ec2_instance(&inst, &request.tags))
                     .collect()
@@ -627,7 +628,7 @@ impl Ec2Instance {
                     Some(vec![TagSpecification {
                         resource_type: Some("snapshot".to_string()),
                         tags: Some(
-                            tags.iter()
+                            tags.par_iter()
                                 .map(|(k, v)| Tag {
                                     key: Some(k.to_string()),
                                     value: Some(v.to_string()),
@@ -661,7 +662,7 @@ impl Ec2Instance {
             .map(|x| {
                 x.key_pairs
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|key| {
                         let fingerprint = key.key_fingerprint.unwrap_or_else(|| "".to_string());
                         key.key_name.map(|x| (x, fingerprint))

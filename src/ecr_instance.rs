@@ -1,5 +1,5 @@
 use failure::{err_msg, Error};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rusoto_core::Region;
 use rusoto_ecr::{
     BatchDeleteImageRequest, DescribeImagesRequest, DescribeRepositoriesRequest, Ecr, EcrClient,
@@ -72,7 +72,7 @@ impl EcrInstance {
             .map(|r| {
                 r.repositories
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|repo| repo.repository_name)
                     .collect()
             })
@@ -89,7 +89,7 @@ impl EcrInstance {
             .map(|i| {
                 i.image_details
                     .unwrap_or_else(Vec::new)
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|image| {
                         Some(ImageInfo {
                             digest: some!(image.image_digest),
@@ -105,7 +105,7 @@ impl EcrInstance {
             .batch_delete_image(BatchDeleteImageRequest {
                 repository_name: reponame.to_string(),
                 image_ids: imageids
-                    .iter()
+                    .par_iter()
                     .map(|i| ImageIdentifier {
                         image_digest: Some(i.to_string()),
                         ..Default::default()
@@ -124,7 +124,7 @@ impl EcrInstance {
             .map(|repo| {
                 let imageids: Vec<_> = self
                     .get_all_images(&repo)?
-                    .into_iter()
+                    .into_par_iter()
                     .filter_map(|i| {
                         if i.tags.is_empty() {
                             Some(i.digest)
