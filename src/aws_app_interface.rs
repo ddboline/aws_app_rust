@@ -55,6 +55,162 @@ impl AwsAppInterface {
         Ok(())
     }
 
+    fn process_resource(&self, resource: ResourceType) -> Result<Vec<String>, Error> {
+        let mut output = Vec::new();
+        match resource {
+            ResourceType::Reserved => {
+                let reserved = self.ec2.get_reserved_instances()?;
+                if reserved.is_empty() {
+                    return Ok(Vec::new());
+                }
+                output.push("---\nGet Reserved Instance\n---".to_string());
+                let result: Vec<_> = reserved
+                    .par_iter()
+                    .map(|res| {
+                        format!(
+                            "{} {} {} {} {}",
+                            res.id, res.price, res.instance_type, res.state, res.availability_zone
+                        )
+                    })
+                    .collect();
+                output.extend_from_slice(&result);
+            }
+            ResourceType::Spot => {
+                let requests = self.ec2.get_spot_instance_requests()?;
+                if requests.is_empty() {
+                    return Ok(Vec::new());
+                }
+                output.push("---\nSpot Instance Requests:".to_string());
+                let result: Vec<_> = requests
+                    .par_iter()
+                    .map(|req| {
+                        format!(
+                            "{} {} {} {} {} {}",
+                            req.id,
+                            req.price,
+                            req.imageid,
+                            req.instance_type,
+                            req.spot_type,
+                            req.status
+                        )
+                    })
+                    .collect();
+                output.extend_from_slice(&result);
+            }
+            ResourceType::Ami => {
+                let mut ami_tags = self.ec2.get_ami_tags()?;
+                if ami_tags.is_empty() {
+                    return Ok(Vec::new());
+                }
+                let mut ubuntu_amis = self
+                    .ec2
+                    .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
+                ubuntu_amis.par_sort_by_key(|x| x.name.clone());
+                if !ubuntu_amis.is_empty() {
+                    ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
+                }
+                output.push("---\nAMI's:".to_string());
+                let result: Vec<_> = ami_tags
+                    .par_iter()
+                    .map(|ami| {
+                        format!(
+                            "{} {} {} {}",
+                            ami.id,
+                            ami.name,
+                            ami.state,
+                            ami.snapshot_ids.join(" ")
+                        )
+                    })
+                    .collect();
+                output.extend_from_slice(&result);
+            }
+            ResourceType::Key => {
+                let keys = self.ec2.get_all_key_pairs()?;
+                output.push("---\nKeys:".to_string());
+                let result: Vec<_> = keys
+                    .into_par_iter()
+                    .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
+                    .collect();
+                output.extend_from_slice(&result);
+            }
+            ResourceType::Volume => {
+                let volumes = self.ec2.get_all_volumes()?;
+                if volumes.is_empty() {
+                    return Ok(Vec::new());
+                }
+                output.push("---\nVolumes:".to_string());
+                let result: Vec<_> = volumes
+                    .par_iter()
+                    .map(|vol| {
+                        format!(
+                            "{} {} {} {} {} {}",
+                            vol.id,
+                            vol.availability_zone,
+                            vol.size,
+                            vol.iops,
+                            vol.state,
+                            print_tags(&vol.tags)
+                        )
+                    })
+                    .collect();
+                output.extend_from_slice(&result);
+            }
+            ResourceType::Snapshot => {
+                let snapshots = self.ec2.get_all_snapshots()?;
+                if snapshots.is_empty() {
+                    return Ok(Vec::new());
+                }
+                output.push("---\nSnapshots:".to_string());
+                let result: Vec<_> = snapshots
+                    .par_iter()
+                    .map(|snap| {
+                        format!(
+                            "{} {} GB {} {} {}",
+                            snap.id,
+                            snap.volume_size,
+                            snap.state,
+                            snap.progress,
+                            print_tags(&snap.tags)
+                        )
+                    })
+                    .collect();
+                output.extend_from_slice(&result);
+            }
+            ResourceType::Ecr => {
+                let repos = self.ecr.get_all_repositories()?;
+                if repos.is_empty() {
+                    return Ok(Vec::new());
+                }
+                output.push("---\nECR images".to_string());
+                let result: Result<Vec<_>, Error> = repos
+                    .par_iter()
+                    .map(|repo| {
+                        let images = self.ecr.get_all_images(&repo)?;
+                        let lines: Vec<_> = images
+                            .par_iter()
+                            .map(|image| {
+                                format!(
+                                    "{} {} {}",
+                                    repo,
+                                    image
+                                        .tags
+                                        .get(0)
+                                        .map(|s| s.as_str())
+                                        .unwrap_or_else(|| "None"),
+                                    image.digest
+                                )
+                            })
+                            .collect();
+                        Ok(lines)
+                    })
+                    .collect();
+                let result: Vec<_> = result?.into_par_iter().flatten().collect();
+                output.extend_from_slice(&result);
+            }
+        };
+        Ok(output)
+    }
+
     pub fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
         self.fill_instance_list()?;
 
@@ -97,165 +253,7 @@ impl AwsAppInterface {
 
         let result: Result<Vec<_>, Error> = resources
             .into_par_iter()
-            .map(|resource| {
-                let mut output = Vec::new();
-                match resource {
-                    ResourceType::Reserved => {
-                        let reserved = self.ec2.get_reserved_instances()?;
-                        if reserved.is_empty() {
-                            return Ok(Vec::new());
-                        }
-                        output.push("---\nGet Reserved Instance\n---".to_string());
-                        let result: Vec<_> = reserved
-                            .par_iter()
-                            .map(|res| {
-                                format!(
-                                    "{} {} {} {} {}",
-                                    res.id,
-                                    res.price,
-                                    res.instance_type,
-                                    res.state,
-                                    res.availability_zone
-                                )
-                            })
-                            .collect();
-                        output.extend_from_slice(&result);
-                    }
-                    ResourceType::Spot => {
-                        let requests = self.ec2.get_spot_instance_requests()?;
-                        if requests.is_empty() {
-                            return Ok(Vec::new());
-                        }
-                        output.push("---\nSpot Instance Requests:".to_string());
-                        let result: Vec<_> = requests
-                            .par_iter()
-                            .map(|req| {
-                                format!(
-                                    "{} {} {} {} {} {}",
-                                    req.id,
-                                    req.price,
-                                    req.imageid,
-                                    req.instance_type,
-                                    req.spot_type,
-                                    req.status
-                                )
-                            })
-                            .collect();
-                        output.extend_from_slice(&result);
-                    }
-                    ResourceType::Ami => {
-                        let mut ami_tags = self.ec2.get_ami_tags()?;
-                        if ami_tags.is_empty() {
-                            return Ok(Vec::new());
-                        }
-                        let mut ubuntu_amis = self
-                            .ec2
-                            .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
-                        ubuntu_amis.par_sort_by_key(|x| x.name.clone());
-                        if !ubuntu_amis.is_empty() {
-                            ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
-                        }
-                        output.push("---\nAMI's:".to_string());
-                        let result: Vec<_> = ami_tags
-                            .par_iter()
-                            .map(|ami| {
-                                format!(
-                                    "{} {} {} {}",
-                                    ami.id,
-                                    ami.name,
-                                    ami.state,
-                                    ami.snapshot_ids.join(" ")
-                                )
-                            })
-                            .collect();
-                        output.extend_from_slice(&result);
-                    }
-                    ResourceType::Key => {
-                        let keys = self.ec2.get_all_key_pairs()?;
-                        output.push("---\nKeys:".to_string());
-                        let result: Vec<_> = keys
-                            .into_par_iter()
-                            .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
-                            .collect();
-                        output.extend_from_slice(&result);
-                    }
-                    ResourceType::Volume => {
-                        let volumes = self.ec2.get_all_volumes()?;
-                        if volumes.is_empty() {
-                            return Ok(Vec::new());
-                        }
-                        output.push("---\nVolumes:".to_string());
-                        let result: Vec<_> = volumes
-                            .par_iter()
-                            .map(|vol| {
-                                format!(
-                                    "{} {} {} {} {} {}",
-                                    vol.id,
-                                    vol.availability_zone,
-                                    vol.size,
-                                    vol.iops,
-                                    vol.state,
-                                    print_tags(&vol.tags)
-                                )
-                            })
-                            .collect();
-                        output.extend_from_slice(&result);
-                    }
-                    ResourceType::Snapshot => {
-                        let snapshots = self.ec2.get_all_snapshots()?;
-                        if snapshots.is_empty() {
-                            return Ok(Vec::new());
-                        }
-                        output.push("---\nSnapshots:".to_string());
-                        let result: Vec<_> = snapshots
-                            .par_iter()
-                            .map(|snap| {
-                                format!(
-                                    "{} {} GB {} {} {}",
-                                    snap.id,
-                                    snap.volume_size,
-                                    snap.state,
-                                    snap.progress,
-                                    print_tags(&snap.tags)
-                                )
-                            })
-                            .collect();
-                        output.extend_from_slice(&result);
-                    }
-                    ResourceType::Ecr => {
-                        let repos = self.ecr.get_all_repositories()?;
-                        if repos.is_empty() {
-                            return Ok(Vec::new());
-                        }
-                        output.push("---\nECR images".to_string());
-                        let result: Result<Vec<_>, Error> = repos
-                            .par_iter()
-                            .map(|repo| {
-                                let images = self.ecr.get_all_images(&repo)?;
-                                let lines: Vec<_> = images
-                                    .par_iter()
-                                    .map(|image| {
-                                        format!(
-                                            "{} {} {}",
-                                            repo,
-                                            image
-                                                .tags
-                                                .get(0)
-                                                .map(|s| s.as_str())
-                                                .unwrap_or_else(|| "None"),
-                                            image.digest
-                                        )
-                                    })
-                                    .collect();
-                                Ok(lines)
-                            })
-                            .collect();
-                        let result: Vec<_> = result?.into_par_iter().flatten().collect();
-                        output.extend_from_slice(&result);
-                    }
-                };
-                Ok(output)
-            })
+            .map(|resource| self.process_resource(*resource))
             .collect();
         let output: Vec<_> = result?.into_par_iter().flatten().collect();
 
