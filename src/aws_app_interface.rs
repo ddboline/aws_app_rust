@@ -105,7 +105,7 @@ impl AwsAppInterface {
                         if reserved.is_empty() {
                             return Ok(Vec::new());
                         }
-                        output.push(format!("---\nGet Reserved Instance\n---"));
+                        output.push("---\nGet Reserved Instance\n---".to_string());
                         let result: Vec<_> = reserved
                             .par_iter()
                             .map(|res| {
@@ -126,7 +126,7 @@ impl AwsAppInterface {
                         if requests.is_empty() {
                             return Ok(Vec::new());
                         }
-                        output.push(format!("---\nSpot Instance Requests:"));
+                        output.push("---\nSpot Instance Requests:".to_string());
                         let result: Vec<_> = requests
                             .par_iter()
                             .map(|req| {
@@ -155,7 +155,7 @@ impl AwsAppInterface {
                         if !ubuntu_amis.is_empty() {
                             ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
                         }
-                        output.push(format!("---\nAMI's:"));
+                        output.push("---\nAMI's:".to_string());
                         let result: Vec<_> = ami_tags
                             .par_iter()
                             .map(|ami| {
@@ -172,7 +172,7 @@ impl AwsAppInterface {
                     }
                     ResourceType::Key => {
                         let keys = self.ec2.get_all_key_pairs()?;
-                        output.push(format!("---\nKeys:"));
+                        output.push("---\nKeys:".to_string());
                         let result: Vec<_> = keys
                             .into_par_iter()
                             .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
@@ -184,7 +184,7 @@ impl AwsAppInterface {
                         if volumes.is_empty() {
                             return Ok(Vec::new());
                         }
-                        output.push(format!("---\nVolumes:"));
+                        output.push("---\nVolumes:".to_string());
                         let result: Vec<_> = volumes
                             .par_iter()
                             .map(|vol| {
@@ -206,7 +206,7 @@ impl AwsAppInterface {
                         if snapshots.is_empty() {
                             return Ok(Vec::new());
                         }
-                        output.push(format!("---\nSnapshots:"));
+                        output.push("---\nSnapshots:".to_string());
                         let result: Vec<_> = snapshots
                             .par_iter()
                             .map(|snap| {
@@ -227,7 +227,7 @@ impl AwsAppInterface {
                         if repos.is_empty() {
                             return Ok(Vec::new());
                         }
-                        output.push(format!("---\nECR images"));
+                        output.push("---\nECR images".to_string());
                         let result: Result<Vec<_>, Error> = repos
                             .par_iter()
                             .map(|repo| {
