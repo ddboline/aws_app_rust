@@ -105,7 +105,7 @@ pub enum AwsAppOpts {
     /// List information about resources
     List {
         #[structopt(short)]
-        /// Possible values are: "reserved", "spot", "ami", "volume", "snapshot", "ecr", "key"
+        /// Possible values are: reserved spot ami volume snapshot ecr key
         resources: Vec<ResourceType>,
         #[structopt(short, long)]
         /// List all regions
