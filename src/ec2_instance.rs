@@ -318,7 +318,7 @@ impl Ec2Instance {
                     .unwrap_or_else(Vec::new)
                     .into_par_iter()
                     .filter_map(|inst| {
-                        let launch_spec = some!(inst.launch_specification).clone();
+                        let launch_spec = some!(inst.launch_specification);
                         Some(SpotInstanceRequestInfo {
                             id: some!(inst.spot_instance_request_id),
                             price: inst

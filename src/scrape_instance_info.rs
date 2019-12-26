@@ -246,8 +246,7 @@ fn extract_instance_type_object_hvm(
     };
 
     let instance_type: String = row[(indicies[0] - idx) as usize]
-        .replace("*", "")
-        .to_string();
+        .replace("*", "");
     let n_cpu: i32 = row[(indicies[1] - idx) as usize].replace("*", "").parse()?;
     let memory_gib: f64 = row[(indicies[2] - idx) as usize].replace(",", "").parse()?;
 
@@ -270,8 +269,7 @@ fn extract_instance_type_object_pv(
     };
 
     let instance_type: String = row[(indicies[1] - idx) as usize]
-        .replace("*", "")
-        .to_string();
+        .replace("*", "");
     let n_cpu: i32 = row[(indicies[2] - idx) as usize].replace("*", "").parse()?;
     let memory_gib: f64 = row[(indicies[3] - idx) as usize].replace(",", "").parse()?;
 

@@ -88,8 +88,8 @@ impl StsInstance {
         Ok(Self {
             sts_client: StsClient::new_with(HttpClient::new()?, provider, region.clone()),
             region,
-            aws_access_key_id: key.to_string(),
-            aws_secret_access_key: secret.to_string(),
+            aws_access_key_id: key,
+            aws_secret_access_key: secret,
             role_arn: current_profile.role_arn.clone(),
         })
     }
@@ -251,7 +251,7 @@ where
                     [key, value] if !key.is_empty() && !value.is_empty() => {
                         if let Some(current) = profile.clone() {
                             let values = result.entry(current).or_insert_with(HashMap::new);
-                            (*values).insert(key.to_string(), value.to_string());
+                            (*values).insert((*key).to_string(), (*value).to_string());
                         }
                         (result, profile)
                     }
