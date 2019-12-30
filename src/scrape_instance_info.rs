@@ -15,7 +15,7 @@ pub fn scrape_instance_info(generation: AwsGeneration, pool: &PgPool) -> Result<
     }
     .parse()?;
 
-    let body = reqwest::get(url)?.text()?;
+    let body = reqwest::blocking::get(url)?.text()?;
     parse_result(&body, generation, pool)?;
     Ok(())
 }

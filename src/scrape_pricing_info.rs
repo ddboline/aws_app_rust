@@ -11,7 +11,7 @@ use crate::pgpool::PgPool;
 pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<(), Error> {
     let url = extract_json_url(get_url(ptype)?)?;
     println!("url {}", url);
-    let js: PricingJson = reqwest::get(url)?.json()?;
+    let js: PricingJson = reqwest::blocking::get(url)?.json()?;
     let results = parse_json(js, ptype)?;
     println!("{}", results.len());
     results
@@ -32,7 +32,7 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
 }
 
 fn extract_json_url(url: Url) -> Result<Url, Error> {
-    let body: String = reqwest::get(url)?.text()?;
+    let body: String = reqwest::blocking::get(url)?.text()?;
     let condition = |l: &&str| l.contains("data-service-url") && l.contains("/linux/");
     body.split('\n')
         .filter(condition)
