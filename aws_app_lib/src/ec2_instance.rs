@@ -754,7 +754,7 @@ pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<Stri
     let fname = if !Path::new(script).exists() {
         let fname = format!("{}/{}", default_dir, script);
         if !Path::new(&fname).exists() {
-            return Ok(include_str!("../templates/setup_aws.sh").to_string());
+            return Ok(include_str!("../../templates/setup_aws.sh").to_string());
         }
         fname
     } else {

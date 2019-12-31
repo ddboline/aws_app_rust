@@ -15,6 +15,9 @@ pub struct ConfigInner {
     pub default_key_name: String,
     pub script_directory: String,
     pub ubuntu_release: String,
+    pub port: u32,
+    pub secret_key: String,
+    pub domain: String,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -72,6 +75,12 @@ impl Config {
             .unwrap_or_else(|_| format!("{}/.config/aws_app_rust/scripts", home_dir));
         let ubuntu_release: String =
             var("UBUNTU_RELEASE").unwrap_or_else(|_| "bionic-18.04".to_string());
+        let port = var("PORT")
+            .ok()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(3096);
+        let secret_key = var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(8));
+        let domain = var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
 
         let conf = ConfigInner {
             database_url,
@@ -83,6 +92,9 @@ impl Config {
             default_key_name,
             script_directory,
             ubuntu_release,
+            port,
+            secret_key,
+            domain,
         };
 
         Ok(Config(Arc::new(conf)))

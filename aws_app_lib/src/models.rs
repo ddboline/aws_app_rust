@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::fmt;
 
 use crate::pgpool::{PgPool, PgPoolConn};
-use crate::schema::{instance_family, instance_list, instance_pricing};
+use crate::schema::{authorized_users, instance_family, instance_list, instance_pricing};
 
 #[derive(Queryable, Clone, Debug)]
 pub struct InstanceFamily<'a> {
@@ -258,4 +258,19 @@ pub enum PricingType {
     Reserved,
     OnDemand,
     Spot,
+}
+
+#[derive(Queryable, Insertable, Clone, Debug)]
+#[table_name = "authorized_users"]
+pub struct AuthorizedUsers {
+    pub email: String,
+    pub telegram_userid: Option<i64>,
+}
+
+impl AuthorizedUsers {
+    pub fn get_authorized_users(pool: &PgPool) -> Result<Vec<AuthorizedUsers>, Error> {
+        use crate::schema::authorized_users::dsl::authorized_users;
+        let conn = pool.get()?;
+        authorized_users.load(&conn).map_err(err_msg)
+    }
 }

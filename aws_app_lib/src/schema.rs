@@ -1,4 +1,11 @@
 table! {
+    authorized_users (email) {
+        email -> Varchar,
+        telegram_userid -> Nullable<Int8>,
+    }
+}
+
+table! {
     instance_family (id) {
         id -> Int4,
         family_name -> Text,
@@ -25,4 +32,9 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(instance_family, instance_list, instance_pricing,);
+allow_tables_to_appear_in_same_query!(
+    authorized_users,
+    instance_family,
+    instance_list,
+    instance_pricing,
+);
