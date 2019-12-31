@@ -8,3 +8,5 @@ ADD src /aws_app_rust/src
 ADD scripts /aws_app_rust/scripts
 ADD Makefile /aws_app_rust
 ADD templates /aws_app_rust/templates
+ADD aws_app_lib /aws_app_rust/aws_app_lib
+ADD aws_app_http /aws_app_rust/aws_app_http

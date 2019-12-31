@@ -7,7 +7,8 @@ build_type := release
 all:
 	mkdir -p build/ && \
 	cp Dockerfile.build.ubuntu18.04 build/Dockerfile && \
-	cp -a Cargo.toml src scripts templates Makefile build/ && \
+	cp -a Cargo.toml src aws_app_lib aws_app_http scripts \
+		templates Makefile build/ && \
 	cd build/ && \
 	docker build -t aws_app_rust/build_rust:ubuntu18.04 . && \
 	cd ../ && \
