@@ -55,80 +55,83 @@ footer {
 </head>
 <body>
 
-<form action="javascript:searchDiary();">
-    <input type="button" name="sync_button" value="Sync" onclick="syncAll();"/>
-    <input type="button" name="proc_button" value="Process" onclick="processAll();"/>
-    <input type="button" name="sync_garmin" value="Scale Sync" onclick="heartrateSync();"/>
-    <input type="button" name="sync_movie" value="Movie Sync" onclick="movieSync();"/>
-    <button name="garminconnectoutput" id="garminconnectoutput"> &nbsp; </button>
-</form>
+<input type="button" name="list_inst" value="Instances" onclick="listResource('instances');"/>
+<input type="button" name="list_ami" value="AMIs" onclick="listResource('ami');"/>
+<input type="button" name="list_vol" value="Volumes" onclick="listResource('volume');"/>
+<input type="button" name="list_snap" value="Snapshots" onclick="listResource('snapshot');"/>
+<input type="button" name="list_ecr" value="EcrImages" onclick="listResource('ecr');"/>
+<input type="button" name="list_key" value="Keys" onclick="listResource('key');"/>
+<input type="button" name="list_reserved" value="ReservedInstances" onclick="listResource('reserved');"/>
+<button name="garminconnectoutput" id="garminconnectoutput"> &nbsp; </button>
 
 <article id="main_article">
 DISPLAY_TEXT
 </article>
 
 <script language="JavaScript" type="text/javascript">
-    function updateMainArticle( url , nav_update=null ) {
+    function listResource( resource_type ) {
+        let url = "/aws/list?resource=" + resource_type;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            location.reload();
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
     }
-    function removeCacheEntry( id ) {
-        let url = '/sync/delete_cache_entry?id=' + id;
+    function terminateInstance( instance_id ) {
+        let url = "/aws/terminate?instance=" + instance_id;
         let xmlhttp = new XMLHttpRequest();
-        xmlhttp.open('GET', url, true);
-        xmlhttp.onload = function see_result() {
-            location.reload();
-        }
-        xmlhttp.send(null);
-    }
-    function deleteEntry( url_ ) {
-        let url = '/sync/remove?url=' + url_;
-        let xmlhttp = new XMLHttpRequest();
-        xmlhttp.open('GET', url, true);
-        xmlhttp.onload = function see_result() {
-            location.reload();
-        }
-        xmlhttp.send(null);
-    }
-    function searchDiary() {
-        let text_form = document.getElementById( 'search_text' );
-        let url = encodeURI('/sync/search?text=' + text_form.value);
-        updateMainArticle(url);
-    }
-    function syncAll() {
-        updateMainArticle('/sync/sync');
-        document.getElementById("garminconnectoutput").innerHTML = "syncing..."
-    }
-    function processAll() {
-        updateMainArticle('/sync/proc');
-        document.getElementById("garminconnectoutput").innerHTML = "processing..."
-    }
-    function heartrateSync() {
-        let ostr = '/sync/sync_garmin';
-        let xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", ostr, true);
-        xmlhttp.onload = function nothing() {
+        xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
         }
+        xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
-        document.getElementById("garminconnectoutput").innerHTML = "syncing";
     }
-    function movieSync() {
-        let ostr = '/sync/sync_movie';
+    function deleteImage( ami ) {
+        let url = "/aws/delete_image?ami=" + ami;
         let xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", ostr, true);
-        xmlhttp.onload = function nothing() {
+        xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
         }
+        xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
-        document.getElementById("garminconnectoutput").innerHTML = "syncing";
+    }
+    function deleteVolume( volid ) {
+        let url = "/aws/delete_volume?volid=" + volid;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+    }
+    function deleteSnapshot( snapid ) {
+        let url = "/aws/delete_snapshot?snapid=" + snapid;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+    }
+    function deleteEcrImage( repo, id ) {
+        let url = "/aws/delete_image?reponame=" + repo + "&imageid=" + id;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+    }
+    function cleanupEcrImages() {
+        let url = "/aws/cleanup_ecr_images";
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
     }
 </script>
 

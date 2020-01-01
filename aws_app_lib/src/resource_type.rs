@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum ResourceType {
+    Instances,
     Reserved,
     Spot,
     Ami,
@@ -19,6 +20,7 @@ impl fmt::Display for ResourceType {
             f,
             "{}",
             match self {
+                ResourceType::Instances => "instances",
                 ResourceType::Reserved => "reserved",
                 ResourceType::Spot => "spot",
                 ResourceType::Ami => "ami",
@@ -36,6 +38,7 @@ impl FromStr for ResourceType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "instances" => Ok(ResourceType::Instances),
             "reserved" => Ok(ResourceType::Reserved),
             "spot" => Ok(ResourceType::Spot),
             "ami" => Ok(ResourceType::Ami),

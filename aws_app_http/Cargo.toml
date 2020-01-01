@@ -24,3 +24,4 @@ tokio = {version="0.2", features=["time"]}
 log = "0.4"
 parking_lot = "0.10"
 maplit = "1.0"
+rayon = "1.3"

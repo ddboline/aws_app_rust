@@ -16,7 +16,7 @@ use crate::scrape_instance_info::scrape_instance_info;
 use crate::scrape_pricing_info::scrape_pricing_info;
 
 lazy_static! {
-    static ref INSTANCE_LIST: RwLock<Vec<Ec2InstanceInfo>> = RwLock::new(Vec::new());
+    pub static ref INSTANCE_LIST: RwLock<Vec<Ec2InstanceInfo>> = RwLock::new(Vec::new());
 }
 
 #[derive(Clone)]
@@ -50,14 +50,48 @@ impl AwsAppInterface {
         scrape_pricing_info(PricingType::OnDemand, &self.pool)
     }
 
-    fn fill_instance_list(&self) -> Result<(), Error> {
-        *INSTANCE_LIST.write() = self.ec2.get_all_instances()?;
+    pub fn fill_instance_list(&self) -> Result<(), Error> {
+        let mut instances = self.ec2.get_all_instances()?;
+        if !instances.is_empty() {
+            instances.par_sort_by_key(|inst| inst.launch_time);
+            instances.par_sort_by_key(|inst| inst.state != "running");
+        }
+        *INSTANCE_LIST.write() = instances;
         Ok(())
     }
 
-    fn process_resource(&self, resource: ResourceType) -> Result<Vec<String>, Error> {
+    pub fn process_resource(&self, resource: ResourceType) -> Result<Vec<String>, Error> {
         let mut output = Vec::new();
         match resource {
+            ResourceType::Instances => {
+                self.fill_instance_list()?;
+
+                let result: Vec<_> = INSTANCE_LIST
+                    .read()
+                    .par_iter()
+                    .map(|inst| {
+                        let name = inst
+                            .tags
+                            .get("Name")
+                            .cloned()
+                            .unwrap_or_else(|| "".to_string());
+                        format!(
+                            "{} {} {} {} {} {} {}",
+                            inst.id,
+                            inst.dns_name,
+                            inst.state,
+                            name,
+                            inst.instance_type,
+                            inst.launch_time.with_timezone(&Local),
+                            inst.availability_zone,
+                        )
+                    })
+                    .collect();
+                if !result.is_empty() {
+                    output.push(format!("instances:"));
+                    output.extend_from_slice(&result);
+                }
+            }
             ResourceType::Reserved => {
                 let reserved = self.ec2.get_reserved_instances()?;
                 if reserved.is_empty() {
@@ -212,42 +246,10 @@ impl AwsAppInterface {
     }
 
     pub fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
-        self.fill_instance_list()?;
-
-        let mut instances = INSTANCE_LIST.write();
-
-        if !instances.is_empty() {
-            instances.par_sort_by_key(|inst| inst.launch_time);
-            instances.par_sort_by_key(|inst| inst.state != "running");
-            println!("instances:");
-            let result: Vec<_> = instances
-                .par_iter()
-                .map(|inst| {
-                    let name = inst
-                        .tags
-                        .get("Name")
-                        .cloned()
-                        .unwrap_or_else(|| "".to_string());
-                    format!(
-                        "{} {} {} {} {} {} {}",
-                        inst.id,
-                        inst.dns_name,
-                        inst.state,
-                        name,
-                        inst.instance_type,
-                        inst.launch_time.with_timezone(&Local),
-                        inst.availability_zone,
-                    )
-                })
-                .collect();
-            for item in result {
-                println!("{}", item);
-            }
-        }
-
         let mut visited_resources = HashSet::new();
-        let resources: Vec<_> = resources
+        let resources: Vec<_> = [ResourceType::Instances]
             .iter()
+            .chain(resources.iter())
             .filter(|x| visited_resources.insert(*x))
             .collect();
 
@@ -378,6 +380,16 @@ impl AwsAppInterface {
             println!("{}", line);
         }
         Ok(())
+    }
+
+    pub fn delete_image(&self, ami: &str) -> Result<(), Error> {
+        let ami_map = self.ec2.get_ami_map()?;
+        let ami = if let Some(a) = ami_map.get(ami) {
+            a.to_string()
+        } else {
+            ami.to_string()
+        };
+        self.ec2.delete_image(&ami)
     }
 
     pub fn request_spot_instance(&self, req: &mut SpotRequest) -> Result<(), Error> {

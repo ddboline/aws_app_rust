@@ -294,12 +294,12 @@ impl AwsAppOpts {
                 Ok(())
             }
             AwsAppOpts::CreateImage { instance_id, name } => {
-                if let Some(id) = app.ec2.create_image(&instance_id, &name)? {
+                if let Some(id) = app.create_image(&instance_id, &name)? {
                     println!("New id {}", id);
                 }
                 Ok(())
             }
-            AwsAppOpts::DeleteImage { ami } => app.ec2.delete_image(&ami),
+            AwsAppOpts::DeleteImage { ami } => app.delete_image(&ami),
             AwsAppOpts::CreateVolume {
                 size,
                 zoneid,

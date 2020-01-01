@@ -12,6 +12,7 @@ use rusoto_ec2::{
     RequestSpotInstancesRequest, RequestSpotLaunchSpecification, RunInstancesRequest, Tag,
     TagSpecification, TerminateInstancesRequest,
 };
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
@@ -672,6 +673,7 @@ impl Ec2Instance {
     }
 }
 
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct InstanceRequest {
     pub ami: String,
     pub instance_type: String,
@@ -681,7 +683,7 @@ pub struct InstanceRequest {
     pub tags: HashMap<String, String>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct SpotRequest {
     pub ami: String,
     pub instance_type: String,
@@ -692,7 +694,7 @@ pub struct SpotRequest {
     pub tags: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct AmiInfo {
     pub id: String,
     pub name: String,
@@ -700,7 +702,7 @@ pub struct AmiInfo {
     pub snapshot_ids: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Ec2InstanceInfo {
     pub id: String,
     pub dns_name: String,
@@ -711,7 +713,7 @@ pub struct Ec2InstanceInfo {
     pub tags: HashMap<String, String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct ReservedInstanceInfo {
     pub id: String,
     pub price: f32,
@@ -720,7 +722,7 @@ pub struct ReservedInstanceInfo {
     pub availability_zone: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct SpotInstanceRequestInfo {
     pub id: String,
     pub price: f32,
@@ -731,7 +733,7 @@ pub struct SpotInstanceRequestInfo {
     pub instance_id: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct VolumeInfo {
     pub id: String,
     pub availability_zone: String,
@@ -741,7 +743,7 @@ pub struct VolumeInfo {
     pub tags: HashMap<String, String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct SnapshotInfo {
     pub id: String,
     pub volume_size: i64,
