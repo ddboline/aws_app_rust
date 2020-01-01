@@ -32,14 +32,6 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             .unwrap_or_else(|| "".to_string());
                         format!(
                             "{} {} {} {} {} {} {} {}",
-                            format!(
-                                r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
-                                if name != "ddbolineinthecloud" {
-                                    format!(r#"onclick="terminateInstance('{}')""#, inst.id)
-                                } else {
-                                    "".to_string()
-                                }
-                            ),
                             inst.id,
                             inst.dns_name,
                             inst.state,
@@ -47,6 +39,12 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             inst.instance_type,
                             inst.launch_time.with_timezone(&Local),
                             inst.availability_zone,
+                            if inst.state == "running" && name != "ddbolineinthecloud" {
+                                format!(
+                                    r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
+                                    format!(r#"onclick="terminateInstance('{}')""#, inst.id)
+                                )
+                            } else {"".to_string()}
                         )
                     })
                     .collect();
