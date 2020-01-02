@@ -12,7 +12,6 @@ pub mod resource_type;
 pub mod schema;
 pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
-pub mod sts_instance;
 
 #[cfg(test)]
 mod tests {

@@ -20,9 +20,9 @@ use std::io::Read;
 use std::path::Path;
 use std::thread::sleep;
 use std::time;
+use sts_profile_auth::sts_instance::StsInstance;
 
 use crate::config::Config;
-use crate::sts_instance::StsInstance;
 
 macro_rules! some {
     ($expr : expr) => {
