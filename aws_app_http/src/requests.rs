@@ -49,7 +49,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     })
                     .collect();
                 if !result.is_empty() {
-                    output.push(format!("instances:"));
+                    output.push("instances:".to_string());
                     output.extend_from_slice(&result);
                 }
             }

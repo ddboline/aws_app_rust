@@ -38,6 +38,7 @@ build_test:
 
 install:
 	cp target/$(build_type)/aws-app-rust /usr/bin/aws-app-rust
+	cp target/$(build_type)/aws-app-http /usr/bin/aws-app-http
 
 pull:
 	`aws ecr --region us-east-1 get-login --no-include-email`
