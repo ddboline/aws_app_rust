@@ -104,16 +104,17 @@ fn extract_instance_types_pv<'a>(
         })
         .collect();
     if rows.len() > 1 {
-        let mut final_indicies: [isize; 4] = [-1; 4];
+        let mut final_bitmap: u8 = 0x0;
+        let mut final_indicies: [usize; 4] = [0; 4];
         for (idx, name) in allowed_columns.iter().enumerate() {
             for (idy, col) in rows[0].iter().enumerate() {
                 if col == name {
-                    final_indicies[idx] = idy as isize;
+                    final_bitmap |= 1 << idx;
+                    final_indicies[idx] = idy;
                 }
             }
         }
-
-        if final_indicies.par_iter().all(|x| *x != -1) {
+        if final_bitmap == 0xf {
             let mut instance_families = Vec::new();
             let mut instance_types = Vec::new();
             for row in &rows[1..] {
@@ -128,10 +129,10 @@ fn extract_instance_types_pv<'a>(
 
 fn extract_instance_family_object_pv(
     row: &[String],
-    indicies: [isize; 4],
+    indicies: [usize; 4],
 ) -> Result<InstanceFamilyInsert<'static>, Error> {
-    let family_type = row[indicies[0] as usize].to_string();
-    let family_name = row[indicies[1] as usize]
+    let family_type = row[indicies[0]].to_string();
+    let family_name = row[indicies[1]]
         .split('.')
         .nth(0)
         .ok_or_else(|| err_msg("No family type"))?
@@ -185,69 +186,70 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
             }
         })
         .collect();
-    if rows.len() > 1 {
-        let mut final_indicies: [isize; 3] = [-1; 3];
-        for cols in &allowed_columns {
-            let mut indicies: [isize; 3] = [-1; 3];
-            for (idx, name) in cols.iter().enumerate() {
-                for (idy, col) in rows[0].iter().enumerate() {
-                    if col == name {
-                        indicies[idx] = idy as isize;
-                    }
+    if rows.len() < 2 {
+        return Ok(Vec::new());
+    }
+    let mut final_bitmap: u8 = 0x0;
+    let mut final_indicies: [usize; 3] = [0; 3];
+    for cols in &allowed_columns {
+        let mut bitmap: u8 = 0x0;
+        let mut indicies: [usize; 3] = [0; 3];
+        for (idx, name) in cols.iter().enumerate() {
+            for (idy, col) in rows[0].iter().enumerate() {
+                if col == name {
+                    bitmap |= 1 << idx;
+                    indicies[idx] = idy;
                 }
             }
-            if indicies.par_iter().all(|x| *x != -1) {
-                final_indicies = indicies;
-                break;
-            }
         }
-        if final_indicies.par_iter().any(|x| *x == -1) {
-            println!("{:?}", rows[0]);
-            println!("{:?}", rows[1]);
-            println!("{:?}", final_indicies);
-        } else {
-            return rows[1..]
-                .par_iter()
-                .map(
-                    |row| match extract_instance_type_object_hvm(row, final_indicies) {
-                        Ok(x) => {
-                            if x.instance_type == "1" || x.instance_type == "8" {
-                                println!("{:?}", final_indicies);
-                                println!("{:?}", rows[0]);
-                                println!("row {:?}", row);
-                            }
-                            Ok(x)
-                        }
-                        Err(e) => {
-                            println!("{:?}", final_indicies);
-                            println!("{:?}", row);
-                            Err(e)
-                        }
-                    },
-                )
-                .collect();
+        if bitmap == 0xf {
+            final_bitmap = bitmap;
+            final_indicies = indicies;
+            break;
         }
     }
-    Ok(Vec::new())
+    if final_bitmap == 0xf {
+        return rows[1..]
+            .par_iter()
+            .map(
+                |row| match extract_instance_type_object_hvm(row, final_indicies) {
+                    Ok(x) => {
+                        if x.instance_type == "1" || x.instance_type == "8" {
+                            println!("{:?}", final_indicies);
+                            println!("{:?}", rows[0]);
+                            println!("row {:?}", row);
+                        }
+                        Ok(x)
+                    }
+                    Err(e) => {
+                        println!("{:?}", final_indicies);
+                        println!("{:?}", row);
+                        Err(e)
+                    }
+                },
+            )
+            .collect();
+    } else {
+        println!("{:?}", rows[0]);
+        println!("{:?}", rows[1]);
+        println!("{:?}", final_indicies);
+        Ok(Vec::new())
+    }
 }
 
 fn extract_instance_type_object_hvm(
     row: &[String],
-    indicies: [isize; 3],
+    indicies: [usize; 3],
 ) -> Result<InstanceList<'static>, Error> {
-    let idx = if row[indicies[0] as usize]
-        .replace("*", "")
-        .parse::<i32>()
-        .is_ok()
-    {
+    let idx = if row[indicies[0]].replace("*", "").parse::<i32>().is_ok() {
         1
     } else {
         0
     };
 
-    let instance_type: String = row[(indicies[0] - idx) as usize].replace("*", "");
-    let n_cpu: i32 = row[(indicies[1] - idx) as usize].replace("*", "").parse()?;
-    let memory_gib: f64 = row[(indicies[2] - idx) as usize].replace(",", "").parse()?;
+    let instance_type: String = row[(indicies[0] - idx)].replace("*", "");
+    let n_cpu: i32 = row[(indicies[1] - idx)].replace("*", "").parse()?;
+    let memory_gib: f64 = row[(indicies[2] - idx)].replace(",", "").parse()?;
 
     Ok(InstanceList {
         instance_type: instance_type.into(),
@@ -259,17 +261,17 @@ fn extract_instance_type_object_hvm(
 
 fn extract_instance_type_object_pv(
     row: &[String],
-    indicies: [isize; 4],
+    indicies: [usize; 4],
 ) -> Result<InstanceList<'static>, Error> {
-    let idx = if row[indicies[1] as usize].parse::<i32>().is_ok() {
+    let idx = if row[indicies[1]].parse::<i32>().is_ok() {
         1
     } else {
         0
     };
 
-    let instance_type: String = row[(indicies[1] - idx) as usize].replace("*", "");
-    let n_cpu: i32 = row[(indicies[2] - idx) as usize].replace("*", "").parse()?;
-    let memory_gib: f64 = row[(indicies[3] - idx) as usize].replace(",", "").parse()?;
+    let instance_type: String = row[(indicies[1] - idx)].replace("*", "");
+    let n_cpu: i32 = row[(indicies[2] - idx)].replace("*", "").parse()?;
+    let memory_gib: f64 = row[(indicies[3] - idx)].replace(",", "").parse()?;
 
     Ok(InstanceList {
         instance_type: instance_type.into(),

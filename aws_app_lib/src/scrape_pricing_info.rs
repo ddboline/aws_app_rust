@@ -81,7 +81,7 @@ fn parse_json(
                 }
             };
             if get_price {
-                Some(get_instance_pricing(p, ptype))
+                Some(get_instance_pricing(&p, ptype))
             } else {
                 None
             }
@@ -90,7 +90,7 @@ fn parse_json(
 }
 
 fn get_instance_pricing(
-    price_entry: PricingEntry,
+    price_entry: &PricingEntry,
     ptype: PricingType,
 ) -> Result<InstancePricingInsert<'static>, Error> {
     match ptype {
