@@ -5,6 +5,7 @@ use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use std::collections::{HashMap, HashSet};
+use std::string::String;
 
 use crate::config::Config;
 use crate::ec2_instance::{Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest};
@@ -30,8 +31,8 @@ pub struct AwsAppInterface {
 impl AwsAppInterface {
     pub fn new(config: Config, pool: PgPool) -> Self {
         Self {
-            ec2: Ec2Instance::new(config.clone()),
-            ecr: EcrInstance::new(config.clone()),
+            ec2: Ec2Instance::new(&config),
+            ecr: EcrInstance::new(&config),
             config,
             pool,
         }
@@ -226,11 +227,7 @@ impl AwsAppInterface {
                                 format!(
                                     "{} {} {}",
                                     repo,
-                                    image
-                                        .tags
-                                        .get(0)
-                                        .map(|s| s.as_str())
-                                        .unwrap_or_else(|| "None"),
+                                    image.tags.get(0).map_or_else(|| "None", String::as_str),
                                     image.digest
                                 )
                             })
@@ -266,24 +263,9 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    fn get_name_map(&self) -> Result<HashMap<String, String>, Error> {
-        Ok(INSTANCE_LIST
-            .read()
-            .par_iter()
-            .filter_map(|inst| {
-                if inst.state != "running" {
-                    return None;
-                }
-                inst.tags
-                    .get("Name")
-                    .map(|name| (name.to_string(), inst.id.to_string()))
-            })
-            .collect())
-    }
-
     pub fn terminate(&self, instance_ids: &[String]) -> Result<(), Error> {
         self.fill_instance_list()?;
-        let name_map = self.get_name_map()?;
+        let name_map = get_name_map()?;
         let mapped_inst_ids: Vec<String> = instance_ids
             .par_iter()
             .map(|id| map_or_val(&name_map, id))
@@ -291,23 +273,10 @@ impl AwsAppInterface {
         self.ec2.terminate_instance(&mapped_inst_ids)
     }
 
-    fn get_id_host_map(&self) -> Result<HashMap<String, String>, Error> {
-        Ok(INSTANCE_LIST
-            .read()
-            .par_iter()
-            .filter_map(|inst| {
-                if inst.state != "running" {
-                    return None;
-                }
-                Some((inst.id.to_string(), inst.dns_name.to_string()))
-            })
-            .collect())
-    }
-
     pub fn connect(&self, instance_id: &str) -> Result<(), Error> {
         self.fill_instance_list()?;
-        let name_map = self.get_name_map()?;
-        let id_host_map = self.get_id_host_map()?;
+        let name_map = get_name_map()?;
+        let id_host_map = get_id_host_map()?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(&inst_id) {
             println!("ssh ubuntu@{}", host)
@@ -412,7 +381,7 @@ impl AwsAppInterface {
 
     pub fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
         self.fill_instance_list()?;
-        let name_map = self.get_name_map()?;
+        let name_map = get_name_map()?;
         let inst_id = map_or_val(&name_map, inst_id);
         self.ec2.create_image(&inst_id, name)
     }
@@ -463,7 +432,7 @@ impl AwsAppInterface {
     pub fn attach_ebs_volume(&self, volid: &str, instid: &str, device: &str) -> Result<(), Error> {
         self.fill_instance_list()?;
         let vol_map = self.get_volume_map()?;
-        let name_map = self.get_name_map()?;
+        let name_map = get_name_map()?;
         let volid = map_or_val(&vol_map, volid);
         let instid = map_or_val(&name_map, instid);
         self.ec2.attach_ebs_volume(&volid, &instid, device)
@@ -512,4 +481,32 @@ fn map_or_val(name_map: &HashMap<String, String>, id: &str) -> String {
     } else {
         id.to_string()
     }
+}
+
+fn get_name_map() -> Result<HashMap<String, String>, Error> {
+    Ok(INSTANCE_LIST
+        .read()
+        .par_iter()
+        .filter_map(|inst| {
+            if inst.state != "running" {
+                return None;
+            }
+            inst.tags
+                .get("Name")
+                .map(|name| (name.to_string(), inst.id.to_string()))
+        })
+        .collect())
+}
+
+fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
+    Ok(INSTANCE_LIST
+        .read()
+        .par_iter()
+        .filter_map(|inst| {
+            if inst.state != "running" {
+                return None;
+            }
+            Some((inst.id.to_string(), inst.dns_name.to_string()))
+        })
+        .collect())
 }

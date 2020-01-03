@@ -86,8 +86,8 @@ impl InstanceFamilyInsert<'_> {
 impl fmt::Display for AwsGeneration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AwsGeneration::HVM => write!(f, "hvm"),
-            AwsGeneration::PV => write!(f, "pv"),
+            Self::HVM => write!(f, "hvm"),
+            Self::PV => write!(f, "pv"),
         }
     }
 }
@@ -268,7 +268,7 @@ pub struct AuthorizedUsers {
 }
 
 impl AuthorizedUsers {
-    pub fn get_authorized_users(pool: &PgPool) -> Result<Vec<AuthorizedUsers>, Error> {
+    pub fn get_authorized_users(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::authorized_users::dsl::authorized_users;
         let conn = pool.get()?;
         authorized_users.load(&conn).map_err(err_msg)

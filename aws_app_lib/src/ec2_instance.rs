@@ -63,7 +63,7 @@ impl Default for Ec2Instance {
 }
 
 impl Ec2Instance {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
             .parse()
@@ -100,7 +100,7 @@ impl Ec2Instance {
                     name: Some("owner-id".to_string()),
                     values: Some(vec![owner_id]),
                 }]),
-                ..Default::default()
+                ..DescribeImagesRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -140,7 +140,7 @@ impl Ec2Instance {
                         )]),
                     },
                 ]),
-                ..Default::default()
+                ..DescribeImagesRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -285,12 +285,12 @@ impl Ec2Instance {
             .describe_spot_price_history(DescribeSpotPriceHistoryRequest {
                 start_time: Some(start_time.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
                 filters: Some(filters),
-                instance_types: if !inst_list.is_empty() {
-                    Some(inst_list.to_vec())
-                } else {
+                instance_types: if inst_list.is_empty() {
                     None
+                } else {
+                    Some(inst_list.to_vec())
                 },
-                ..Default::default()
+                ..DescribeSpotPriceHistoryRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -382,7 +382,7 @@ impl Ec2Instance {
                     name: Some("owner-id".to_string()),
                     values: Some(vec![owner_id]),
                 }]),
-                ..Default::default()
+                ..DescribeSnapshotsRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -412,7 +412,7 @@ impl Ec2Instance {
         self.ec2_client
             .terminate_instances(TerminateInstancesRequest {
                 instance_ids: instance_ids.to_vec(),
-                ..Default::default()
+                ..TerminateInstancesRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -432,9 +432,9 @@ impl Ec2Instance {
                     security_group_ids: Some(vec![spot.security_group.to_string()]),
                     user_data: Some(base64::encode(&user_data)),
                     key_name: Some(spot.key_name.to_string()),
-                    ..Default::default()
+                    ..RequestSpotLaunchSpecification::default()
                 }),
-                ..Default::default()
+                ..RequestSpotInstancesRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -474,7 +474,7 @@ impl Ec2Instance {
         self.ec2_client
             .cancel_spot_instance_requests(CancelSpotInstanceRequestsRequest {
                 spot_instance_request_ids: inst_ids.to_vec(),
-                ..Default::default()
+                ..CancelSpotInstanceRequestsRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -496,7 +496,7 @@ impl Ec2Instance {
                         value: Some(v.to_string()),
                     })
                     .collect(),
-                ..Default::default()
+                ..CreateTagsRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -514,7 +514,7 @@ impl Ec2Instance {
                 key_name: Some(request.key_name.to_string()),
                 security_group_ids: Some(vec![request.security_group.to_string()]),
                 user_data: Some(base64::encode(&user_data)),
-                ..Default::default()
+                ..RunInstancesRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -533,7 +533,7 @@ impl Ec2Instance {
             .create_image(CreateImageRequest {
                 instance_id: inst_id.to_string(),
                 name: name.to_string(),
-                ..Default::default()
+                ..CreateImageRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -544,7 +544,7 @@ impl Ec2Instance {
         self.ec2_client
             .deregister_image(DeregisterImageRequest {
                 image_id: ami.to_string(),
-                ..Default::default()
+                ..DeregisterImageRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -562,7 +562,7 @@ impl Ec2Instance {
                 size,
                 snapshot_id: snapid,
                 volume_type: Some("standard".to_string()),
-                ..Default::default()
+                ..CreateVolumeRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -573,7 +573,7 @@ impl Ec2Instance {
         self.ec2_client
             .delete_volume(DeleteVolumeRequest {
                 volume_id: volid.to_string(),
-                ..Default::default()
+                ..DeleteVolumeRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -585,7 +585,7 @@ impl Ec2Instance {
                 device: device.to_string(),
                 instance_id: instid.to_string(),
                 volume_id: volid.to_string(),
-                ..Default::default()
+                ..AttachVolumeRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -596,7 +596,7 @@ impl Ec2Instance {
         self.ec2_client
             .detach_volume(DetachVolumeRequest {
                 volume_id: volid.to_string(),
-                ..Default::default()
+                ..DetachVolumeRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -608,7 +608,7 @@ impl Ec2Instance {
             .modify_volume(ModifyVolumeRequest {
                 volume_id: volid.to_string(),
                 size: Some(size),
-                ..Default::default()
+                ..ModifyVolumeRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -638,7 +638,7 @@ impl Ec2Instance {
                         ),
                     }])
                 },
-                ..Default::default()
+                ..CreateSnapshotRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -649,7 +649,7 @@ impl Ec2Instance {
         self.ec2_client
             .delete_snapshot(DeleteSnapshotRequest {
                 snapshot_id: snapid.to_string(),
-                ..Default::default()
+                ..DeleteSnapshotRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -753,14 +753,14 @@ pub struct SnapshotInfo {
 }
 
 pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<String, Error> {
-    let fname = if !Path::new(script).exists() {
+    let fname = if Path::new(script).exists() {
+        script.to_string()
+    } else {
         let fname = format!("{}/{}", default_dir, script);
         if !Path::new(&fname).exists() {
             return Ok(include_str!("../../templates/setup_aws.sh").to_string());
         }
         fname
-    } else {
-        script.to_string()
     };
     let mut user_data = String::new();
     File::open(fname)?.read_to_string(&mut user_data)?;

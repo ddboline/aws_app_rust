@@ -44,7 +44,7 @@ impl Default for EcrInstance {
 }
 
 impl EcrInstance {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
             .parse()
@@ -82,7 +82,7 @@ impl EcrInstance {
         self.ecr_client
             .describe_images(DescribeImagesRequest {
                 repository_name: reponame.to_string(),
-                ..Default::default()
+                ..DescribeImagesRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -108,10 +108,10 @@ impl EcrInstance {
                     .par_iter()
                     .map(|i| ImageIdentifier {
                         image_digest: Some(i.to_string()),
-                        ..Default::default()
+                        ..ImageIdentifier::default()
                     })
                     .collect(),
-                ..Default::default()
+                ..BatchDeleteImageRequest::default()
             })
             .sync()
             .map_err(err_msg)
@@ -133,10 +133,10 @@ impl EcrInstance {
                         }
                     })
                     .collect();
-                if !imageids.is_empty() {
-                    self.delete_ecr_images(&repo, &imageids)
-                } else {
+                if imageids.is_empty() {
                     Ok(())
+                } else {
+                    self.delete_ecr_images(&repo, &imageids)
                 }
             })
             .collect()

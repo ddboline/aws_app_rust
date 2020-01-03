@@ -223,14 +223,14 @@ pub enum AwsAppOpts {
 
 impl AwsAppOpts {
     pub fn process_args() -> Result<(), Error> {
-        let opts = AwsAppOpts::from_args();
+        let opts = Self::from_args();
         let config = Config::init_config()?;
         let pool = PgPool::new(&config.database_url);
         let app = AwsAppInterface::new(config, pool);
 
         match opts {
-            AwsAppOpts::Update => app.update(),
-            AwsAppOpts::List {
+            Self::Update => app.update(),
+            Self::List {
                 resources,
                 all_regions,
             } => {
@@ -249,31 +249,29 @@ impl AwsAppOpts {
                     app.list(&resources)
                 }
             }
-            AwsAppOpts::Terminate { instance_ids } => app.terminate(&instance_ids),
-            AwsAppOpts::Request(req) => {
+            Self::Terminate { instance_ids } => app.terminate(&instance_ids),
+            Self::Request(req) => {
                 app.request_spot_instance(&mut req.into_spot_request(&app.config))
             }
-            AwsAppOpts::CancelRequest { instance_ids } => {
+            Self::CancelRequest { instance_ids } => {
                 app.ec2.cancel_spot_instance_request(&instance_ids)
             }
-            AwsAppOpts::Run(req) => {
-                app.run_ec2_instance(&mut req.into_instance_request(&app.config))
-            }
-            AwsAppOpts::Price { search } => app.get_ec2_prices(&search),
-            AwsAppOpts::ListFamilies => {
+            Self::Run(req) => app.run_ec2_instance(&mut req.into_instance_request(&app.config)),
+            Self::Price { search } => app.get_ec2_prices(&search),
+            Self::ListFamilies => {
                 for fam in InstanceFamily::get_all(&app.pool)? {
                     println!("{:5} {}", fam.family_name, fam.family_type);
                 }
                 Ok(())
             }
-            AwsAppOpts::ListInstances { search } => {
+            Self::ListInstances { search } => {
                 let mut instances: Vec<_> = InstanceList::get_all_instances(&app.pool)?
                     .into_par_iter()
                     .filter(|inst| {
-                        if !search.is_empty() {
-                            search.par_iter().any(|s| inst.instance_type.contains(s))
-                        } else {
+                        if search.is_empty() {
                             true
+                        } else {
+                            search.par_iter().any(|s| inst.instance_type.contains(s))
                         }
                     })
                     .collect();
@@ -293,14 +291,14 @@ impl AwsAppOpts {
                 }
                 Ok(())
             }
-            AwsAppOpts::CreateImage { instance_id, name } => {
+            Self::CreateImage { instance_id, name } => {
                 if let Some(id) = app.create_image(&instance_id, &name)? {
                     println!("New id {}", id);
                 }
                 Ok(())
             }
-            AwsAppOpts::DeleteImage { ami } => app.delete_image(&ami),
-            AwsAppOpts::CreateVolume {
+            Self::DeleteImage { ami } => app.delete_image(&ami),
+            Self::CreateVolume {
                 size,
                 zoneid,
                 snapid,
@@ -311,27 +309,27 @@ impl AwsAppOpts {
                 }
                 Ok(())
             }
-            AwsAppOpts::DeleteVolume { volid } => app.delete_ebs_volume(&volid),
-            AwsAppOpts::AttachVolume {
+            Self::DeleteVolume { volid } => app.delete_ebs_volume(&volid),
+            Self::AttachVolume {
                 volid,
                 instance_id,
                 device_id,
             } => app.attach_ebs_volume(&volid, &instance_id, &device_id),
-            AwsAppOpts::DetachVolume { volid } => app.detach_ebs_volume(&volid),
-            AwsAppOpts::ModifyVolume { volid, size } => app.modify_ebs_volume(&volid, size),
-            AwsAppOpts::CreateSnapshot { volid, tags } => {
+            Self::DetachVolume { volid } => app.detach_ebs_volume(&volid),
+            Self::ModifyVolume { volid, size } => app.modify_ebs_volume(&volid, size),
+            Self::CreateSnapshot { volid, tags } => {
                 if let Some(id) = app.create_ebs_snapshot(&volid, &get_tags(&tags))? {
                     println!("Created snapshot {}", id);
                 }
                 Ok(())
             }
-            AwsAppOpts::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(&snapid),
-            AwsAppOpts::Tag { id, tags } => app.ec2.tag_ec2_instance(&id, &get_tags(&tags)),
-            AwsAppOpts::DeleteEcrImages { reponame, imageids } => {
+            Self::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(&snapid),
+            Self::Tag { id, tags } => app.ec2.tag_ec2_instance(&id, &get_tags(&tags)),
+            Self::DeleteEcrImages { reponame, imageids } => {
                 app.ecr.delete_ecr_images(&reponame, &imageids)
             }
-            AwsAppOpts::CleanupEcrImages => app.ecr.cleanup_ecr_images(),
-            AwsAppOpts::Connect { instance_id } => app.connect(&instance_id),
+            Self::CleanupEcrImages => app.ecr.cleanup_ecr_images(),
+            Self::Connect { instance_id } => app.connect(&instance_id),
         }
     }
 }

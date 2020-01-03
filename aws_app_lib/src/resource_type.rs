@@ -20,14 +20,14 @@ impl fmt::Display for ResourceType {
             f,
             "{}",
             match self {
-                ResourceType::Instances => "instances",
-                ResourceType::Reserved => "reserved",
-                ResourceType::Spot => "spot",
-                ResourceType::Ami => "ami",
-                ResourceType::Volume => "volume",
-                ResourceType::Snapshot => "snapshot",
-                ResourceType::Ecr => "ecr",
-                ResourceType::Key => "key",
+                Self::Instances => "instances",
+                Self::Reserved => "reserved",
+                Self::Spot => "spot",
+                Self::Ami => "ami",
+                Self::Volume => "volume",
+                Self::Snapshot => "snapshot",
+                Self::Ecr => "ecr",
+                Self::Key => "key",
             }
         )
     }
@@ -38,14 +38,14 @@ impl FromStr for ResourceType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "instances" => Ok(ResourceType::Instances),
-            "reserved" => Ok(ResourceType::Reserved),
-            "spot" => Ok(ResourceType::Spot),
-            "ami" => Ok(ResourceType::Ami),
-            "volume" => Ok(ResourceType::Volume),
-            "snapshot" => Ok(ResourceType::Snapshot),
-            "ecr" => Ok(ResourceType::Ecr),
-            "key" => Ok(ResourceType::Key),
+            "instances" => Ok(Self::Instances),
+            "reserved" => Ok(Self::Reserved),
+            "spot" => Ok(Self::Spot),
+            "ami" => Ok(Self::Ami),
+            "volume" => Ok(Self::Volume),
+            "snapshot" => Ok(Self::Snapshot),
+            "ecr" => Ok(Self::Ecr),
+            "key" => Ok(Self::Key),
             _ => Err(format_err!("{} is not a ResourceType", s)),
         }
     }

@@ -95,10 +95,10 @@ fn extract_instance_types_pv<'a>(
                     return None;
                 }
 
-                if !row.is_empty() {
-                    Some(row)
-                } else {
+                if row.is_empty() {
                     None
+                } else {
+                    Some(row)
                 }
             }
         })
@@ -177,17 +177,17 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                     return None;
                 }
 
-                if !row.is_empty() {
-                    Some(row)
-                } else {
+                if row.is_empty() {
                     None
+                } else {
+                    Some(row)
                 }
             }
         })
         .collect();
     if rows.len() > 1 {
         let mut final_indicies: [isize; 3] = [-1; 3];
-        for cols in allowed_columns.iter() {
+        for cols in &allowed_columns {
             let mut indicies: [isize; 3] = [-1; 3];
             for (idx, name) in cols.iter().enumerate() {
                 for (idy, col) in rows[0].iter().enumerate() {

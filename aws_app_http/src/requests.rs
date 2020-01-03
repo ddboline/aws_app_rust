@@ -211,8 +211,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                                     image
                                         .tags
                                         .get(0)
-                                        .map(|s| s.as_str())
-                                        .unwrap_or_else(|| "None"),
+                                        .map_or_else(|| "None", String::as_str),
                                     image.digest
                                 )
                             })

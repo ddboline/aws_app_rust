@@ -58,28 +58,34 @@ fn parse_json(
     ptype: PricingType,
 ) -> Result<Vec<InstancePricingInsert<'static>>, Error> {
     println!("prices {}", js.prices.len());
-    let _empty = "".to_string();
+    let empty = "".to_string();
     js.prices
         .into_iter()
-        .filter(|p| match ptype {
-            PricingType::OnDemand => true,
-            PricingType::Spot => false,
-            PricingType::Reserved => {
-                p.attributes
-                    .get("aws:offerTermLeaseLength")
-                    .unwrap_or_else(|| &_empty)
-                    == "1yr"
-                    && p.attributes
-                        .get("aws:offerTermPurchaseOption")
-                        .unwrap_or_else(|| &_empty)
-                        == "All Upfront"
-                    && p.attributes
-                        .get("aws:offerTermOfferingClass")
-                        .unwrap_or_else(|| &_empty)
-                        == "standard"
+        .filter_map(|p| {
+            let get_price = match ptype {
+                PricingType::OnDemand => true,
+                PricingType::Spot => false,
+                PricingType::Reserved => {
+                    p.attributes
+                        .get("aws:offerTermLeaseLength")
+                        .unwrap_or_else(|| &empty)
+                        == "1yr"
+                        && p.attributes
+                            .get("aws:offerTermPurchaseOption")
+                            .unwrap_or_else(|| &empty)
+                            == "All Upfront"
+                        && p.attributes
+                            .get("aws:offerTermOfferingClass")
+                            .unwrap_or_else(|| &empty)
+                            == "standard"
+                }
+            };
+            if get_price {
+                Some(get_instance_pricing(p, ptype))
+            } else {
+                None
             }
         })
-        .map(|p| get_instance_pricing(p, ptype))
         .collect()
 }
 
