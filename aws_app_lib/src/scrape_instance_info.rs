@@ -209,7 +209,7 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
         }
     }
     if final_bitmap == 0x7 {
-        return rows[1..]
+        rows[1..]
             .par_iter()
             .map(
                 |row| match extract_instance_type_object_hvm(row, final_indicies) {
@@ -228,7 +228,7 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                     }
                 },
             )
-            .collect();
+            .collect()
     } else {
         println!("{:?}", rows[0]);
         println!("{:?}", rows[1]);
