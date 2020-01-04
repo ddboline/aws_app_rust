@@ -353,7 +353,7 @@ impl AwsAppInterface {
                 AwsInstancePrice {
                     instance_type: inst,
                     ondemand_price: ond_price,
-                    spot_price: spot_price.map(|x| *x as f64),
+                    spot_price: spot_price.map(|x| f64::from(*x)),
                     reserved_price: res_price,
                     ncpu: instance_metadata.n_cpu,
                     memory: instance_metadata.memory_gib,
