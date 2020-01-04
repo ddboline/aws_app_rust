@@ -202,13 +202,13 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                 }
             }
         }
-        if bitmap == 0xf {
+        if bitmap == 0x7 {
             final_bitmap = bitmap;
             final_indicies = indicies;
             break;
         }
     }
-    if final_bitmap == 0xf {
+    if final_bitmap == 0x7 {
         return rows[1..]
             .par_iter()
             .map(

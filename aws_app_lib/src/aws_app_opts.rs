@@ -257,7 +257,7 @@ impl AwsAppOpts {
                 app.ec2.cancel_spot_instance_request(&instance_ids)
             }
             Self::Run(req) => app.run_ec2_instance(&mut req.into_instance_request(&app.config)),
-            Self::Price { search } => app.get_ec2_prices(&search),
+            Self::Price { search } => app.print_ec2_prices(&search),
             Self::ListFamilies => {
                 for fam in InstanceFamily::get_all(&app.pool)? {
                     println!("{:5} {}", fam.family_name, fam.family_type);

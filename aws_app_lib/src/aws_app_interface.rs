@@ -310,7 +310,7 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub fn get_ec2_prices(&self, search: &[String]) -> Result<(), Error> {
+    pub fn get_ec2_prices(&self, search: &[String]) -> Result<Vec<AwsInstancePrice>, Error> {
         let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)?
             .into_par_iter()
             .map(|f| (f.family_name.to_string(), f))
@@ -332,7 +332,7 @@ impl AwsAppInterface {
             .map(|p| ((p.instance_type.to_string(), p.price_type.to_string()), p))
             .collect();
 
-        let mut outstrings: Vec<_> = inst_list
+        let mut prices: Vec<_> = inst_list
             .into_par_iter()
             .map(|inst| {
                 let ond_price = prices
@@ -349,29 +349,52 @@ impl AwsAppInterface {
                     .unwrap()
                     .family_type
                     .to_string();
+
+                AwsInstancePrice {
+                    instance_type: inst,
+                    ondemand_price: ond_price,
+                    spot_price: spot_price.map(|x| *x as f64),
+                    reserved_price: res_price,
+                    ncpu: instance_metadata.n_cpu,
+                    memory: instance_metadata.memory_gib,
+                    instance_family,
+                }
+            })
+            .collect();
+        prices.sort_by_key(|p| (p.ncpu, p.memory as i64));
+        Ok(prices)
+    }
+
+    pub fn print_ec2_prices(&self, search: &[String]) -> Result<(), Error> {
+        let prices = self.get_ec2_prices(search)?;
+
+        let mut outstrings: Vec<_> = prices
+            .into_par_iter()
+            .map(|price| {
                 let mut outstr = Vec::new();
-                outstr.push(format!("{:14} ", inst));
-                match ond_price {
+                outstr.push(format!("{:14} ", price.instance_type));
+                match price.ondemand_price {
                     Some(p) => outstr.push(format!("ond: ${:0.4}/hr   ", p)),
                     None => outstr.push(format!("{:4} {:9}   ", "", "")),
                 }
-                match spot_price {
+                match price.spot_price {
                     Some(p) => outstr.push(format!("spot: ${:0.4}/hr   ", p)),
                     None => outstr.push(format!("{:5} {:9}    ", "", "")),
                 }
-                match res_price {
+                match price.reserved_price {
                     Some(p) => outstr.push(format!("res: ${:0.4}/hr   ", p)),
                     None => outstr.push(format!("{:4} {:9}   ", "", "")),
                 }
-                outstr.push(format!("cpu: {:2}   ", instance_metadata.n_cpu));
-                outstr.push(format!("inst_fam: {}", instance_family));
+                outstr.push(format!("cpu: {:2}   ", price.ncpu));
+                outstr.push(format!("mem: {:2}   ", price.memory));
+                outstr.push(format!("inst_fam: {}", price.instance_family));
 
-                (instance_metadata.n_cpu, outstr.join(""))
+                (price.ncpu, price.memory as i64, outstr.join(""))
             })
             .collect();
         outstrings.par_sort();
 
-        for (_, line) in &outstrings {
+        for (_, _, line) in &outstrings {
             println!("{}", line);
         }
         Ok(())
@@ -550,4 +573,15 @@ fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
             Some((inst.id.to_string(), inst.dns_name.to_string()))
         })
         .collect())
+}
+
+#[derive(Debug)]
+pub struct AwsInstancePrice {
+    pub instance_type: String,
+    pub ondemand_price: Option<f64>,
+    pub spot_price: Option<f64>,
+    pub reserved_price: Option<f64>,
+    pub ncpu: i32,
+    pub memory: f64,
+    pub instance_family: String,
 }

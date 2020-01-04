@@ -11,6 +11,7 @@ use std::path::Path;
 
 use aws_app_lib::config::Config;
 use aws_app_lib::ec2_instance::SpotRequest;
+use aws_app_lib::models::InstanceFamily;
 
 use super::app::AppState;
 use super::logged_user::LoggedUser;
@@ -295,5 +296,104 @@ pub async fn request_spot(
     block(move || data.aws.ec2.request_spot_instance(&req))
         .await
         .map_err(err_msg)?;
+    form_http_response("done".to_string())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PriceRequest {
+    pub search: Option<String>,
+}
+
+pub async fn get_prices(
+    query: Query<PriceRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let query = query.into_inner();
+    let d = data.clone();
+    let inst_fam: Vec<_> = block(move || InstanceFamily::get_all(&d.aws.pool))
+        .await
+        .map_err(err_msg)?
+        .into_iter()
+        .map(|fam| {
+            format!(
+                r#"<option value="{n}.">{n} : {t}</option>"#,
+                n = fam.family_name,
+                t = fam.family_type,
+            )
+        })
+        .collect();
+
+    let prices = if let Some(search) = query.search {
+        let d = data.clone();
+        block(move || d.aws.get_ec2_prices(&[search]))
+            .await
+            .map_err(err_msg)?
+            .into_iter()
+            .map(|price| {
+                format!(
+                    r#"
+                    <tr style="text-align: center;">
+                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                    </tr>
+                    "#,
+                    price.instance_type,
+                    match price.ondemand_price {
+                        Some(p) => format!("${:0.4}/hr", p),
+                        None => "".to_string(),
+                    },
+                    match price.spot_price {
+                        Some(p) => format!("${:0.4}/hr", p),
+                        None => "".to_string(),
+                    },
+                    match price.reserved_price {
+                        Some(p) => format!("${:0.4}/hr", p),
+                        None => "".to_string(),
+                    },
+                    price.ncpu,
+                    price.memory,
+                    price.instance_family,
+                )
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    let body = format!(
+        r#"
+            <form action="javascript:listPrices()">
+            <select id="inst_fam">{}</select><br>
+            <input type="button" name="create_request" value="Request" onclick="listPrices();"/><br>
+            </form><br>
+        "#,
+        inst_fam.join("\n"),
+    );
+    let body = if prices.is_empty() {
+        body
+    } else {
+        format!(
+            r#"{}<br><table border="1" class="dataframe"><thead>{}</thead><tbody>{}</tbody></table>"#,
+            body,
+            r#"
+                <tr>
+                <th>Instance Type</th>
+                <th>Ondemand Price</th>
+                <th>Spot Price</th>
+                <th>Reserved Price</th>
+                <th>N CPU</th>
+                <th>Memory GiB</th>
+                <th>Instance Family</th>
+                </tr>
+            "#,
+            prices.join("\n")
+        )
+    };
+
+    form_http_response(body)
+}
+
+pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+    block(move || data.aws.update()).await.map_err(err_msg)?;
     form_http_response("done".to_string())
 }

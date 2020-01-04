@@ -64,6 +64,8 @@ footer {
 <input type="button" name="list_reserved" value="ReservedInstances" onclick="listResource('reserved');"/>
 <input type="button" name="list_requests" value="SpotRequests" onclick="listResource('spot');"/>
 <input type="button" name="list_scripts" value="Scripts" onclick="listResource('script');"/>
+<input type="button" name="list_price" value="Price" onclick="listPrices()"/>
+<input type="button" name="update" value="Update" onclick="updateMetadata()"/>
 <button name="garminconnectoutput" id="garminconnectoutput"> &nbsp; </button>
 
 <article id="main_article">
@@ -226,6 +228,32 @@ DISPLAY_TEXT
         }
         xmlhttp.setRequestHeader('Content-Type', 'application/json');
         xmlhttp.send(data);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function listPrices() {
+        let url = "/aws/prices";
+        let search = document.getElementById('inst_fam');
+        if (search) {
+            url = url + "?search=" + search.value;
+        }
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function updateMetadata() {
+        let url = "/aws/update";
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('instances');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
 </script>
