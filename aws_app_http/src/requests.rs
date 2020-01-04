@@ -109,10 +109,14 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .par_iter()
                     .map(|ami| {
                         format!(
-                            "{} {} {} {} {}",
+                            "{} {} {} {} {} {}",
                             format!(
                                 r#"<input type="button" name="DeleteImage" value="DeleteImage" onclick="deleteImage('{}')">"#,
                                 ami.id
+                            ),
+                            format!(
+                                r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest('{}')">"#,
+                                ami.id,
                             ),
                             ami.id,
                             ami.name,
@@ -220,6 +224,31 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     })
                     .collect();
                 let result: Vec<_> = result?.into_par_iter().flatten().collect();
+                output.extend_from_slice(&result);
+            }
+            ResourceType::Script => {
+                output.push(
+                    r#"
+                        <form action="javascript:createScript()">
+                        <input type="text" name="script_filename" id="script_filename"/>
+                        <input type="button" name="create_script" value="New" onclick="createScript();"/>
+                        </form>
+                    "#.to_string()
+                );
+                let result: Vec<_> = self.get_all_scripts()?
+                    .into_par_iter()
+                    .map(|fname| format!(
+                        "{} {} {}",
+                        format!(
+                            r#"<input type="button" name="Edit" value="Edit" onclick="editScript('{}')">"#,
+                            fname,
+                        ),
+                        format!(
+                            r#"<input type="button" name="Rm" value="Rm" onclick="deleteScript('{}')">"#,
+                            fname,
+                        ),
+                        fname))
+                    .collect();
                 output.extend_from_slice(&result);
             }
         };

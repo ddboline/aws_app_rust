@@ -10,7 +10,8 @@ use aws_app_lib::pgpool::PgPool;
 
 use super::logged_user::AUTHORIZED_USERS;
 use super::routes::{
-    cleanup_ecr_images, delete_ecr_image, delete_image, delete_snapshot, delete_volume, list,
+    build_spot_request, cleanup_ecr_images, delete_ecr_image, delete_image, delete_script,
+    delete_snapshot, delete_volume, edit_script, list, replace_script, request_spot,
     sync_frontpage, terminate,
 };
 
@@ -56,6 +57,13 @@ pub async fn start_app() {
             .service(
                 web::resource("/aws/cleanup_ecr_images").route(web::get().to(cleanup_ecr_images)),
             )
+            .service(web::resource("/aws/edit_script").route(web::get().to(edit_script)))
+            .service(web::resource("/aws/replace_script").route(web::post().to(replace_script)))
+            .service(web::resource("/aws/delete_script").route(web::get().to(delete_script)))
+            .service(
+                web::resource("/aws/build_spot_request").route(web::get().to(build_spot_request)),
+            )
+            .service(web::resource("/aws/request_spot").route(web::post().to(request_spot)))
     })
     .bind(&format!("127.0.0.1:{}", port))
     .unwrap_or_else(|_| panic!("Failed to bind to port {}", port))

@@ -62,6 +62,8 @@ footer {
 <input type="button" name="list_ecr" value="EcrImages" onclick="listResource('ecr');"/>
 <input type="button" name="list_key" value="Keys" onclick="listResource('key');"/>
 <input type="button" name="list_reserved" value="ReservedInstances" onclick="listResource('reserved');"/>
+<input type="button" name="list_requests" value="SpotRequests" onclick="listResource('spot');"/>
+<input type="button" name="list_scripts" value="Scripts" onclick="listResource('script');"/>
 <button name="garminconnectoutput" id="garminconnectoutput"> &nbsp; </button>
 
 <article id="main_article">
@@ -78,60 +80,153 @@ DISPLAY_TEXT
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function terminateInstance( instance_id ) {
         let url = "/aws/terminate?instance=" + instance_id;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('instances');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function deleteImage( ami ) {
         let url = "/aws/delete_image?ami=" + ami;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('ami');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function deleteVolume( volid ) {
         let url = "/aws/delete_volume?volid=" + volid;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('volume');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function deleteSnapshot( snapid ) {
         let url = "/aws/delete_snapshot?snapid=" + snapid;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('snapshot');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function deleteEcrImage( repo, id ) {
         let url = "/aws/delete_image?reponame=" + repo + "&imageid=" + id;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('ecr');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function cleanupEcrImages() {
         let url = "/aws/cleanup_ecr_images";
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('ecr');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function editScript( filename ) {
+        let url = "/aws/edit_script?filename=" + filename;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+    }
+    function submitFormData( filename ) {
+        let url = '/aws/replace_script';
+        let text = document.getElementById( 'script_editor_form' );
+        let data = JSON.stringify({'filename': filename, 'text': text.value});
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.open('POST', url, true);
+        xmlhttp.onload = function see_result() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('script');
+        }
+        xmlhttp.setRequestHeader('Content-Type', 'application/json');
+        xmlhttp.send(data);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function createScript() {
+        let filename = document.getElementById( 'script_filename' );
+        editScript( filename.value );
+    }
+    function deleteScript( filename ) {
+        let url = "/aws/delete_script?filename=" + filename;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('script');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function buildSpotRequest( ami ) {
+        let url = "/aws/build_spot_request?ami=" + ami;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function requestSpotInstance() {
+        let url = "/aws/request_spot";
+
+        let ami = document.getElementById('ami').value;
+        let instance_type = document.getElementById('instance_type').value;
+        let security_group = document.getElementById('security_group').value;
+        let script = document.getElementById('script').value;
+        let key = document.getElementById('key').value;
+        let price = document.getElementById('price').value;
+        let name = document.getElementById('name').value;
+
+        let data = JSON.stringify({
+            'ami': ami,
+            'instance_type': instance_type,
+            'security_group': security_group,
+            'script': script,
+            'key_name': key,
+            'price': price,
+            'name': name,
+        });
+
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.open('POST', url, true);
+        xmlhttp.onload = function see_result() {
+            listResource('instances');
+        }
+        xmlhttp.setRequestHeader('Content-Type', 'application/json');
+        xmlhttp.send(data);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
 </script>
 

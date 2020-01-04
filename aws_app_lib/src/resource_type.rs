@@ -12,6 +12,7 @@ pub enum ResourceType {
     Snapshot,
     Ecr,
     Key,
+    Script,
 }
 
 impl fmt::Display for ResourceType {
@@ -28,6 +29,7 @@ impl fmt::Display for ResourceType {
                 Self::Snapshot => "snapshot",
                 Self::Ecr => "ecr",
                 Self::Key => "key",
+                Self::Script => "script",
             }
         )
     }
@@ -46,6 +48,7 @@ impl FromStr for ResourceType {
             "snapshot" => Ok(Self::Snapshot),
             "ecr" => Ok(Self::Ecr),
             "key" => Ok(Self::Key),
+            "script" => Ok(Self::Script),
             _ => Err(format_err!("{} is not a ResourceType", s)),
         }
     }

@@ -6,9 +6,10 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterato
 use rayon::slice::ParallelSliceMut;
 use std::collections::{HashMap, HashSet};
 use std::string::String;
+use walkdir::WalkDir;
 
 use crate::config::Config;
-use crate::ec2_instance::{Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest};
+use crate::ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest};
 use crate::ecr_instance::EcrInstance;
 use crate::models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType};
 use crate::pgpool::PgPool;
@@ -238,8 +239,33 @@ impl AwsAppInterface {
                 let result: Vec<_> = result?.into_par_iter().flatten().collect();
                 output.extend_from_slice(&result);
             }
+            ResourceType::Script => {
+                output.push("---\nScripts:".to_string());
+                output.extend_from_slice(&self.get_all_scripts()?);
+            }
         };
         Ok(output)
+    }
+
+    pub fn get_all_scripts(&self) -> Result<Vec<String>, Error> {
+        let mut files: Vec<_> = WalkDir::new(&self.config.script_directory)
+            .same_file_system(true)
+            .into_iter()
+            .filter_map(|entry| {
+                entry.ok().and_then(|entry| {
+                    if entry.file_type().is_dir() {
+                        None
+                    } else {
+                        entry
+                            .path()
+                            .file_name()
+                            .map(|f| f.to_string_lossy().to_string())
+                    }
+                })
+            })
+            .collect();
+        files.sort();
+        Ok(files)
     }
 
     pub fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
@@ -464,6 +490,21 @@ impl AwsAppInterface {
         let snap_map = self.get_snapshot_map()?;
         let snapid = map_or_val(&snap_map, snapid);
         self.ec2.delete_ebs_snapshot(&snapid)
+    }
+
+    pub fn get_all_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
+        let mut ami_tags = self.ec2.get_ami_tags()?;
+        if ami_tags.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut ubuntu_amis = self
+            .ec2
+            .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
+        ubuntu_amis.par_sort_by_key(|x| x.name.clone());
+        if !ubuntu_amis.is_empty() {
+            ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
+        }
+        Ok(ami_tags)
     }
 }
 
