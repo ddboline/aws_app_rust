@@ -769,6 +769,7 @@ pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<Stri
 
 #[cfg(test)]
 mod tests {
+    use std::io::{stdout, Write};
     use crate::ec2_instance::get_user_data_from_script;
 
     #[test]
@@ -778,7 +779,7 @@ mod tests {
             "build_rust_repo.sh",
         )
         .unwrap();
-        println!("{}", user_data);
+        writeln!(stdout(), "{}", user_data).unwrap();
         assert!(user_data.len() > 0);
     }
 }
