@@ -2,6 +2,7 @@ use failure::Error;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use std::collections::HashMap;
+use std::io::{stdout, Write};
 use std::string::ToString;
 use structopt::StructOpt;
 
@@ -260,7 +261,7 @@ impl AwsAppOpts {
             Self::Price { search } => app.print_ec2_prices(&search),
             Self::ListFamilies => {
                 for fam in InstanceFamily::get_all(&app.pool)? {
-                    println!("{:5} {}", fam.family_name, fam.family_type);
+                    writeln!(stdout(), "{:5} {}", fam.family_name, fam.family_type)?;
                 }
                 Ok(())
             }
@@ -284,16 +285,20 @@ impl AwsAppOpts {
                         .to_string()
                 });
                 for inst in instances {
-                    println!(
+                    writeln!(
+                        stdout(),
                         "{:18} cpu: {:3} mem: {:6.2} {}",
-                        inst.instance_type, inst.n_cpu, inst.memory_gib, inst.generation,
-                    );
+                        inst.instance_type,
+                        inst.n_cpu,
+                        inst.memory_gib,
+                        inst.generation,
+                    )?;
                 }
                 Ok(())
             }
             Self::CreateImage { instance_id, name } => {
                 if let Some(id) = app.create_image(&instance_id, &name)? {
-                    println!("New id {}", id);
+                    writeln!(stdout(), "New id {}", id)?;
                 }
                 Ok(())
             }
@@ -303,9 +308,9 @@ impl AwsAppOpts {
                 zoneid,
                 snapid,
             } => {
-                println!("{:?} {} {:?}", size, zoneid, snapid);
+                writeln!(stdout(), "{:?} {} {:?}", size, zoneid, snapid)?;
                 if let Some(id) = app.create_ebs_volume(&zoneid, size, snapid)? {
-                    println!("Created Volume {}", id);
+                    writeln!(stdout(), "Created Volume {}", id)?;
                 }
                 Ok(())
             }
@@ -319,7 +324,7 @@ impl AwsAppOpts {
             Self::ModifyVolume { volid, size } => app.modify_ebs_volume(&volid, size),
             Self::CreateSnapshot { volid, tags } => {
                 if let Some(id) = app.create_ebs_snapshot(&volid, &get_tags(&tags))? {
-                    println!("Created snapshot {}", id);
+                    writeln!(stdout(), "Created snapshot {}", id)?;
                 }
                 Ok(())
             }

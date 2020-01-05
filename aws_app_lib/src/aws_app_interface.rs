@@ -5,6 +5,7 @@ use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use std::collections::{HashMap, HashSet};
+use std::io::{stdout, Write};
 use std::string::String;
 use walkdir::WalkDir;
 
@@ -283,7 +284,7 @@ impl AwsAppInterface {
         let output: Vec<_> = result?.into_par_iter().flatten().collect();
 
         for line in output {
-            println!("{}", line);
+            writeln!(stdout(), "{}", line)?;
         }
 
         Ok(())
@@ -305,7 +306,7 @@ impl AwsAppInterface {
         let id_host_map = get_id_host_map()?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(&inst_id) {
-            println!("ssh ubuntu@{}", host)
+            writeln!(stdout(), "ssh ubuntu@{}", host)?;
         }
         Ok(())
     }
@@ -395,7 +396,7 @@ impl AwsAppInterface {
         outstrings.par_sort();
 
         for (_, _, line) in &outstrings {
-            println!("{}", line);
+            writeln!(stdout(), "{}", line)?;
         }
         Ok(())
     }

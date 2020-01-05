@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
-use std::io::Read;
+use std::io::{stdout, Read, Write};
 use std::path::Path;
 use std::thread::sleep;
 use std::time;
@@ -455,7 +455,7 @@ impl Ec2Instance {
                                     .collect();
                                 if let Some(Some(instance_id)) = reqs.get(&spot_instance_request_id)
                                 {
-                                    println!("tag {} with {:?}", instance_id, spot.tags);
+                                    writeln!(stdout(), "tag {} with {:?}", instance_id, spot.tags)?;
                                     self.tag_ec2_instance(&instance_id, &spot.tags)?;
                                     break;
                                 }

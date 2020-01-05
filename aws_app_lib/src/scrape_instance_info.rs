@@ -4,6 +4,7 @@ use reqwest::Url;
 use select::document::Document;
 use select::node::Node;
 use select::predicate::{Class, Name};
+use std::io::{stdout, Write};
 
 use crate::models::{AwsGeneration, InstanceFamilyInsert, InstanceList};
 use crate::pgpool::PgPool;
@@ -62,12 +63,12 @@ fn parse_result(text: &str, generation: AwsGeneration, pool: &PgPool) -> Result<
 
     for t in &instance_families {
         if t.insert_entry(&pool)? {
-            println!("{:?}", t);
+            writeln!(stdout(), "{:?}", t)?;
         }
     }
     for t in &instance_types {
         if t.insert_entry(&pool)? {
-            println!("{:?}", t);
+            writeln!(stdout(), "{:?}", t)?;
         }
     }
     Ok(())
@@ -215,24 +216,24 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
                 |row| match extract_instance_type_object_hvm(row, final_indicies) {
                     Ok(x) => {
                         if x.instance_type == "1" || x.instance_type == "8" {
-                            println!("{:?}", final_indicies);
-                            println!("{:?}", rows[0]);
-                            println!("row {:?}", row);
+                            writeln!(stdout(), "{:?}", final_indicies)?;
+                            writeln!(stdout(), "{:?}", rows[0])?;
+                            writeln!(stdout(), "row {:?}", row)?;
                         }
                         Ok(x)
                     }
                     Err(e) => {
-                        println!("{:?}", final_indicies);
-                        println!("{:?}", row);
+                        writeln!(stdout(), "{:?}", final_indicies)?;
+                        writeln!(stdout(), "{:?}", row)?;
                         Err(e)
                     }
                 },
             )
             .collect()
     } else {
-        println!("{:?}", rows[0]);
-        println!("{:?}", rows[1]);
-        println!("{:?}", final_indicies);
+        writeln!(stdout(), "{:?}", rows[0])?;
+        writeln!(stdout(), "{:?}", rows[1])?;
+        writeln!(stdout(), "{:?}", final_indicies)?;
         Ok(Vec::new())
     }
 }

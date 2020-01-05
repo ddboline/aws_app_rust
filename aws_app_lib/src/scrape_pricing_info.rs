@@ -4,16 +4,17 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::io::{stdout, Write};
 
 use crate::models::{InstancePricingInsert, PricingType};
 use crate::pgpool::PgPool;
 
 pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<(), Error> {
     let url = extract_json_url(get_url(ptype)?)?;
-    println!("url {}", url);
+    writeln!(stdout(), "url {}", url)?;
     let js: PricingJson = reqwest::blocking::get(url)?.json()?;
     let results = parse_json(js, ptype)?;
-    println!("{}", results.len());
+    writeln!(stdout(), "{}", results.len())?;
     results
         .into_par_iter()
         .map(|r| r.upsert_entry(pool).map(|_| ()))
@@ -57,7 +58,7 @@ fn parse_json(
     js: PricingJson,
     ptype: PricingType,
 ) -> Result<Vec<InstancePricingInsert<'static>>, Error> {
-    println!("prices {}", js.prices.len());
+    writeln!(stdout(), "prices {}", js.prices.len())?;
     let empty = "".to_string();
     js.prices
         .into_iter()
