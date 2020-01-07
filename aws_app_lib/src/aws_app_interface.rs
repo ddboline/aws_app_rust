@@ -17,6 +17,7 @@ use crate::pgpool::PgPool;
 use crate::resource_type::ResourceType;
 use crate::scrape_instance_info::scrape_instance_info;
 use crate::scrape_pricing_info::scrape_pricing_info;
+use crate::ssh_instance::SSHInstance;
 
 lazy_static! {
     pub static ref INSTANCE_LIST: RwLock<Vec<Ec2InstanceInfo>> = RwLock::new(Vec::new());
@@ -311,6 +312,19 @@ impl AwsAppInterface {
             writeln!(stdout(), "ssh ubuntu@{}", host)?;
         }
         Ok(())
+    }
+
+    pub fn get_status(&self, instance_id: &str) -> Result<Vec<String>, Error> {
+        self.fill_instance_list()?;
+        let name_map = get_name_map()?;
+        let id_host_map = get_id_host_map()?;
+        let inst_id = map_or_val(&name_map, instance_id);
+        if let Some(host) = id_host_map.get(&inst_id) {
+            let command = "tail /var/log/cloud-init-output.log";
+            SSHInstance::new("ubuntu", host, 22).run_command_stream_stdout(command)
+        } else {
+            Ok(Vec::new())
+        }
     }
 
     pub fn get_ec2_prices(&self, search: &[String]) -> Result<Vec<AwsInstancePrice>, Error> {

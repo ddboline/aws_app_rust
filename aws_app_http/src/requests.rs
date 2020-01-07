@@ -333,3 +333,15 @@ impl HandleRequest<CleanupEcrImagesRequest> for AwsAppInterface {
         self.ecr.cleanup_ecr_images()
     }
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct StatusRequest {
+    pub instance: String,
+}
+
+impl HandleRequest<StatusRequest> for AwsAppInterface {
+    type Result = Result<Vec<String>, Error>;
+    fn handle(&self, req: StatusRequest) -> Self::Result {
+        self.get_status(&req.instance)
+    }
+}

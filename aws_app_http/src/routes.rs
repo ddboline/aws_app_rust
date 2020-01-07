@@ -17,7 +17,7 @@ use super::app::AppState;
 use super::logged_user::LoggedUser;
 use super::requests::{
     CleanupEcrImagesRequest, DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest,
-    DeleteVolumeRequest, HandleRequest, TerminateRequest,
+    DeleteVolumeRequest, HandleRequest, StatusRequest, TerminateRequest,
 };
 
 fn form_http_response(body: String) -> Result<HttpResponse, Error> {
@@ -396,4 +396,20 @@ pub async fn get_prices(
 pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
     let entries = block(move || data.aws.update()).await.map_err(err_msg)?;
     form_http_response(entries.join("\n"))
+}
+
+pub async fn status(
+    query: Query<StatusRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let query = query.into_inner();
+    let entries = block(move || data.aws.handle(query)).await.map_err(err_msg)?;
+    let body = format!(
+        r#"<textarea autofocus readonly="readonly"
+            name="message" id="diary_editor_form"
+            rows=50 cols=100>{}</textarea>"#,
+        entries.join("\n")
+    );
+    form_http_response(body)
 }

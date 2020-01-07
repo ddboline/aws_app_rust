@@ -220,6 +220,11 @@ pub enum AwsAppOpts {
         /// Instance ID
         instance_id: String,
     },
+    Status {
+        #[structopt(short, long)]
+        /// Instance ID
+        instance_id: String,
+    },
 }
 
 impl AwsAppOpts {
@@ -231,8 +236,8 @@ impl AwsAppOpts {
 
         match opts {
             Self::Update => {
-                for x in app.update()? {
-                    writeln!(stdout(), "{}", x)?;
+                for line in app.update()? {
+                    writeln!(stdout(), "{}", line)?;
                 }
                 Ok(())
             }
@@ -340,6 +345,12 @@ impl AwsAppOpts {
             }
             Self::CleanupEcrImages => app.ecr.cleanup_ecr_images(),
             Self::Connect { instance_id } => app.connect(&instance_id),
+            Self::Status { instance_id } => {
+                for line in app.get_status(&instance_id)? {
+                    writeln!(stdout(), "{}", line)?;
+                }
+                Ok(())
+            }
         }
     }
 }
