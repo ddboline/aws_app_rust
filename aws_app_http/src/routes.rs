@@ -395,7 +395,13 @@ pub async fn get_prices(
 
 pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
     let entries = block(move || data.aws.update()).await.map_err(err_msg)?;
-    form_http_response(entries.join("\n"))
+    let body = format!(
+        r#"<textarea autofocus readonly="readonly"
+            name="message" id="diary_editor_form"
+            rows=50 cols=100>{}</textarea>"#,
+        entries.join("\n")
+    );
+    form_http_response(body)
 }
 
 pub async fn status(

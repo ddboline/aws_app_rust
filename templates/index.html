@@ -251,7 +251,6 @@ DISPLAY_TEXT
         xmlhttp.onload = function f() {
             document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
-            listResource('instances');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
@@ -263,7 +262,6 @@ DISPLAY_TEXT
         xmlhttp.onload = function f() {
             document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
-            listResource('instances');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
