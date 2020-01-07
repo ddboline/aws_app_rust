@@ -9,12 +9,17 @@ use std::io::{stdout, Write};
 use crate::models::{AwsGeneration, InstanceFamilyInsert, InstanceList};
 use crate::pgpool::PgPool;
 
-pub fn scrape_instance_info(generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
-    let url: Url = match generation {
+pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
+    match generation {
         AwsGeneration::HVM => "https://aws.amazon.com/ec2/instance-types/",
         AwsGeneration::PV => "https://aws.amazon.com/ec2/previous-generation/",
     }
-    .parse()?;
+    .parse()
+    .map_err(err_msg)
+}
+
+pub fn scrape_instance_info(generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
+    let url = get_url(generation)?;
 
     let body = reqwest::blocking::get(url)?.text()?;
     parse_result(&body, generation, pool)?;
