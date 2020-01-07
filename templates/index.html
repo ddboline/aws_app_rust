@@ -82,6 +82,7 @@ DISPLAY_TEXT
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("sub_article").innerHTML = "&nbsp;";
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
@@ -158,7 +159,7 @@ DISPLAY_TEXT
         let url = "/aws/edit_script?filename=" + filename;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
@@ -198,11 +199,13 @@ DISPLAY_TEXT
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("sub_article").innerHTML = "&nbsp;";
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
         document.getElementById("main_article").innerHTML = "&nbsp;";
+        document.getElementById("sub_article").innerHTML = "&nbsp;";
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function requestSpotInstance() {
@@ -243,7 +246,7 @@ DISPLAY_TEXT
         }
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
@@ -255,6 +258,7 @@ DISPLAY_TEXT
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("sub_article").innerHTML = "&nbsp;";
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
