@@ -9,16 +9,19 @@ use std::io::{stdout, Write};
 use crate::models::{InstancePricingInsert, PricingType};
 use crate::pgpool::PgPool;
 
-pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<(), Error> {
+pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<String>, Error> {
+    let mut output = Vec::new();
     let url = extract_json_url(get_url(ptype)?)?;
-    writeln!(stdout(), "url {}", url)?;
+    output.push(format!("url {}", url));
     let js: PricingJson = reqwest::blocking::get(url)?.json()?;
     let results = parse_json(js, ptype)?;
-    writeln!(stdout(), "{}", results.len())?;
-    results
+    output.push(format!("{}", results.len()));
+    let result: Result<(), Error> = results
         .into_par_iter()
         .map(|r| r.upsert_entry(pool).map(|_| ()))
-        .collect()
+        .collect();
+    result?;
+    Ok(output)
 }
 
 fn get_url(ptype: PricingType) -> Result<Url, Error> {

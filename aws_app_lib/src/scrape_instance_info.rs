@@ -18,18 +18,25 @@ pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
     .map_err(err_msg)
 }
 
-pub fn scrape_instance_info(generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
+pub fn scrape_instance_info(
+    generation: AwsGeneration,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
     let url = get_url(generation)?;
 
     let body = reqwest::blocking::get(url)?.text()?;
-    parse_result(&body, generation, pool)?;
-    Ok(())
+    parse_result(&body, generation, pool)
 }
 
-fn parse_result(text: &str, generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
+fn parse_result(
+    text: &str,
+    generation: AwsGeneration,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let doc = Document::from(text);
+    let mut output = Vec::new();
 
     match generation {
         AwsGeneration::HVM => {
@@ -68,15 +75,15 @@ fn parse_result(text: &str, generation: AwsGeneration, pool: &PgPool) -> Result<
 
     for t in &instance_families {
         if t.insert_entry(&pool)? {
-            writeln!(stdout(), "{:?}", t)?;
+            output.push(format!("{:?}", t));
         }
     }
     for t in &instance_types {
         if t.insert_entry(&pool)? {
-            writeln!(stdout(), "{:?}", t)?;
+            output.push(format!("{:?}", t));
         }
     }
-    Ok(())
+    Ok(output)
 }
 
 fn extract_instance_types_pv<'a>(
