@@ -404,7 +404,9 @@ pub async fn status(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let entries = block(move || data.aws.handle(query)).await.map_err(err_msg)?;
+    let entries = block(move || data.aws.handle(query))
+        .await
+        .map_err(err_msg)?;
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"

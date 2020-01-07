@@ -257,6 +257,18 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function getStatus( instance ) {
+        let url = "/aws/update?instance=" + instance;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('instances');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
 </script>
 
 </body>
