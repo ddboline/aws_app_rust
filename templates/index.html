@@ -249,6 +249,7 @@ DISPLAY_TEXT
         let url = "/aws/update";
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
             listResource('instances');
         }

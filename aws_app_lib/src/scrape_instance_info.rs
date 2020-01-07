@@ -9,7 +9,10 @@ use std::io::{stdout, Write};
 use crate::models::{AwsGeneration, InstanceFamilyInsert, InstanceList};
 use crate::pgpool::PgPool;
 
-pub fn scrape_instance_info(generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
+pub fn scrape_instance_info(
+    generation: AwsGeneration,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
     let url: Url = match generation {
         AwsGeneration::HVM => "https://aws.amazon.com/ec2/instance-types/",
         AwsGeneration::PV => "https://aws.amazon.com/ec2/previous-generation/",
@@ -17,14 +20,18 @@ pub fn scrape_instance_info(generation: AwsGeneration, pool: &PgPool) -> Result<
     .parse()?;
 
     let body = reqwest::blocking::get(url)?.text()?;
-    parse_result(&body, generation, pool)?;
-    Ok(())
+    parse_result(&body, generation, pool)
 }
 
-fn parse_result(text: &str, generation: AwsGeneration, pool: &PgPool) -> Result<(), Error> {
+fn parse_result(
+    text: &str,
+    generation: AwsGeneration,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let doc = Document::from(text);
+    let mut output = Vec::new();
 
     match generation {
         AwsGeneration::HVM => {
@@ -63,15 +70,15 @@ fn parse_result(text: &str, generation: AwsGeneration, pool: &PgPool) -> Result<
 
     for t in &instance_families {
         if t.insert_entry(&pool)? {
-            writeln!(stdout(), "{:?}", t)?;
+            output.push(format!("{:?}", t));
         }
     }
     for t in &instance_types {
         if t.insert_entry(&pool)? {
-            writeln!(stdout(), "{:?}", t)?;
+            output.push(format!("{:?}", t));
         }
     }
-    Ok(())
+    Ok(output)
 }
 
 fn extract_instance_types_pv<'a>(

@@ -45,12 +45,14 @@ impl AwsAppInterface {
         self.ecr.set_region(region)
     }
 
-    pub fn update(&self) -> Result<(), Error> {
-        scrape_instance_info(AwsGeneration::HVM, &self.pool)?;
-        scrape_instance_info(AwsGeneration::PV, &self.pool)?;
+    pub fn update(&self) -> Result<Vec<String>, Error> {
+        let mut ouput = Vec::new();
+        output.extend_from_slice(&scrape_instance_info(AwsGeneration::HVM, &self.pool)?);
+        output.extend_from_slice(&scrape_instance_info(AwsGeneration::PV, &self.pool)?);
 
-        scrape_pricing_info(PricingType::Reserved, &self.pool)?;
-        scrape_pricing_info(PricingType::OnDemand, &self.pool)
+        output.extend_from_slice(&scrape_pricing_info(PricingType::Reserved, &self.pool)?);
+        output.extend_from_slice(&scrape_pricing_info(PricingType::OnDemand, &self.pool)?);
+        Ok(output)
     }
 
     pub fn fill_instance_list(&self) -> Result<(), Error> {

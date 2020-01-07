@@ -394,6 +394,6 @@ pub async fn get_prices(
 }
 
 pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
-    block(move || data.aws.update()).await.map_err(err_msg)?;
-    form_http_response("done".to_string())
+    let entries = block(move || data.aws.update()).await.map_err(err_msg)?;
+    form_http_response(entries.join("\n"))
 }

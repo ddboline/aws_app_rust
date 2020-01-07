@@ -230,7 +230,11 @@ impl AwsAppOpts {
         let app = AwsAppInterface::new(config, pool);
 
         match opts {
-            Self::Update => app.update(),
+            Self::Update => {
+                for x in app.update()? {
+                    writeln!(stdout(), "{}", x)?;
+                }
+            }
             Self::List {
                 resources,
                 all_regions,
