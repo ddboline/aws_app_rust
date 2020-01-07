@@ -72,6 +72,10 @@ footer {
 DISPLAY_TEXT
 </article>
 
+<article id="sub_article">
+&nbsp;
+</article>
+
 <script language="JavaScript" type="text/javascript">
     function listResource( resource_type ) {
         let url = "/aws/list?resource=" + resource_type;
@@ -260,7 +264,7 @@ DISPLAY_TEXT
         let url = "/aws/status?instance=" + instance;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
