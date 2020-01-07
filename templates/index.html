@@ -202,6 +202,7 @@ DISPLAY_TEXT
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+        document.getElementById("main_article").innerHTML = "&nbsp;";
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function requestSpotInstance() {
