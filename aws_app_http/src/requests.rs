@@ -19,43 +19,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
         let mut output = Vec::new();
         match req {
             ResourceType::Instances => {
-                self.fill_instance_list()?;
-
-                let result: Vec<_> = INSTANCE_LIST
-                    .read()
-                    .par_iter()
-                    .map(|inst| {
-                        let name = inst
-                            .tags
-                            .get("Name")
-                            .cloned()
-                            .unwrap_or_else(|| "".to_string());
-                        format!(
-                            "{} {} {} {} {} {} {} {} {}",
-                            inst.id,
-                            inst.dns_name,
-                            inst.state,
-                            name,
-                            inst.instance_type,
-                            inst.launch_time.with_timezone(&Local),
-                            inst.availability_zone,
-                            format!(
-                                r#"<input type="button" name="Status" value="Status" {}>"#,
-                                format!(r#"onclick="getStatus('{}')""#, inst.id)
-                            ),
-                            if inst.state == "running" && name != "ddbolineinthecloud" {
-                                format!(
-                                    r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
-                                    format!(r#"onclick="terminateInstance('{}')""#, inst.id)
-                                )
-                            } else {"".to_string()}
-                        )
-                    })
-                    .collect();
-                if !result.is_empty() {
-                    output.push("instances:".to_string());
-                    output.extend_from_slice(&result);
-                }
+                list_instance(self, &mut output)?;
             }
             ResourceType::Reserved => {
                 let reserved = self.ec2.get_reserved_instances()?;
@@ -204,28 +168,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 );
                 let result: Result<Vec<_>, Error> = repos
                     .par_iter()
-                    .map(|repo| {
-                        let images = self.ecr.get_all_images(&repo)?;
-                        let lines: Vec<_> = images
-                            .par_iter()
-                            .map(|image| {
-                                format!(
-                                    "{} {} {} {}",
-                                    format!(
-                                        r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage" onclick="deleteEcrImage('{}', '{}')">"#,
-                                        repo, image.digest,
-                                    ),
-                                    repo,
-                                    image
-                                        .tags
-                                        .get(0)
-                                        .map_or_else(|| "None", String::as_str),
-                                    image.digest
-                                )
-                            })
-                            .collect();
-                        Ok(lines)
-                    })
+                    .map(|repo| get_ecr_images(self, repo))
                     .collect();
                 let result: Vec<_> = result?.into_par_iter().flatten().collect();
                 output.extend_from_slice(&result);
@@ -258,6 +201,76 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
         };
         Ok(output)
     }
+}
+
+fn list_instance(app: &AwsAppInterface, output: &mut Vec<String>) -> Result<(), Error> {
+    app.fill_instance_list()?;
+
+    let result: Vec<_> = INSTANCE_LIST
+        .read()
+        .par_iter()
+        .map(|inst| {
+            let name = inst
+                .tags
+                .get("Name")
+                .cloned()
+                .unwrap_or_else(|| "".to_string());
+            format!(
+                "{} {} {} {} {} {} {} {} {}",
+                inst.id,
+                inst.dns_name,
+                inst.state,
+                name,
+                inst.instance_type,
+                inst.launch_time.with_timezone(&Local),
+                inst.availability_zone,
+                if inst.state == "running" {
+                    format!(
+                        r#"<input type="button" name="Status" value="Status" {}>"#,
+                        format!(r#"onclick="getStatus('{}')""#, inst.id)
+                    )
+                } else {
+                    "".to_string()
+                },
+                if inst.state == "running" && name != "ddbolineinthecloud" {
+                    format!(
+                        r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
+                        format!(r#"onclick="terminateInstance('{}')""#, inst.id)
+                    )
+                } else {
+                    "".to_string()
+                }
+            )
+        })
+        .collect();
+    if !result.is_empty() {
+        output.push("instances:".to_string());
+        output.extend_from_slice(&result);
+    }
+    Ok(())
+}
+
+fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Error> {
+    let images = app.ecr.get_all_images(&repo)?;
+    let lines: Vec<_> = images
+        .par_iter()
+        .map(|image| {
+            format!(
+                "{} {} {} {}",
+                format!(
+                    r#"
+                        <input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
+                         onclick="deleteEcrImage('{}', '{}')">
+                    "#,
+                    repo, image.digest,
+                ),
+                repo,
+                image.tags.get(0).map_or_else(|| "None", String::as_str),
+                image.digest
+            )
+        })
+        .collect();
+    Ok(lines)
 }
 
 fn print_tags(tags: &HashMap<String, String>) -> String {
