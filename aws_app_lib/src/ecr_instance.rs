@@ -1,4 +1,4 @@
-use failure::{err_msg, Error};
+use anyhow::Error;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rusoto_core::Region;
 use rusoto_ecr::{
@@ -68,7 +68,7 @@ impl EcrInstance {
         self.ecr_client
             .describe_repositories(DescribeRepositoriesRequest::default())
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
             .map(|r| {
                 r.repositories
                     .unwrap_or_else(Vec::new)
@@ -85,7 +85,7 @@ impl EcrInstance {
                 ..DescribeImagesRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
             .map(|i| {
                 i.image_details
                     .unwrap_or_else(Vec::new)
@@ -114,7 +114,7 @@ impl EcrInstance {
                 ..BatchDeleteImageRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
             .map(|_| ())
     }
 

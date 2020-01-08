@@ -1,4 +1,4 @@
-use failure::{err_msg, Error};
+use anyhow::{format_err, Error};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::Url;
 use select::document::Document;
@@ -15,7 +15,7 @@ pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
         AwsGeneration::PV => "https://aws.amazon.com/ec2/previous-generation/",
     }
     .parse()
-    .map_err(err_msg)
+    .map_err(Into::into)
 }
 
 pub fn scrape_instance_info(
@@ -148,7 +148,7 @@ fn extract_instance_family_object_pv(
     let family_name = row[indicies[1]]
         .split('.')
         .nth(0)
-        .ok_or_else(|| err_msg("No family type"))?
+        .ok_or_else(|| format_err!("No family type"))?
         .to_string();
     Ok(InstanceFamilyInsert {
         family_name: family_name.into(),

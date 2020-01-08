@@ -1,5 +1,5 @@
+use anyhow::Error;
 use chrono::Local;
-use failure::Error;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use serde::{Deserialize, Serialize};

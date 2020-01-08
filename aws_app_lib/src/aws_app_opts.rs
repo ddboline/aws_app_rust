@@ -1,4 +1,4 @@
-use failure::Error;
+use anyhow::Error;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use std::collections::HashMap;

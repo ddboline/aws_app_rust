@@ -1,5 +1,5 @@
+use anyhow::Error;
 use chrono::{DateTime, Duration, Utc};
-use failure::{err_msg, Error};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rusoto_core::Region;
 use rusoto_ec2::{
@@ -103,7 +103,6 @@ impl Ec2Instance {
                 ..DescribeImagesRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|l| {
                 l.images
                     .unwrap_or_else(Vec::new)
@@ -121,6 +120,7 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_latest_ubuntu_ami(&self, ubuntu_release: &str) -> Result<Vec<AmiInfo>, Error> {
@@ -143,7 +143,6 @@ impl Ec2Instance {
                 ..DescribeImagesRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|l| {
                 l.images
                     .unwrap_or_else(Vec::new)
@@ -161,6 +160,7 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_ami_map(&self) -> Result<HashMap<String, String>, Error> {
@@ -175,7 +175,6 @@ impl Ec2Instance {
         self.ec2_client
             .describe_regions(DescribeRegionsRequest::default())
             .sync()
-            .map_err(err_msg)
             .map(|r| {
                 r.regions
                     .unwrap_or_else(Vec::new)
@@ -185,13 +184,13 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_all_instances(&self) -> Result<Vec<Ec2InstanceInfo>, Error> {
         self.ec2_client
             .describe_instances(DescribeInstancesRequest::default())
             .sync()
-            .map_err(err_msg)
             .map(|instances| {
                 instances
                     .reservations
@@ -229,13 +228,13 @@ impl Ec2Instance {
                     .flatten()
                     .collect::<Vec<Ec2InstanceInfo>>()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_reserved_instances(&self) -> Result<Vec<ReservedInstanceInfo>, Error> {
         self.ec2_client
             .describe_reserved_instances(DescribeReservedInstancesRequest::default())
             .sync()
-            .map_err(err_msg)
             .map(|res| {
                 res.reserved_instances
                     .unwrap_or_else(Vec::new)
@@ -257,6 +256,7 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_latest_spot_inst_prices(
@@ -293,7 +293,6 @@ impl Ec2Instance {
                 ..DescribeSpotPriceHistoryRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|spot_hist| {
                 spot_hist
                     .spot_price_history
@@ -307,13 +306,13 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_spot_instance_requests(&self) -> Result<Vec<SpotInstanceRequestInfo>, Error> {
         self.ec2_client
             .describe_spot_instance_requests(DescribeSpotInstanceRequestsRequest::default())
             .sync()
-            .map_err(err_msg)
             .map(|s| {
                 s.spot_instance_requests
                     .unwrap_or_else(Vec::new)
@@ -340,13 +339,13 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_all_volumes(&self) -> Result<Vec<VolumeInfo>, Error> {
         self.ec2_client
             .describe_volumes(DescribeVolumesRequest::default())
             .sync()
-            .map_err(err_msg)
             .map(|v| {
                 v.volumes
                     .unwrap_or_else(Vec::new)
@@ -368,6 +367,7 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn get_all_snapshots(&self) -> Result<Vec<SnapshotInfo>, Error> {
@@ -385,7 +385,6 @@ impl Ec2Instance {
                 ..DescribeSnapshotsRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|s| {
                 s.snapshots
                     .unwrap_or_else(Vec::new)
@@ -406,6 +405,7 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn terminate_instance(&self, instance_ids: &[String]) -> Result<(), Error> {
@@ -415,8 +415,8 @@ impl Ec2Instance {
                 ..TerminateInstancesRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     pub fn request_spot_instance(&self, spot: &SpotRequest) -> Result<(), Error> {
@@ -437,7 +437,7 @@ impl Ec2Instance {
                 ..RequestSpotInstancesRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
             .and_then(|req| {
                 if spot.tags.is_empty() {
                     return Ok(());
@@ -477,8 +477,8 @@ impl Ec2Instance {
                 ..CancelSpotInstanceRequestsRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     pub fn tag_ec2_instance(
@@ -499,7 +499,7 @@ impl Ec2Instance {
                 ..CreateTagsRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
     }
 
     pub fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
@@ -517,7 +517,7 @@ impl Ec2Instance {
                 ..RunInstancesRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
             .and_then(|req| {
                 req.instances
                     .unwrap_or_else(Vec::new)
@@ -526,6 +526,7 @@ impl Ec2Instance {
                     .map(|inst| self.tag_ec2_instance(&inst, &request.tags))
                     .collect()
             })
+            .map_err(Into::into)
     }
 
     pub fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
@@ -536,7 +537,7 @@ impl Ec2Instance {
                 ..CreateImageRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
             .map(|r| r.image_id)
     }
 
@@ -547,7 +548,7 @@ impl Ec2Instance {
                 ..DeregisterImageRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
     }
 
     pub fn create_ebs_volume(
@@ -565,8 +566,8 @@ impl Ec2Instance {
                 ..CreateVolumeRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|v| v.volume_id)
+            .map_err(Into::into)
     }
 
     pub fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
@@ -576,7 +577,7 @@ impl Ec2Instance {
                 ..DeleteVolumeRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
     }
 
     pub fn attach_ebs_volume(&self, volid: &str, instid: &str, device: &str) -> Result<(), Error> {
@@ -588,8 +589,8 @@ impl Ec2Instance {
                 ..AttachVolumeRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     pub fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
@@ -599,8 +600,8 @@ impl Ec2Instance {
                 ..DetachVolumeRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     pub fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
@@ -611,8 +612,8 @@ impl Ec2Instance {
                 ..ModifyVolumeRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     pub fn create_ebs_snapshot(
@@ -641,8 +642,8 @@ impl Ec2Instance {
                 ..CreateSnapshotRequest::default()
             })
             .sync()
-            .map_err(err_msg)
             .map(|s| s.snapshot_id)
+            .map_err(Into::into)
     }
 
     pub fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
@@ -652,14 +653,13 @@ impl Ec2Instance {
                 ..DeleteSnapshotRequest::default()
             })
             .sync()
-            .map_err(err_msg)
+            .map_err(Into::into)
     }
 
     pub fn get_all_key_pairs(&self) -> Result<Vec<(String, String)>, Error> {
         self.ec2_client
             .describe_key_pairs(DescribeKeyPairsRequest::default())
             .sync()
-            .map_err(err_msg)
             .map(|x| {
                 x.key_pairs
                     .unwrap_or_else(Vec::new)
@@ -670,6 +670,7 @@ impl Ec2Instance {
                     })
                     .collect()
             })
+            .map_err(Into::into)
     }
 }
 

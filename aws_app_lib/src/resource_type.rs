@@ -1,4 +1,4 @@
-use failure::{format_err, Error};
+use anyhow::{format_err, Error};
 use std::fmt;
 use std::str::FromStr;
 

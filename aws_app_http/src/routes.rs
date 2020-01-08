@@ -2,7 +2,6 @@ use actix_web::http::StatusCode;
 use actix_web::web::{block, Data, Json, Query};
 use actix_web::HttpResponse;
 use aws_app_lib::resource_type::ResourceType;
-use failure::{err_msg, Error};
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use std::fs::{remove_file, File};
@@ -14,6 +13,7 @@ use aws_app_lib::ec2_instance::SpotRequest;
 use aws_app_lib::models::InstanceFamily;
 
 use super::app::AppState;
+use super::errors::ServiceError as Error;
 use super::logged_user::LoggedUser;
 use super::requests::{
     CleanupEcrImagesRequest, DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest,
@@ -34,9 +34,7 @@ fn form_http_response(body: String) -> Result<HttpResponse, Error> {
 // }
 
 pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
-    let results = block(move || data.aws.handle(ResourceType::Instances))
-        .await
-        .map_err(err_msg)?;
+    let results = block(move || data.aws.handle(ResourceType::Instances)).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("<br>"));
     form_http_response(body)
@@ -57,9 +55,7 @@ pub async fn list(
         .resource
         .parse()
         .unwrap_or(ResourceType::Instances);
-    let results = block(move || data.aws.handle(query))
-        .await
-        .map_err(err_msg)?;
+    let results = block(move || data.aws.handle(query)).await?;
     form_http_response(results.join("<br>"))
 }
 
@@ -69,9 +65,7 @@ pub async fn terminate(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query))
-        .await
-        .map_err(err_msg)?;
+    block(move || data.aws.handle(query)).await?;
     form_http_response("finished".to_string())
 }
 
@@ -81,9 +75,7 @@ pub async fn delete_image(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query))
-        .await
-        .map_err(err_msg)?;
+    block(move || data.aws.handle(query)).await?;
     form_http_response("finished".to_string())
 }
 
@@ -93,9 +85,7 @@ pub async fn delete_volume(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query))
-        .await
-        .map_err(err_msg)?;
+    block(move || data.aws.handle(query)).await?;
     form_http_response("finished".to_string())
 }
 
@@ -105,9 +95,7 @@ pub async fn delete_snapshot(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query))
-        .await
-        .map_err(err_msg)?;
+    block(move || data.aws.handle(query)).await?;
     form_http_response("finished".to_string())
 }
 
@@ -117,9 +105,7 @@ pub async fn delete_ecr_image(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query))
-        .await
-        .map_err(err_msg)?;
+    block(move || data.aws.handle(query)).await?;
     form_http_response("finished".to_string())
 }
 
@@ -127,9 +113,7 @@ pub async fn cleanup_ecr_images(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    block(move || data.aws.handle(CleanupEcrImagesRequest {}))
-        .await
-        .map_err(err_msg)?;
+    block(move || data.aws.handle(CleanupEcrImagesRequest {})).await?;
     form_http_response("finished".to_string())
 }
 
@@ -208,9 +192,7 @@ pub async fn build_spot_request(
     let query = query.into_inner();
 
     let d = data.clone();
-    let mut amis = block(move || d.aws.get_all_ami_tags())
-        .await
-        .map_err(err_msg)?;
+    let mut amis = block(move || d.aws.get_all_ami_tags()).await?;
     let mut ami_opt: Vec<_> = amis
         .iter()
         .filter(|ami| ami.id == query.ami)
@@ -225,16 +207,14 @@ pub async fn build_spot_request(
 
     let d = data.clone();
     let files: Vec<_> = block(move || d.aws.get_all_scripts())
-        .await
-        .map_err(err_msg)?
+        .await?
         .into_iter()
         .map(|f| format!(r#"<option value="{f}">{f}</option>"#, f = f))
         .collect();
 
     let d = data.clone();
     let keys: Vec<_> = block(move || d.aws.ec2.get_all_key_pairs())
-        .await
-        .map_err(err_msg)?
+        .await?
         .into_iter()
         .map(|k| format!(r#"<option value="{k}">{k}</option>"#, k = k.0))
         .collect();
@@ -293,9 +273,7 @@ pub async fn request_spot(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let req = req.into_inner().into_spot_request(&data.aws.config);
-    block(move || data.aws.ec2.request_spot_instance(&req))
-        .await
-        .map_err(err_msg)?;
+    block(move || data.aws.ec2.request_spot_instance(&req)).await?;
     form_http_response("done".to_string())
 }
 
@@ -312,8 +290,7 @@ pub async fn get_prices(
     let query = query.into_inner();
     let d = data.clone();
     let inst_fam: Vec<_> = block(move || InstanceFamily::get_all(&d.aws.pool))
-        .await
-        .map_err(err_msg)?
+        .await?
         .into_iter()
         .map(|fam| {
             format!(
@@ -328,7 +305,7 @@ pub async fn get_prices(
         let d = data.clone();
         block(move || d.aws.get_ec2_prices(&[search]))
             .await
-            .map_err(err_msg)?
+            ?
             .into_iter()
             .map(|price| {
                 format!(
@@ -394,7 +371,7 @@ pub async fn get_prices(
 }
 
 pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
-    let entries = block(move || data.aws.update()).await.map_err(err_msg)?;
+    let entries = block(move || data.aws.update()).await?;
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -410,9 +387,7 @@ pub async fn status(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let entries = block(move || data.aws.handle(query))
-        .await
-        .map_err(err_msg)?;
+    let entries = block(move || data.aws.handle(query)).await?;
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"

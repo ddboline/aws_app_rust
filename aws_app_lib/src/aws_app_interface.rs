@@ -1,5 +1,5 @@
+use anyhow::Error;
 use chrono::Local;
-use failure::Error;
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};

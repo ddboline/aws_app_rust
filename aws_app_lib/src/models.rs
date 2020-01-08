@@ -1,6 +1,6 @@
+use anyhow::Error;
 use chrono::{DateTime, Utc};
 use diesel::{Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl};
-use failure::{err_msg, Error};
 use std::borrow::Cow;
 use std::fmt;
 
@@ -41,7 +41,7 @@ impl InstanceFamily<'_> {
             .filter(family_name.eq(f_name))
             .filter(family_type.eq(f_type))
             .load(conn)
-            .map_err(err_msg)
+            .map_err(Into::into)
     }
 
     pub fn existing_entries(f_name: &str, f_type: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
@@ -52,7 +52,7 @@ impl InstanceFamily<'_> {
     pub fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_family::dsl::instance_family;
         let conn = pool.get()?;
-        instance_family.load(&conn).map_err(err_msg)
+        instance_family.load(&conn).map_err(Into::into)
     }
 }
 
@@ -63,8 +63,8 @@ impl InstanceFamilyInsert<'_> {
         diesel::insert_into(instance_family)
             .values(self)
             .execute(conn)
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     pub fn insert_entry(&self, pool: &PgPool) -> Result<bool, Error> {
@@ -105,7 +105,7 @@ impl InstanceList<'_> {
     pub fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_list::dsl::instance_list;
         let conn = pool.get()?;
-        instance_list.load(&conn).map_err(err_msg)
+        instance_list.load(&conn).map_err(Into::into)
     }
 
     fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
@@ -113,7 +113,7 @@ impl InstanceList<'_> {
         instance_list
             .filter(instance_type.eq(instance_type_))
             .load(conn)
-            .map_err(err_msg)
+            .map_err(Into::into)
     }
 
     pub fn get_by_instance_type(instance_type_: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
@@ -127,8 +127,8 @@ impl InstanceList<'_> {
         diesel::insert_into(instance_list)
             .values(self)
             .execute(conn)
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     pub fn insert_entry(&self, pool: &PgPool) -> Result<bool, Error> {
@@ -186,7 +186,7 @@ impl InstancePricing<'_> {
             .filter(instance_type.eq(i_type))
             .filter(price_type.eq(p_type))
             .load(conn)
-            .map_err(err_msg)
+            .map_err(Into::into)
     }
 
     pub fn existing_entries(i_type: &str, p_type: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
@@ -197,7 +197,7 @@ impl InstancePricing<'_> {
     pub fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_pricing::dsl::instance_pricing;
         let conn = pool.get()?;
-        instance_pricing.load(&conn).map_err(err_msg)
+        instance_pricing.load(&conn).map_err(Into::into)
     }
 }
 
@@ -208,8 +208,8 @@ impl InstancePricingInsert<'_> {
         diesel::insert_into(instance_pricing)
             .values(self)
             .execute(conn)
-            .map_err(err_msg)
             .map(|_| ())
+            .map_err(Into::into)
     }
 
     fn _update_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
@@ -226,8 +226,8 @@ impl InstancePricingInsert<'_> {
             price_timestamp.eq(self.price_timestamp),
         ))
         .execute(conn)
-        .map_err(err_msg)
         .map(|_| ())
+        .map_err(Into::into)
     }
 
     pub fn upsert_entry(&self, pool: &PgPool) -> Result<bool, Error> {
@@ -271,6 +271,6 @@ impl AuthorizedUsers {
     pub fn get_authorized_users(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::authorized_users::dsl::authorized_users;
         let conn = pool.get()?;
-        authorized_users.load(&conn).map_err(err_msg)
+        authorized_users.load(&conn).map_err(Into::into)
     }
 }

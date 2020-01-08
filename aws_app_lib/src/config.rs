@@ -1,4 +1,4 @@
-use failure::{err_msg, format_err, Error};
+use anyhow::{format_err, Error};
 use std::env::var;
 use std::ops::Deref;
 use std::path::Path;
@@ -28,10 +28,6 @@ impl Config {
         Self::default()
     }
 
-    pub fn get_inner(self) -> Result<ConfigInner, Error> {
-        Arc::try_unwrap(self.0).map_err(|_| err_msg("Failed unwrapping"))
-    }
-
     pub fn from_inner(inner: ConfigInner) -> Self {
         Self(Arc::new(inner))
     }
@@ -39,7 +35,7 @@ impl Config {
     pub fn init_config() -> Result<Self, Error> {
         let fname = "config.env";
 
-        let home_dir = var("HOME").map_err(|e| format_err!("No HOME directory {}", e))?;
+        let home_dir = var("HOME").map_err(|e| format_err!("No HOME variable {}", e))?;
 
         let default_fname = format!("{}/.config/aws_app_rust/config.env", home_dir);
 
@@ -66,11 +62,11 @@ impl Config {
             .and_then(|s| s.parse().ok())
             .unwrap_or(0.20);
         let default_security_group: String = var("DEFAULT_SECURITY_GROUP")
-            .map_err(|e| format_err!("DEFAULT_SECURITY_GROUP mut be set {}", e))?;
+            .map_err(|e| format_err!("DEFAULT_SECURITY_GROUP must be set {}", e))?;
         let spot_security_group: String =
             var("SPOT_SECURITY_GROUP").unwrap_or_else(|_| default_security_group.clone());
         let default_key_name: String = var("DEFAULT_KEY_NAME")
-            .map_err(|e| format_err!("DEFAULT_KEY_NAME mut be set {}", e))?;
+            .map_err(|e| format_err!("DEFAULT_KEY_NAME must be set {}", e))?;
         let script_directory: String = var("SCRIPT_DIRECTORY")
             .unwrap_or_else(|_| format!("{}/.config/aws_app_rust/scripts", home_dir));
         let ubuntu_release: String =

@@ -1,5 +1,5 @@
+use anyhow::{format_err, Error};
 use chrono::Utc;
-use failure::{err_msg, Error};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use reqwest::Url;
 use serde::Deserialize;
@@ -32,7 +32,7 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
         PricingType::OnDemand => "https://aws.amazon.com/ec2/pricing/on-demand/".parse(),
         PricingType::Spot => unimplemented!(),
     }
-    .map_err(err_msg)
+    .map_err(Into::into)
 }
 
 fn extract_json_url(url: Url) -> Result<Url, Error> {
@@ -54,7 +54,7 @@ fn extract_json_url(url: Url) -> Result<Url, Error> {
                     })
                 })
         })
-        .ok_or_else(|| err_msg("No url"))
+        .ok_or_else(|| format_err!("No url"))
 }
 
 fn parse_json(
@@ -102,12 +102,12 @@ fn get_instance_pricing(
             let price: f64 = price_entry
                 .price
                 .get("USD")
-                .ok_or_else(|| err_msg("No USD Price"))?
+                .ok_or_else(|| format_err!("No USD Price"))?
                 .parse()?;
             let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
-                .ok_or_else(|| err_msg("No instance type"))?
+                .ok_or_else(|| format_err!("No instance type"))?
                 .to_string();
             let i = InstancePricingInsert {
                 instance_type: instance_type.into(),
@@ -123,11 +123,11 @@ fn get_instance_pricing(
                 .as_ref()
                 .and_then(|x| x.get("effectiveHourlyRate"))
                 .and_then(|x| x.get("USD"))
-                .ok_or_else(|| err_msg("No price"))?;
+                .ok_or_else(|| format_err!("No price"))?;
             let instance_type: String = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
-                .ok_or_else(|| err_msg("No instance type"))?
+                .ok_or_else(|| format_err!("No instance type"))?
                 .to_string();
             let i = InstancePricingInsert {
                 instance_type: instance_type.into(),
@@ -137,7 +137,7 @@ fn get_instance_pricing(
             };
             Ok(i)
         }
-        PricingType::Spot => Err(err_msg("nothing")),
+        PricingType::Spot => Err(format_err!("nothing")),
     }
 }
 
