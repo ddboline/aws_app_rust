@@ -1,6 +1,7 @@
 use actix_threadpool::BlockingError;
 use actix_web::{error::ResponseError, HttpResponse};
 use anyhow::Error as AnyhowError;
+use std::fmt::Debug;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -38,8 +39,8 @@ impl ResponseError for ServiceError {
     }
 }
 
-impl From<BlockingError<AnyhowError>> for ServiceError {
-    fn from(item: BlockingError<AnyhowError>) -> Self {
+impl<T: Debug> From<BlockingError<T>> for ServiceError {
+    fn from(item: BlockingError<T>) -> Self {
         Self::BlockingError(item.to_string())
     }
 }
