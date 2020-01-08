@@ -81,8 +81,8 @@ DISPLAY_TEXT
         let url = "/aws/list?resource=" + resource_type;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("sub_article").innerHTML = "&nbsp;";
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
@@ -203,7 +203,6 @@ DISPLAY_TEXT
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
-        document.getElementById("main_article").innerHTML = "&nbsp;";
         document.getElementById("sub_article").innerHTML = "&nbsp;";
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
@@ -245,8 +244,8 @@ DISPLAY_TEXT
         }
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("sub_article").innerHTML = "&nbsp;";
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
@@ -257,8 +256,8 @@ DISPLAY_TEXT
         let url = "/aws/update";
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("sub_article").innerHTML = "&nbsp;";
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);
