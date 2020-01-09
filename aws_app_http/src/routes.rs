@@ -337,21 +337,19 @@ pub async fn get_prices(
         Vec::new()
     };
 
-    let body = format!(
-        r#"
-            <form action="javascript:listPrices()">
-            <select id="inst_fam">{}</select><br>
-            <input type="button" name="create_request" value="Request" onclick="listPrices();"/><br>
-            </form><br>
-        "#,
-        inst_fam.join("\n"),
-    );
     let body = if prices.is_empty() {
-        body
+        format!(
+            r#"
+                <form action="javascript:listPrices()">
+                <select id="inst_fam">{}</select><br>
+                <input type="button" name="create_request" value="Request" onclick="listPrices();"/><br>
+                </form><br>
+            "#,
+            inst_fam.join("\n"),
+        )
     } else {
         format!(
-            r#"{}<br><table border="1" class="dataframe"><thead>{}</thead><tbody>{}</tbody></table>"#,
-            body,
+            r#"<table border="1" class="dataframe"><thead>{}</thead><tbody>{}</tbody></table>"#,
             r#"
                 <tr>
                 <th>Instance Type</th>

@@ -236,6 +236,18 @@ DISPLAY_TEXT
         xmlhttp.send(data);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function listAllPrices() {
+        let url = "/aws/prices";
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("sub_article").innerHTML = "&nbsp;";
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
     function listPrices() {
         let url = "/aws/prices";
         let search = document.getElementById('inst_fam');
@@ -244,8 +256,7 @@ DISPLAY_TEXT
         }
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
-            document.getElementById("sub_article").innerHTML = "&nbsp;";
-            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
         }
         xmlhttp.open("GET", url, true);

@@ -6,7 +6,7 @@ use rusoto_ecr::{
     ImageIdentifier,
 };
 use std::fmt;
-use sts_profile_auth::sts_instance::StsInstance;
+use sts_profile_auth::get_client_sts;
 
 use crate::config::Config;
 
@@ -22,7 +22,6 @@ macro_rules! some {
 
 #[derive(Clone)]
 pub struct EcrInstance {
-    sts: StsInstance,
     ecr_client: EcrClient,
     region: Region,
 }
@@ -36,8 +35,7 @@ impl fmt::Debug for EcrInstance {
 impl Default for EcrInstance {
     fn default() -> Self {
         Self {
-            sts: StsInstance::default(),
-            ecr_client: EcrClient::new(Region::UsEast1),
+            ecr_client: get_client_sts!(EcrClient, Region::UsEast1).expect("StsProfile failed"),
             region: Region::UsEast1,
         }
     }
@@ -50,17 +48,15 @@ impl EcrInstance {
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);
-        let sts = StsInstance::new(None).unwrap();
         Self {
-            ecr_client: sts.get_ecr_client(region.clone()).unwrap(),
+            ecr_client: get_client_sts!(EcrClient, region.clone()).expect("StsProfile failed"),
             region,
-            sts,
         }
     }
 
     pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
         self.region = region.parse()?;
-        self.ecr_client = self.sts.get_ecr_client(self.region.clone())?;
+        self.ecr_client = get_client_sts!(EcrClient, self.region.clone())?;
         Ok(())
     }
 

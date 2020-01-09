@@ -20,7 +20,7 @@ use std::io::{stdout, Read, Write};
 use std::path::Path;
 use std::thread::sleep;
 use std::time;
-use sts_profile_auth::sts_instance::StsInstance;
+use sts_profile_auth::get_client_sts;
 
 use crate::config::Config;
 
@@ -36,7 +36,6 @@ macro_rules! some {
 
 #[derive(Clone)]
 pub struct Ec2Instance {
-    sts: StsInstance,
     ec2_client: Ec2Client,
     my_owner_id: Option<String>,
     region: Region,
@@ -53,8 +52,7 @@ impl Default for Ec2Instance {
     fn default() -> Self {
         let config = Config::new();
         Self {
-            sts: StsInstance::default(),
-            ec2_client: Ec2Client::new(Region::UsEast1),
+            ec2_client: get_client_sts!(Ec2Client, Region::UsEast1).expect("StsProfile failed"),
             my_owner_id: config.my_owner_id.clone(),
             region: Region::UsEast1,
             script_dir: config.script_directory.clone(),
@@ -69,19 +67,17 @@ impl Ec2Instance {
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);
-        let sts = StsInstance::new(None).unwrap();
         Self {
-            ec2_client: sts.get_ec2_client(region.clone()).unwrap(),
+            ec2_client: get_client_sts!(Ec2Client, region.clone()).expect("StsProfile failed"),
             my_owner_id: config.my_owner_id.clone(),
             region,
             script_dir: config.script_directory.clone(),
-            sts,
         }
     }
 
     pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
         self.region = region.parse()?;
-        self.ec2_client = self.sts.get_ec2_client(self.region.clone())?;
+        self.ec2_client = get_client_sts!(Ec2Client, self.region.clone())?;
         Ok(())
     }
 
