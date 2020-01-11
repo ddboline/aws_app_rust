@@ -16,8 +16,8 @@ use super::app::AppState;
 use super::errors::ServiceError as Error;
 use super::logged_user::LoggedUser;
 use super::requests::{
-    CleanupEcrImagesRequest, DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest,
-    DeleteVolumeRequest, HandleRequest, StatusRequest, TerminateRequest,
+    CleanupEcrImagesRequest, CommandRequest, DeleteEcrImageRequest, DeleteImageRequest,
+    DeleteSnapshotRequest, DeleteVolumeRequest, HandleRequest, StatusRequest, TerminateRequest,
 };
 
 fn form_http_response(body: String) -> Result<HttpResponse, Error> {
@@ -381,11 +381,48 @@ pub async fn status(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
+    let host = query.instance.clone();
     let entries = block(move || data.aws.handle(query)).await?;
     let body = format!(
-        r#"<textarea autofocus readonly="readonly"
+        r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
             rows={} cols=100>{}</textarea>"#,
+        format!(
+            r#"
+            <form action="javascript:runCommand('{host}')">
+            <input type="text" name="command_text" id="command_text"/>
+            <input type="button" name="run_command" value="Run" onclick="runCommand('{host}');"/>
+            </form>
+        "#,
+            host = host
+        ),
+        entries.len() + 5,
+        entries.join("\n")
+    );
+    form_http_response(body)
+}
+
+pub async fn command(
+    payload: Json<CommandRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let payload = payload.into_inner();
+    let host = payload.instance.clone();
+    let entries = block(move || data.aws.handle(payload)).await?;
+    let body = format!(
+        r#"{}<br><textarea autofocus readonly="readonly"
+            name="message" id="diary_editor_form"
+            rows={} cols=100>{}</textarea>"#,
+        format!(
+            r#"
+                <form action="javascript:runCommand('{host}')">
+                <input type="text" name="command_text" id="command_text"/>
+                <input type="button" name="run_command" value="Run" onclick="runCommand('{host}');"/>
+                </form>
+            "#,
+            host = host
+        ),
         entries.len() + 5,
         entries.join("\n")
     );

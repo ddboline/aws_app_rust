@@ -437,3 +437,16 @@ impl HandleRequest<StatusRequest> for AwsAppInterface {
         self.get_status(&req.instance)
     }
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CommandRequest {
+    pub instance: String,
+    pub command: String,
+}
+
+impl HandleRequest<CommandRequest> for AwsAppInterface {
+    type Result = Result<Vec<String>, Error>;
+    fn handle(&self, req: CommandRequest) -> Self::Result {
+        self.run_command(&req.instance, &req.command)
+    }
+}

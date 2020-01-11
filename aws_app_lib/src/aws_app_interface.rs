@@ -315,12 +315,15 @@ impl AwsAppInterface {
     }
 
     pub fn get_status(&self, instance_id: &str) -> Result<Vec<String>, Error> {
+        self.run_command(instance_id, "tail /var/log/cloud-init-output.log")
+    }
+
+    pub fn run_command(&self, instance_id: &str, command: &str) -> Result<Vec<String>, Error> {
         self.fill_instance_list()?;
         let name_map = get_name_map()?;
         let id_host_map = get_id_host_map()?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(&inst_id) {
-            let command = "tail /var/log/cloud-init-output.log";
             SSHInstance::new("ubuntu", host, 22).run_command_stream_stdout(command)
         } else {
             Ok(Vec::new())

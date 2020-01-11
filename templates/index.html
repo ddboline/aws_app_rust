@@ -285,6 +285,23 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function runCommand( instance ) {
+        let url = "/aws/command";
+        let command = document.getElementById( 'command_text' ).value;
+        let data = JSON.stringify({
+            'instance': instance,
+            'command': command,
+        });
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("POST", url, true);
+        xmlhttp.setRequestHeader('Content-Type', 'application/json');
+        xmlhttp.send(data);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
 </script>
 
 </body>
