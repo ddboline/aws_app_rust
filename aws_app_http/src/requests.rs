@@ -19,36 +19,67 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
         let mut output = Vec::new();
         match req {
             ResourceType::Instances => {
-                list_instance(self, &mut output)?;
+                let result = list_instance(self)?;
+                if result.is_empty() {
+                    return Ok(Vec::new());
+                }
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead>
+                    <tr>
+                    <th>Instance Id</th><th>Public Hostname</th><th>State</th><th>Name</th><th>Instance Type</th>
+                    <th>Created At</th><th>Availability Zone</th>
+                    </tr>
+                    </thead><tbody>"#
+                        .to_string(),
+                );
+                output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Reserved => {
                 let reserved = self.ec2.get_reserved_instances()?;
                 if reserved.is_empty() {
                     return Ok(Vec::new());
                 }
-                output.push("Get Reserved Instance".to_string());
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead>
+                    <tr><th>Reserved Instance Id</th><th>Price</th><th>Instance Type</th><th>State</th><th>Availability Zone</th></tr>
+                    </thead><tbody>"#
+                        .to_string(),
+                );
                 let result: Vec<_> = reserved
                     .par_iter()
                     .map(|res| {
                         format!(
-                            "{} {} {} {} {}",
+                            r#"<tr style="text-align: center;">
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                            </tr>"#,
                             res.id, res.price, res.instance_type, res.state, res.availability_zone
                         )
                     })
                     .collect();
                 output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Spot => {
                 let requests = self.ec2.get_spot_instance_requests()?;
                 if requests.is_empty() {
                     return Ok(Vec::new());
                 }
-                output.push("Spot Instance Requests:".to_string());
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead>
+                    <tr><th>Spot Request Id</th><th>Price</th><th>AMI</th><th>Instance Type</th><th>Spot Type</th>
+                    <th>Status</th>
+                    </tr>
+                    </thead><tbody>"#
+                        .to_string(),
+                );
                 let result: Vec<_> = requests
                     .par_iter()
                     .map(|req| {
                         format!(
-                            "{} {} {} {} {} {}",
+                            r#"<tr style="text-align: center;">
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                            </tr>"#,
                             req.id,
                             req.price,
                             req.imageid,
@@ -59,12 +90,14 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     })
                     .collect();
                 output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Ami => {
                 let mut ami_tags = self.ec2.get_ami_tags()?;
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
+                ami_tags.par_sort_by_key(|x| x.name.clone());
                 let mut ubuntu_amis = self
                     .ec2
                     .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
@@ -72,12 +105,21 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if !ubuntu_amis.is_empty() {
                     ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
                 }
-                output.push("AMI's:".to_string());
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead>
+                    <tr><th></th><th></th><th>AMI</th><th>Name</th><th>State</th>
+                    <th>Snapshot ID</th>
+                    </tr>
+                    </thead><tbody>"#
+                        .to_string(),
+                );
                 let result: Vec<_> = ami_tags
                     .par_iter()
                     .map(|ami| {
                         format!(
-                            "{} {} {} {} {} {}",
+                            r#"<tr style="text-align: center;">
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                            </tr>"#,
                             format!(
                                 r#"<input type="button" name="DeleteImage" value="DeleteImage" onclick="deleteImage('{}')">"#,
                                 ami.id
@@ -94,27 +136,44 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     })
                     .collect();
                 output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Key => {
                 let keys = self.ec2.get_all_key_pairs()?;
-                output.push("Keys:".to_string());
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th>Key Name</th><th>Key Fingerprint</th></tr></thead><tbody>"#
+                        .to_string(),
+                );
                 let result: Vec<_> = keys
                     .into_par_iter()
-                    .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
+                    .map(|(key, fingerprint)| {
+                        format!(
+                            r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
+                            key, fingerprint
+                        )
+                    })
                     .collect();
                 output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Volume => {
                 let volumes = self.ec2.get_all_volumes()?;
                 if volumes.is_empty() {
                     return Ok(Vec::new());
                 }
-                output.push("Volumes:".to_string());
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th></th><th>Volume ID</th>
+                    <th>Availability Zone</th><th>Size</th><th>IOPS</th><th>State</th><th>Tags</th>
+                    </tr></thead><tbody>"#
+                        .to_string(),
+                );
                 let result: Vec<_> = volumes
                     .par_iter()
                     .map(|vol| {
                         format!(
-                            "{} {} {} {} {} {} {}",
+                            r#"<tr style="text-align: center;">
+                            <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                            </tr>"#,
                             format!(
                                 r#"<input type="button" name="DeleteVolume" value="DeleteVolume" onclick="deleteVolume('{}')">"#,
                                 vol.id
@@ -129,18 +188,31 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     })
                     .collect();
                 output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Snapshot => {
-                let snapshots = self.ec2.get_all_snapshots()?;
+                let mut snapshots = self.ec2.get_all_snapshots()?;
                 if snapshots.is_empty() {
                     return Ok(Vec::new());
                 }
-                output.push("Snapshots:".to_string());
+                snapshots.par_sort_by_key(|k| {
+                    k.tags
+                        .get("Name")
+                        .map_or_else(|| "".to_string(), ToString::to_string)
+                });
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr>
+                    <th></th><th>Snapshot ID</th><th>Size</th><th>State</th><th>Progress</th><th>Tags</th>
+                    </tr></thead><tbody>"#
+                        .to_string(),
+                );
                 let result: Vec<_> = snapshots
                     .par_iter()
                     .map(|snap| {
                         format!(
-                            "{} {} {} GB {} {} {}",
+                            r#"<tr style="text-align: center;">
+                            <td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td><td>{}</td>
+                            </tr>"#,
                             format!(
                                 r#"<input type="button" name="DeleteSnapshot" value="DeleteSnapshot" onclick="deleteSnapshot('{}')">"#,
                                 snap.id
@@ -154,6 +226,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     })
                     .collect();
                 output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Ecr => {
                 let repos = self.ecr.get_all_repositories()?;
@@ -161,10 +234,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 output.push(
-                    format!(
-                        "ECR images {}",
-                        r#"<input type="button" name="CleanupEcr" value="CleanupEcr" onclick="cleanupEcrImages()">"#,
-                    )
+                    r#"<table border="1" class="dataframe"><thead><tr>
+                    <th><input type="button" name="CleanupEcr" value="CleanupEcr" onclick="cleanupEcrImages()"></th>
+                    <th>ECR Repo</th><th>Tag</th><th>Digest</th>
+                    </tr></thead><tbody>"#
+                        .to_string(),
                 );
                 let result: Result<Vec<_>, Error> = repos
                     .par_iter()
@@ -172,6 +246,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .collect();
                 let result: Vec<_> = result?.into_par_iter().flatten().collect();
                 output.extend_from_slice(&result);
+                output.push("</tbody></table>".to_string());
             }
             ResourceType::Script => {
                 output.push(
@@ -185,7 +260,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 let result: Vec<_> = self.get_all_scripts()?
                     .into_par_iter()
                     .map(|fname| format!(
-                        "{} {} {}",
+                        "{} {} {}<br>",
                         format!(
                             r#"<input type="button" name="Edit" value="Edit" onclick="editScript('{}')">"#,
                             fname,
@@ -203,7 +278,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
     }
 }
 
-fn list_instance(app: &AwsAppInterface, output: &mut Vec<String>) -> Result<(), Error> {
+fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
     app.fill_instance_list()?;
 
     let result: Vec<_> = INSTANCE_LIST
@@ -216,7 +291,12 @@ fn list_instance(app: &AwsAppInterface, output: &mut Vec<String>) -> Result<(), 
                 .cloned()
                 .unwrap_or_else(|| "".to_string());
             format!(
-                "{} {} {} {} {} {} {} {} {}",
+                r#"
+                    <tr style="text-align: center;">
+                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                    </tr>
+                "#,
                 inst.id,
                 inst.dns_name,
                 inst.state,
@@ -243,11 +323,7 @@ fn list_instance(app: &AwsAppInterface, output: &mut Vec<String>) -> Result<(), 
             )
         })
         .collect();
-    if !result.is_empty() {
-        output.push("instances:".to_string());
-        output.extend_from_slice(&result);
-    }
-    Ok(())
+    Ok(result)
 }
 
 fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Error> {
@@ -256,12 +332,11 @@ fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Erro
         .par_iter()
         .map(|image| {
             format!(
-                "{} {} {} {}",
+                r#"<tr style="text-align: center;">
+                <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                </tr>"#,
                 format!(
-                    r#"
-                        <input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
-                         onclick="deleteEcrImage('{}', '{}')">
-                    "#,
+                    r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage" onclick="deleteEcrImage('{}', '{}')">"#,
                     repo, image.digest,
                 ),
                 repo,

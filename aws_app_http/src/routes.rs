@@ -26,17 +26,10 @@ fn form_http_response(body: String) -> Result<HttpResponse, Error> {
         .body(body))
 }
 
-// fn to_json<T>(js: &T) -> Result<HttpResponse, Error>
-// where
-//     T: Serialize,
-// {
-//     Ok(HttpResponse::Ok().json2(js))
-// }
-
 pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
     let results = block(move || data.aws.handle(ResourceType::Instances)).await?;
     let body =
-        include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("<br>"));
+        include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
     form_http_response(body)
 }
 
@@ -56,7 +49,7 @@ pub async fn list(
         .parse()
         .unwrap_or(ResourceType::Instances);
     let results = block(move || data.aws.handle(query)).await?;
-    form_http_response(results.join("<br>"))
+    form_http_response(results.join("\n"))
 }
 
 pub async fn terminate(
@@ -133,9 +126,10 @@ pub async fn edit_script(
     if Path::new(&filename).exists() {
         File::open(&filename)?.read_to_string(&mut text)?;
     }
+    let rows = text.split('\n').count() + 5;
     let body = format!(
         r#"
-        <textarea name="message" id="script_editor_form" rows=50 cols=100
+        <textarea name="message" id="script_editor_form" rows={rows} cols=100
         form="script_edit_form">{text}</textarea><br>
         <form id="script_edit_form">
         <input type="button" name="update" value="Update" onclick="submitFormData('{fname}')">
@@ -143,6 +137,7 @@ pub async fn edit_script(
         </form>"#,
         text = text,
         fname = &query.filename,
+        rows = rows,
     );
     form_http_response(body)
 }
@@ -373,8 +368,9 @@ pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse,
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
-            rows=50 cols=100>{}</textarea>"#,
-        entries.join("\n")
+            rows={} cols=100>{}</textarea>"#,
+        entries.len() + 5,
+        entries.join("\n"),
     );
     form_http_response(body)
 }
@@ -389,7 +385,8 @@ pub async fn status(
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
-            rows=50 cols=100>{}</textarea>"#,
+            rows={} cols=100>{}</textarea>"#,
+        entries.len() + 5,
         entries.join("\n")
     );
     form_http_response(body)
