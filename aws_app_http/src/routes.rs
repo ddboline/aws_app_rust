@@ -174,9 +174,11 @@ pub async fn delete_script(
     form_http_response("done".to_string())
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SpotBuilder {
-    pub ami: String,
+    pub ami: Option<String>,
+    pub inst: Option<String>,
+    pub script: Option<String>,
 }
 
 pub async fn build_spot_request(
@@ -188,21 +190,33 @@ pub async fn build_spot_request(
 
     let d = data.clone();
     let mut amis = block(move || d.aws.get_all_ami_tags()).await?;
-    let mut ami_opt: Vec<_> = amis
-        .iter()
-        .filter(|ami| ami.id == query.ami)
-        .cloned()
-        .collect();
-    amis.retain(|ami| ami.id != query.ami);
-    ami_opt.extend_from_slice(&amis);
+
+    let ami_opt = if let Some(ami_) = &query.ami {
+        let mut ami_opt: Vec<_> = amis.iter().filter(|ami| &ami.id == ami_).cloned().collect();
+        amis.retain(|ami| &ami.id != ami_);
+        ami_opt.extend_from_slice(&amis);
+        ami_opt
+    } else {
+        amis
+    };
+
     let amis: Vec<_> = ami_opt
         .into_iter()
         .map(|ami| format!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
         .collect();
 
     let d = data.clone();
-    let files: Vec<_> = block(move || d.aws.get_all_scripts())
-        .await?
+    let mut files = block(move || d.aws.get_all_scripts()).await?;
+
+    let file_opts = if let Some(script) = &query.script {
+        let mut file_opt: Vec<_> = files.iter().filter(|f| f == &script).cloned().collect();
+        files.retain(|f| f != script);
+        file_opt.extend_from_slice(&files);
+        file_opt
+    } else {
+        files
+    };
+    let files: Vec<_> = file_opts
         .into_iter()
         .map(|f| format!(r#"<option value="{f}">{f}</option>"#, f = f))
         .collect();
@@ -217,21 +231,26 @@ pub async fn build_spot_request(
     let body = format!(
         r#"
             <form action="javascript:createScript()">
-            Ami: <select id="ami">{}</select><br>
-            Instance type: <input type="text" name="instance_type" id="instance_type" value="t3.nano"/><br>
-            Security group: <input type="text" name="security_group" id="security_group" value="{}"/><br>
-            Script: <select id="script">{}</select><br>
-            Key: <select id="key">{}</select><br>
-            Price: <input type="text" name="price" id="price" value="{}"/><br>
+            Ami: <select id="ami">{ami}</select><br>
+            Instance type: <input type="text" name="instance_type" id="instance_type" value="{inst}"/><br>
+            Security group: <input type="text" name="security_group" id="security_group" value="{sec}"/><br>
+            Script: <select id="script">{script}</select><br>
+            Key: <select id="key">{key}</select><br>
+            Price: <input type="text" name="price" id="price" value="{price}"/><br>
             Name: <input type="text" name="name" id="name"/><br>
             <input type="button" name="create_request" value="Request" onclick="requestSpotInstance();"/><br>
             </form>
         "#,
-        amis.join("\n"),
-        data.aws.config.spot_security_group,
-        files.join("\n"),
-        keys.join("\n"),
-        data.aws.config.max_spot_price,
+        ami = amis.join("\n"),
+        inst = if let Some(inst) = &query.inst {
+            inst
+        } else {
+            "t3.nano"
+        },
+        sec = data.aws.config.spot_security_group,
+        script = files.join("\n"),
+        key = keys.join("\n"),
+        price = data.aws.config.max_spot_price,
     );
 
     form_http_response(body)
@@ -307,6 +326,7 @@ pub async fn get_prices(
                     r#"
                     <tr style="text-align: center;">
                         <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                        <td>{}</td>
                     </tr>
                     "#,
                     price.instance_type,
@@ -325,6 +345,10 @@ pub async fn get_prices(
                     price.ncpu,
                     price.memory,
                     price.instance_family,
+                    format!(
+                        r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest(null, '{}', null)">"#,
+                        price.instance_type,
+                    ),
                 )
             })
             .collect()

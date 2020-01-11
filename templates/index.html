@@ -193,8 +193,15 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
-    function buildSpotRequest( ami ) {
-        let url = "/aws/build_spot_request?ami=" + ami;
+    function buildSpotRequest( ami, inst, script ) {
+        let url = "/aws/build_spot_request";
+        if (ami) {
+            url = url + "?ami=" + ami;
+        } else if (inst) {
+            url = url + "?inst=" + inst;
+        } else if (script) {
+            url = url + "?script=" + script;
+        }
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("sub_article").innerHTML = xmlhttp.responseText;

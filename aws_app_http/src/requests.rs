@@ -125,7 +125,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                                 ami.id
                             ),
                             format!(
-                                r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest('{}')">"#,
+                                r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest('{}', null, null)">"#,
                                 ami.id,
                             ),
                             ami.id,
@@ -260,13 +260,17 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 let result: Vec<_> = self.get_all_scripts()?
                     .into_par_iter()
                     .map(|fname| format!(
-                        "{} {} {}<br>",
+                        "{} {} {} {}<br>",
                         format!(
                             r#"<input type="button" name="Edit" value="Edit" onclick="editScript('{}')">"#,
                             fname,
                         ),
                         format!(
                             r#"<input type="button" name="Rm" value="Rm" onclick="deleteScript('{}')">"#,
+                            fname,
+                        ),
+                        format!(
+                            r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest(null, null, '{}')">"#,
                             fname,
                         ),
                         fname))
