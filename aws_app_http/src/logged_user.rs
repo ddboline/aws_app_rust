@@ -24,7 +24,7 @@ lazy_static! {
 impl<'a> From<Claim> for LoggedUser {
     fn from(claim: Claim) -> Self {
         Self {
-            email: claim.get_email().to_string(),
+            email: claim.get_email(),
         }
     }
 }
