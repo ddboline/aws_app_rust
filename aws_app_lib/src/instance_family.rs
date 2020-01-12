@@ -31,18 +31,14 @@ impl fmt::Display for InstanceFamilies {
 impl FromStr for InstanceFamilies {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Storage Optimized" => Ok(Self::StorageOptimized),
-            "Accelerated Computing" => Ok(Self::AcceleratedComputing),
-            "Memory optimized" => Ok(Self::MemoryOptimized),
-            "Compute optimized" => Ok(Self::ComputeOptimized),
-            "General Purpose" => Ok(Self::GeneralPurpose),
-            "Micro" => Ok(Self::Micro),
-            "Storage optimized" => Ok(Self::StorageOptimized),
-            "Memory Optimized" => Ok(Self::MemoryOptimized),
-            "General purpose" => Ok(Self::GeneralPurpose),
-            "GPU optimized" => Ok(Self::GpuOptimized),
-            "Compute Optimized" => Ok(Self::ComputeOptimized),
+        match s.to_lowercase().as_str() {
+            "storage optimized" => Ok(Self::StorageOptimized),
+            "accelerated computing" => Ok(Self::AcceleratedComputing),
+            "memory optimized" => Ok(Self::MemoryOptimized),
+            "compute optimized" => Ok(Self::ComputeOptimized),
+            "general purpose" => Ok(Self::GeneralPurpose),
+            "micro" => Ok(Self::Micro),
+            "gpu optimized" => Ok(Self::GpuOptimized),
             _ => Err(format_err!("Invalid Instance Family")),
         }
     }
