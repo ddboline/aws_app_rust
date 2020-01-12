@@ -12,6 +12,7 @@ use walkdir::WalkDir;
 use crate::config::Config;
 use crate::ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest};
 use crate::ecr_instance::EcrInstance;
+use crate::instance_family::InstanceFamilies;
 use crate::models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType};
 use crate::pgpool::PgPool;
 use crate::resource_type::ResourceType;
@@ -352,7 +353,7 @@ impl AwsAppInterface {
             .map(|p| ((p.instance_type.to_string(), p.price_type.to_string()), p))
             .collect();
 
-        let mut prices: Vec<_> = inst_list
+        let prices: Result<Vec<_>, Error> = inst_list
             .into_par_iter()
             .map(|inst| {
                 let ond_price = prices
@@ -368,9 +369,9 @@ impl AwsAppInterface {
                     .get(inst_fam)
                     .unwrap()
                     .family_type
-                    .to_string();
+                    .parse()?;
 
-                AwsInstancePrice {
+                Ok(AwsInstancePrice {
                     instance_type: inst,
                     ondemand_price: ond_price,
                     spot_price: spot_price.map(|x| f64::from(*x)),
@@ -378,9 +379,10 @@ impl AwsAppInterface {
                     ncpu: instance_metadata.n_cpu,
                     memory: instance_metadata.memory_gib,
                     instance_family,
-                }
+                })
             })
             .collect();
+        let mut prices = prices?;
         prices.sort_by_key(|p| (p.ncpu, p.memory as i64));
         Ok(prices)
     }
@@ -603,5 +605,5 @@ pub struct AwsInstancePrice {
     pub reserved_price: Option<f64>,
     pub ncpu: i32,
     pub memory: f64,
-    pub instance_family: String,
+    pub instance_family: InstanceFamilies,
 }

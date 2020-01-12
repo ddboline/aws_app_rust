@@ -26,8 +26,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push(
                     r#"<table border="1" class="dataframe"><thead>
                     <tr>
-                    <th>Instance Id</th><th>Public Hostname</th><th>State</th><th>Name</th><th>Instance Type</th>
-                    <th>Created At</th><th>Availability Zone</th>
+                    <th>Instance Id</th><th>Public Hostname</th><th>State</th><th>Name</th>
+                    <th>Instance Type</th><th>Created At</th><th>Availability Zone</th>
                     </tr>
                     </thead><tbody>"#
                         .to_string(),
@@ -42,7 +42,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 }
                 output.push(
                     r#"<table border="1" class="dataframe"><thead>
-                    <tr><th>Reserved Instance Id</th><th>Price</th><th>Instance Type</th><th>State</th><th>Availability Zone</th></tr>
+                    <tr><th>Reserved Instance Id</th><th>Price</th><th>Instance Type</th>
+                    <th>State</th><th>Availability Zone</th></tr>
                     </thead><tbody>"#
                         .to_string(),
                 );
@@ -67,9 +68,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 }
                 output.push(
                     r#"<table border="1" class="dataframe"><thead>
-                    <tr><th>Spot Request Id</th><th>Price</th><th>AMI</th><th>Instance Type</th><th>Spot Type</th>
-                    <th>Status</th>
-                    </tr>
+                    <tr><th>Spot Request Id</th><th>Price</th><th>AMI</th><th>Instance Type</th>
+                    <th>Spot Type</th><th>Status</th></tr>
                     </thead><tbody>"#
                         .to_string(),
                 );
@@ -121,11 +121,13 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                                 <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
                             format!(
-                                r#"<input type="button" name="DeleteImage" value="DeleteImage" onclick="deleteImage('{}')">"#,
+                                r#"<input type="button" name="DeleteImage" value="DeleteImage"
+                                    onclick="deleteImage('{}')">"#,
                                 ami.id
                             ),
                             format!(
-                                r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest('{}', null, null)">"#,
+                                r#"<input type="button" name="Request" value="Request"
+                                    onclick="buildSpotRequest('{}', null, null)">"#,
                                 ami.id,
                             ),
                             ami.id,
@@ -141,7 +143,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
             ResourceType::Key => {
                 let keys = self.ec2.get_all_key_pairs()?;
                 output.push(
-                    r#"<table border="1" class="dataframe"><thead><tr><th>Key Name</th><th>Key Fingerprint</th></tr></thead><tbody>"#
+                    r#"<table border="1" class="dataframe">
+                        <thead><tr><th>Key Name</th><th>Key Fingerprint</th></tr></thead>
+                        <tbody>"#
                         .to_string(),
                 );
                 let result: Vec<_> = keys
@@ -172,10 +176,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .map(|vol| {
                         format!(
                             r#"<tr style="text-align: center;">
-                            <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
-                            </tr>"#,
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td></tr>"#,
                             format!(
-                                r#"<input type="button" name="DeleteVolume" value="DeleteVolume" onclick="deleteVolume('{}')">"#,
+                                r#"<input type="button" name="DeleteVolume" value="DeleteVolume"
+                                    onclick="deleteVolume('{}')">"#,
                                 vol.id
                             ),
                             vol.id,
@@ -202,8 +207,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 });
                 output.push(
                     r#"<table border="1" class="dataframe"><thead><tr>
-                    <th></th><th>Snapshot ID</th><th>Size</th><th>State</th><th>Progress</th><th>Tags</th>
-                    </tr></thead><tbody>"#
+                        <th></th><th>Snapshot ID</th><th>Size</th><th>State</th><th>Progress</th>
+                        <th>Tags</th></tr></thead><tbody>"#
                         .to_string(),
                 );
                 let result: Vec<_> = snapshots
@@ -211,10 +216,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .map(|snap| {
                         format!(
                             r#"<tr style="text-align: center;">
-                            <td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td><td>{}</td>
-                            </tr>"#,
+                                <td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
+                                <td>{}</td></tr>"#,
                             format!(
-                                r#"<input type="button" name="DeleteSnapshot" value="DeleteSnapshot" onclick="deleteSnapshot('{}')">"#,
+                                r#"<input type="button" name="DeleteSnapshot"
+                                    value="DeleteSnapshot" onclick="deleteSnapshot('{}')">"#,
                                 snap.id
                             ),
                             snap.id,
@@ -235,9 +241,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 }
                 output.push(
                     r#"<table border="1" class="dataframe"><thead><tr>
-                    <th><input type="button" name="CleanupEcr" value="CleanupEcr" onclick="cleanupEcrImages()"></th>
-                    <th>ECR Repo</th><th>Tag</th><th>Digest</th>
-                    </tr></thead><tbody>"#
+                        <th><input type="button" name="CleanupEcr" value="CleanupEcr"
+                            onclick="cleanupEcrImages()"></th><th>ECR Repo</th><th>Tag</th>
+                            <th>Digest</th></tr></thead><tbody>"#
                         .to_string(),
                 );
                 let result: Result<Vec<_>, Error> = repos
@@ -253,27 +259,34 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     r#"
                         <form action="javascript:createScript()">
                         <input type="text" name="script_filename" id="script_filename"/>
-                        <input type="button" name="create_script" value="New" onclick="createScript();"/>
-                        </form>
-                    "#.to_string()
+                        <input type="button" name="create_script" value="New"
+                            onclick="createScript();"/></form>"#
+                        .to_string(),
                 );
-                let result: Vec<_> = self.get_all_scripts()?
+                let result: Vec<_> = self
+                    .get_all_scripts()?
                     .into_par_iter()
-                    .map(|fname| format!(
-                        "{} {} {} {}<br>",
+                    .map(|fname| {
                         format!(
-                            r#"<input type="button" name="Edit" value="Edit" onclick="editScript('{}')">"#,
-                            fname,
-                        ),
-                        format!(
-                            r#"<input type="button" name="Rm" value="Rm" onclick="deleteScript('{}')">"#,
-                            fname,
-                        ),
-                        format!(
-                            r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest(null, null, '{}')">"#,
-                            fname,
-                        ),
-                        fname))
+                            "{} {} {} {}<br>",
+                            format!(
+                                r#"<input type="button" name="Edit" value="Edit"
+                                onclick="editScript('{}')">"#,
+                                fname,
+                            ),
+                            format!(
+                                r#"<input type="button" name="Rm" value="Rm"
+                                onclick="deleteScript('{}')">"#,
+                                fname,
+                            ),
+                            format!(
+                                r#"<input type="button" name="Request" value="Request"
+                                onclick="buildSpotRequest(null, null, '{}')">"#,
+                                fname,
+                            ),
+                            fname
+                        )
+                    })
                     .collect();
                 output.extend_from_slice(&result);
             }
@@ -340,7 +353,8 @@ fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Erro
                 <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
                 </tr>"#,
                 format!(
-                    r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage" onclick="deleteEcrImage('{}', '{}')">"#,
+                    r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
+                        onclick="deleteEcrImage('{}', '{}')">"#,
                     repo, image.digest,
                 ),
                 repo,
