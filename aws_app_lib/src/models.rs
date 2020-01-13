@@ -1,6 +1,9 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use diesel::{Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl};
+use diesel::{
+    Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
+    TextExpressionMethods,
+};
 use std::borrow::Cow;
 use std::fmt;
 
@@ -106,6 +109,18 @@ impl InstanceList<'_> {
         use crate::schema::instance_list::dsl::instance_list;
         let conn = pool.get()?;
         instance_list.load(&conn).map_err(Into::into)
+    }
+
+    pub fn get_by_instance_family(
+        instance_family: &str,
+        pool: &PgPool,
+    ) -> Result<Vec<Self>, Error> {
+        use crate::schema::instance_list::dsl::{instance_list, instance_type};
+        let conn = pool.get()?;
+        instance_list
+            .filter(instance_type.like(format!("{}%", instance_family)))
+            .load(&conn)
+            .map_err(Into::into)
     }
 
     fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {

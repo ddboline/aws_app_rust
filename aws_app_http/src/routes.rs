@@ -10,7 +10,7 @@ use std::path::Path;
 
 use aws_app_lib::config::Config;
 use aws_app_lib::ec2_instance::SpotRequest;
-use aws_app_lib::models::InstanceFamily;
+use aws_app_lib::models::{InstanceFamily, InstanceList};
 
 use super::app::AppState;
 use super::errors::ServiceError as Error;
@@ -206,6 +206,35 @@ pub async fn build_spot_request(
         .collect();
 
     let d = data.clone();
+    let mut inst_fam: Vec<_> = block(move || InstanceFamily::get_all(&d.aws.pool)).await?;
+
+    let inst_opt = if let Some(inst) = &query.ami {
+        let mut inst_opt: Vec<_> = inst_fam
+            .iter()
+            .filter(|fam| &fam.family_name == inst)
+            .cloned()
+            .collect();
+        inst_fam.retain(|fam| &fam.family_name != inst);
+        inst_opt.extend_from_slice(&inst_fam);
+        inst_opt
+    } else {
+        inst_fam
+    };
+
+    let inst_fam: Vec<_> = inst_opt
+        .into_iter()
+        .map(|fam| format!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
+        .collect();
+
+    let d = data.clone();
+    let inst = query.inst.unwrap_or_else(|| "t3".to_string());
+    let instances: Vec<_> = block(move || InstanceList::get_by_instance_family(&inst, &d.aws.pool))
+        .await?
+        .into_iter()
+        .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+        .collect();
+
+    let d = data.clone();
     let mut files = block(move || d.aws.get_all_scripts()).await?;
 
     let file_opts = if let Some(script) = &query.script {
@@ -232,21 +261,21 @@ pub async fn build_spot_request(
         r#"
             <form action="javascript:createScript()">
             Ami: <select id="ami">{ami}</select><br>
-            Instance type: <input type="text" name="instance_type" id="instance_type" value="{inst}"/><br>
-            Security group: <input type="text" name="security_group" id="security_group" value="{sec}"/><br>
+            Instance family: <select id="inst_fam" onchange="instanceOptions()">{inst_fam}</select><br>
+            Instance type: <select id="instance_type">{inst}</select><br>
+            Security group: <input type="text" name="security_group" id="security_group" 
+                value="{sec}"/><br>
             Script: <select id="script">{script}</select><br>
             Key: <select id="key">{key}</select><br>
             Price: <input type="text" name="price" id="price" value="{price}"/><br>
             Name: <input type="text" name="name" id="name"/><br>
-            <input type="button" name="create_request" value="Request" onclick="requestSpotInstance();"/><br>
+            <input type="button" name="create_request" value="Request"
+                onclick="requestSpotInstance();"/><br>
             </form>
         "#,
         ami = amis.join("\n"),
-        inst = if let Some(inst) = &query.inst {
-            inst
-        } else {
-            "t3.nano"
-        },
+        inst_fam = inst_fam.join("\n"),
+        inst = instances.join("\n"),
         sec = data.aws.config.spot_security_group,
         script = files.join("\n"),
         key = keys.join("\n"),
@@ -451,4 +480,23 @@ pub async fn command(
         entries.join("\n")
     );
     form_http_response(body)
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct InstancesRequest {
+    pub inst: String,
+}
+
+pub async fn get_instances(
+    query: Query<InstancesRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let instances: Vec<_> =
+        block(move || InstanceList::get_by_instance_family(&query.inst, &data.aws.pool))
+            .await?
+            .into_iter()
+            .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+            .collect();
+    form_http_response(instances.join("\n"))
 }

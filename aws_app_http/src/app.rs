@@ -11,8 +11,8 @@ use aws_app_lib::pgpool::PgPool;
 use super::logged_user::AUTHORIZED_USERS;
 use super::routes::{
     build_spot_request, cleanup_ecr_images, command, delete_ecr_image, delete_image, delete_script,
-    delete_snapshot, delete_volume, edit_script, get_prices, list, replace_script, request_spot,
-    status, sync_frontpage, terminate, update,
+    delete_snapshot, delete_volume, edit_script, get_instances, get_prices, list, replace_script,
+    request_spot, status, sync_frontpage, terminate, update,
 };
 
 pub struct AppState {
@@ -68,6 +68,7 @@ pub async fn start_app() {
             .service(web::resource("/aws/update").route(web::get().to(update)))
             .service(web::resource("/aws/status").route(web::get().to(status)))
             .service(web::resource("/aws/command").route(web::post().to(command)))
+            .service(web::resource("/aws/instances").route(web::get().to(get_instances)))
     })
     .bind(&format!("127.0.0.1:{}", port))
     .unwrap_or_else(|_| panic!("Failed to bind to port {}", port))

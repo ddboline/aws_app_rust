@@ -309,6 +309,16 @@ DISPLAY_TEXT
         xmlhttp.send(data);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function instanceOptions() {
+        let inst = document.getElementById("inst_fam").value;
+        let url = "/aws/instances?inst=" + inst;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("instance_type").innerHTML = xmlhttp.responseText;
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+    }
 </script>
 
 </body>
