@@ -89,7 +89,7 @@ impl EcrInstance {
                     .into_par_iter()
                     .filter_map(|image| {
                         let pushed_at = image.image_pushed_at.map_or_else(
-                            || Utc::now(),
+                            Utc::now,
                             |p| {
                                 let s = p as i64;
                                 let ns = p.fract() * 1.0e9;
