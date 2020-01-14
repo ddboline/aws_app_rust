@@ -1,4 +1,5 @@
 use anyhow::Error;
+use chrono::{DateTime, Utc, TimeZone};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rusoto_core::Region;
 use rusoto_ecr::{
@@ -87,9 +88,22 @@ impl EcrInstance {
                     .unwrap_or_else(Vec::new)
                     .into_par_iter()
                     .filter_map(|image| {
+                        let pushed_at = image.image_pushed_at.map_or_else(
+                            || Utc::now(),
+                            |p| {
+                                let s = p as i64;
+                                let ns = p.fract() * 1.0e9;
+                                Utc.timestamp(s, ns as u32)
+                            },
+                        );
+                        let image_size = image.image_size_in_bytes.map_or(0.0, |s| {
+                            s as f64 / 1e6
+                        });
                         Some(ImageInfo {
                             digest: some!(image.image_digest),
                             tags: image.image_tags.unwrap_or_else(Vec::new),
+                            pushed_at,
+                            image_size,
                         })
                     })
                     .collect()
@@ -143,4 +157,6 @@ impl EcrInstance {
 pub struct ImageInfo {
     pub digest: String,
     pub tags: Vec<String>,
+    pub pushed_at: DateTime<Utc>,
+    pub image_size: f64,
 }

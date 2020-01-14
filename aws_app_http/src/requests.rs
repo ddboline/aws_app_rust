@@ -242,7 +242,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push(
                     r#"<table border="1" class="dataframe"><thead><tr>
                         <th><input type="button" name="CleanupEcr" value="CleanupEcr"
-                            onclick="cleanupEcrImages()"></th><th>ECR Repo</th><th>Tag</th>
+                            onclick="cleanupEcrImages()"></th>
+                            <th>ECR Repo</th><th>Tag</th><th>Pushed At</th><th>Image Size</th>
                             <th>Digest</th></tr></thead><tbody>"#
                         .to_string(),
                 );
@@ -350,7 +351,7 @@ fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Erro
         .map(|image| {
             format!(
                 r#"<tr style="text-align: center;">
-                <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{:0.2}</td>
                 </tr>"#,
                 format!(
                     r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
@@ -359,7 +360,9 @@ fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Erro
                 ),
                 repo,
                 image.tags.get(0).map_or_else(|| "None", String::as_str),
-                image.digest
+                image.digest,
+                image.pushed_at,
+                image.image_size,
             )
         })
         .collect();

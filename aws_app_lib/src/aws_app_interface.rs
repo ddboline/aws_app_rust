@@ -231,10 +231,12 @@ impl AwsAppInterface {
                             .par_iter()
                             .map(|image| {
                                 format!(
-                                    "{} {} {}",
+                                    "{} {} {} {} {:0.2} MB",
                                     repo,
                                     image.tags.get(0).map_or_else(|| "None", String::as_str),
-                                    image.digest
+                                    image.digest,
+                                    image.pushed_at,
+                                    image.image_size,
                                 )
                             })
                             .collect();
