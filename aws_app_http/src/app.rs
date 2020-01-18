@@ -8,7 +8,7 @@ use aws_app_lib::aws_app_interface::AwsAppInterface;
 use aws_app_lib::config::Config;
 use aws_app_lib::pgpool::PgPool;
 
-use super::logged_user::AUTHORIZED_USERS;
+use super::logged_user::fill_from_db;
 use super::routes::{
     build_spot_request, cleanup_ecr_images, command, delete_ecr_image, delete_image, delete_script,
     delete_snapshot, delete_volume, edit_script, get_instances, get_prices, list, replace_script,
@@ -28,7 +28,7 @@ pub async fn start_app() {
         let mut i = interval(time::Duration::from_secs(60));
         loop {
             i.tick().await;
-            AUTHORIZED_USERS.fill_from_db(&pool).unwrap_or(());
+            fill_from_db(&pool).unwrap_or(());
         }
     }
 
