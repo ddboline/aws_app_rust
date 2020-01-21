@@ -20,6 +20,34 @@ pub struct ConfigInner {
     pub domain: String,
 }
 
+macro_rules! set_config_ok {
+    ($s:ident, $id:ident) => {
+        $s.$id = var(&stringify!($id).to_uppercase()).ok();
+    };
+}
+
+macro_rules! set_config_parse {
+    ($s:ident, $id:ident, $d:expr) => {
+        $s.$id = var(&stringify!($id).to_uppercase())
+            .ok()
+            .and_then(|x| x.parse().ok())
+            .unwrap_or_else(|| $d);
+    };
+}
+
+macro_rules! set_config_must {
+    ($s:ident, $id:ident) => {
+        $s.$id = var(&stringify!($id).to_uppercase())
+            .map_err(|e| format_err!("{} must be set: {}", stringify!($id).to_uppercase(), e))?;
+    };
+}
+
+macro_rules! set_config_default {
+    ($s:ident, $id:ident, $d:expr) => {
+        $s.$id = var(&stringify!($id).to_uppercase()).unwrap_or_else(|_| $d);
+    };
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct Config(Arc<ConfigInner>);
 
@@ -33,65 +61,52 @@ impl Config {
     }
 
     pub fn init_config() -> Result<Self, Error> {
-        let fname = "config.env";
+        let fname = Path::new("config.env");
+        let config_dir = dirs::config_dir().ok_or_else(|| format_err!("No CONFIG directory"))?;
+        let default_fname = config_dir.join("aws_app_rust").join("config.env");
 
-        let home_dir = var("HOME").map_err(|e| format_err!("No HOME variable {}", e))?;
-
-        let default_fname = format!("{}/.config/aws_app_rust/config.env", home_dir);
-
-        let env_file = if Path::new(fname).exists() {
-            fname.to_string()
+        let env_file = if fname.exists() {
+            fname
         } else {
-            default_fname
+            &default_fname
         };
+
+        println!("{:?}", env_file);
 
         dotenv::dotenv().ok();
 
-        if Path::new(&env_file).exists() {
-            dotenv::from_path(&env_file).ok();
-        } else if Path::new("config.env").exists() {
-            dotenv::from_filename("config.env").ok();
+        if env_file.exists() {
+            dotenv::from_path(env_file).ok();
         }
 
-        let database_url =
-            var("DATABASE_URL").map_err(|e| format_err!("DATABASE_URL must be set {}", e))?;
-        let aws_region_name = var("AWS_REGION_NAME").unwrap_or_else(|_| "us-east-1".to_string());
-        let my_owner_id = var("MY_OWNER_ID").ok();
-        let max_spot_price: f32 = var("MAX_SPOT_PRICE")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0.20);
-        let default_security_group: String = var("DEFAULT_SECURITY_GROUP")
-            .map_err(|e| format_err!("DEFAULT_SECURITY_GROUP must be set {}", e))?;
-        let spot_security_group: String =
-            var("SPOT_SECURITY_GROUP").unwrap_or_else(|_| default_security_group.clone());
-        let default_key_name: String = var("DEFAULT_KEY_NAME")
-            .map_err(|e| format_err!("DEFAULT_KEY_NAME must be set {}", e))?;
-        let script_directory: String = var("SCRIPT_DIRECTORY")
-            .unwrap_or_else(|_| format!("{}/.config/aws_app_rust/scripts", home_dir));
-        let ubuntu_release: String =
-            var("UBUNTU_RELEASE").unwrap_or_else(|_| "bionic-18.04".to_string());
-        let port = var("PORT")
-            .ok()
-            .and_then(|p| p.parse().ok())
-            .unwrap_or(3096);
-        let secret_key = var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(8));
-        let domain = var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
+        let mut conf = ConfigInner::default();
 
-        let conf = ConfigInner {
-            database_url,
-            aws_region_name,
-            my_owner_id,
-            max_spot_price,
-            default_security_group,
+        set_config_must!(conf, database_url);
+        set_config_must!(conf, default_security_group);
+        set_config_must!(conf, default_key_name);
+
+        set_config_default!(conf, aws_region_name, "us-east-1".to_string());
+        set_config_default!(
+            conf,
             spot_security_group,
-            default_key_name,
+            conf.default_security_group.clone()
+        );
+        set_config_default!(
+            conf,
             script_directory,
-            ubuntu_release,
-            port,
-            secret_key,
-            domain,
-        };
+            config_dir
+                .join("aws_app_rust")
+                .join("scripts")
+                .to_string_lossy()
+                .into()
+        );
+        set_config_default!(conf, ubuntu_release, "bionic-18.04".to_string());
+        set_config_default!(conf, secret_key, "0123".repeat(8));
+        set_config_default!(conf, domain, "localhost".to_string());
+
+        set_config_ok!(conf, my_owner_id);
+        set_config_parse!(conf, max_spot_price, 0.20);
+        set_config_parse!(conf, port, 3096);
 
         Ok(Self(Arc::new(conf)))
     }
