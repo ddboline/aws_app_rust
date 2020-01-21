@@ -71,8 +71,6 @@ impl Config {
             &default_fname
         };
 
-        println!("{:?}", env_file);
-
         dotenv::dotenv().ok();
 
         if env_file.exists() {
