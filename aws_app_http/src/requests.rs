@@ -178,11 +178,15 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             r#"<tr style="text-align: center;">
                                 <td>{}</td><td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
                                 <td>{}</td></tr>"#,
-                            format!(
-                                r#"<input type="button" name="DeleteVolume" value="DeleteVolume"
-                                    onclick="deleteVolume('{}')">"#,
-                                vol.id
-                            ),
+                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(|x| x.as_str()) {
+                                "".to_string()
+                            } else {
+                                format!(
+                                    r#"<input type="button" name="DeleteVolume" value="DeleteVolume"
+                                        onclick="deleteVolume('{}')">"#,
+                                    vol.id
+                                )
+                            },
                             vol.id,
                             vol.availability_zone,
                             vol.size,
@@ -372,7 +376,7 @@ fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Erro
 fn print_tags(tags: &HashMap<String, String>) -> String {
     let results: Vec<_> = tags
         .par_iter()
-        .map(|(k, v)| format!("{}={}", k, v))
+        .map(|(k, v)| format!("{} = {}", k, v))
         .collect();
     results.join(", ")
 }
