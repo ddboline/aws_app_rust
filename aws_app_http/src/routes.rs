@@ -389,8 +389,7 @@ pub async fn get_prices(
         format!(
             r#"
                 <form action="javascript:listPrices()">
-                <select id="inst_fam">{}</select><br>
-                <input type="button" name="create_request" value="Request" onclick="listPrices();"/><br>
+                <select id="inst_fam" onchange="listPrices();">{}</select><br>
                 </form><br>
             "#,
             inst_fam.join("\n"),

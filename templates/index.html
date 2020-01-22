@@ -249,6 +249,7 @@ DISPLAY_TEXT
             document.getElementById("sub_article").innerHTML = "&nbsp;";
             document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
+            listPrices();
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
