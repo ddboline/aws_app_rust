@@ -52,7 +52,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .map(|res| {
                         format!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>${:0.2}</td><td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
                             res.id, res.price, res.instance_type, res.state, res.availability_zone
                         )
@@ -78,7 +78,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .map(|req| {
                         format!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>${}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
                             req.id,
                             req.price,
@@ -176,7 +176,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .map(|vol| {
                         format!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
                                 <td>{}</td></tr>"#,
                             format!(
                                 r#"<input type="button" name="DeleteVolume" value="DeleteVolume"
@@ -243,8 +243,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     r#"<table border="1" class="dataframe"><thead><tr>
                         <th><input type="button" name="CleanupEcr" value="CleanupEcr"
                             onclick="cleanupEcrImages()"></th>
-                            <th>ECR Repo</th><th>Tag</th><th>Pushed At</th><th>Image Size</th>
-                            <th>Digest</th></tr></thead><tbody>"#
+                            <th>ECR Repo</th><th>Tag</th><th>Digest</th><th>Pushed At</th>
+                            <th>Image Size</th></tr></thead><tbody>"#
                         .to_string(),
                 );
                 let result: Result<Vec<_>, Error> = repos
@@ -351,7 +351,7 @@ fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Erro
         .map(|image| {
             format!(
                 r#"<tr style="text-align: center;">
-                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{:0.2}</td>
+                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{:0.2} MB</td>
                 </tr>"#,
                 format!(
                     r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
