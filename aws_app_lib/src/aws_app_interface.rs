@@ -24,6 +24,17 @@ lazy_static! {
     pub static ref INSTANCE_LIST: RwLock<Vec<Ec2InstanceInfo>> = RwLock::new(Vec::new());
 }
 
+#[derive(Debug)]
+pub struct AwsInstancePrice {
+    pub instance_type: String,
+    pub ondemand_price: Option<f64>,
+    pub spot_price: Option<f64>,
+    pub reserved_price: Option<f64>,
+    pub ncpu: i32,
+    pub memory: f64,
+    pub instance_family: InstanceFamilies,
+}
+
 #[derive(Clone)]
 pub struct AwsAppInterface {
     pub config: Config,
@@ -343,9 +354,9 @@ impl AwsAppInterface {
             .map(|i| (i.instance_type.to_string(), i))
             .collect();
         let inst_list: Vec<_> = instance_list
-            .par_iter()
-            .map(|(k, _)| k.to_string())
+            .keys()
             .filter(|inst| search.par_iter().any(|s| inst.contains(s)))
+            .cloned()
             .collect();
 
         let spot_prices = self.ec2.get_latest_spot_inst_prices(&inst_list)?;
@@ -597,15 +608,4 @@ fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
             Some((inst.id.to_string(), inst.dns_name.to_string()))
         })
         .collect())
-}
-
-#[derive(Debug)]
-pub struct AwsInstancePrice {
-    pub instance_type: String,
-    pub ondemand_price: Option<f64>,
-    pub spot_price: Option<f64>,
-    pub reserved_price: Option<f64>,
-    pub ncpu: i32,
-    pub memory: f64,
-    pub instance_family: InstanceFamilies,
 }
