@@ -1,5 +1,6 @@
 use anyhow::Error;
 use chrono::Local;
+use crossbeam_utils::thread::scope;
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -91,8 +92,8 @@ impl AwsAppInterface {
                         let name = inst
                             .tags
                             .get("Name")
-                            .cloned()
-                            .unwrap_or_else(|| "".to_string());
+                            .as_ref()
+                            .map_or_else(|| "", |x| x.as_str());
                         format!(
                             "{} {} {} {} {} {} {}",
                             inst.id,
@@ -150,31 +151,38 @@ impl AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::Ami => {
-                let mut ami_tags = self.ec2.get_ami_tags()?;
-                if ami_tags.is_empty() {
-                    return Ok(Vec::new());
-                }
-                let mut ubuntu_amis = self
-                    .ec2
-                    .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
-                ubuntu_amis.par_sort_by_key(|x| x.name.clone());
-                if !ubuntu_amis.is_empty() {
-                    ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
-                }
-                output.push("---\nAMI's:".to_string());
-                let result: Vec<_> = ami_tags
-                    .par_iter()
-                    .map(|ami| {
-                        format!(
-                            "{} {} {} {}",
-                            ami.id,
-                            ami.name,
-                            ami.state,
-                            ami.snapshot_ids.join(" ")
-                        )
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
+                let res: Result<(), Error> = scope(|s| {
+                    let ubuntu_amis =
+                        s.spawn(|_| self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release));
+
+                    let mut ami_tags = self.ec2.get_ami_tags()?;
+                    let mut ubuntu_amis = ubuntu_amis.join().expect("thread panic")?;
+                    if ami_tags.is_empty() {
+                        return Ok(());
+                    }
+                    ubuntu_amis.par_sort_by_key(|x| x.name.clone());
+                    if let Some(ami) = ubuntu_amis.pop() {
+                        ami_tags.push(ami);
+                    }
+                    output.push("---\nAMI's:".to_string());
+                    let result: Vec<_> = ami_tags
+                        .par_iter()
+                        .map(|ami| {
+                            format!(
+                                "{} {} {} {}",
+                                ami.id,
+                                ami.name,
+                                ami.state,
+                                ami.snapshot_ids.join(" ")
+                            )
+                        })
+                        .collect();
+                    output.extend_from_slice(&result);
+
+                    Ok(())
+                })
+                .expect("thread panic");
+                res?;
             }
             ResourceType::Key => {
                 let keys = self.ec2.get_all_key_pairs()?;
@@ -274,10 +282,7 @@ impl AwsAppInterface {
                     if entry.file_type().is_dir() {
                         None
                     } else {
-                        entry
-                            .path()
-                            .file_name()
-                            .map(|f| f.to_string_lossy().to_string())
+                        entry.path().file_name().map(|f| f.to_string_lossy().into())
                     }
                 })
             })
@@ -355,8 +360,13 @@ impl AwsAppInterface {
             .collect();
         let inst_list: Vec<_> = instance_list
             .keys()
-            .filter(|inst| search.par_iter().any(|s| inst.contains(s)))
-            .cloned()
+            .filter_map(|inst| {
+                if search.par_iter().any(|s| inst.contains(s)) {
+                    Some(inst.to_string())
+                } else {
+                    None
+                }
+            })
             .collect();
 
         let spot_prices = self.ec2.get_latest_spot_inst_prices(&inst_list)?;
@@ -438,11 +448,11 @@ impl AwsAppInterface {
     pub fn delete_image(&self, ami: &str) -> Result<(), Error> {
         let ami_map = self.ec2.get_ami_map()?;
         let ami = if let Some(a) = ami_map.get(ami) {
-            a.to_string()
+            a
         } else {
-            ami.to_string()
+            ami
         };
-        self.ec2.delete_image(&ami)
+        self.ec2.delete_image(ami)
     }
 
     pub fn request_spot_instance(&self, req: &mut SpotRequest) -> Result<(), Error> {
