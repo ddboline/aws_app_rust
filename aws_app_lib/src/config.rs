@@ -51,6 +51,14 @@ macro_rules! set_config_default {
 #[derive(Default, Debug, Clone)]
 pub struct Config(Arc<ConfigInner>);
 
+impl Deref for Config {
+    type Target = ConfigInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl Config {
     pub fn new() -> Self {
         Self::default()
@@ -107,13 +115,5 @@ impl Config {
         set_config_parse!(conf, port, 3096);
 
         Ok(Self(Arc::new(conf)))
-    }
-}
-
-impl Deref for Config {
-    type Target = ConfigInner;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
