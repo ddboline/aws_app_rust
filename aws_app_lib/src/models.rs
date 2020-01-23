@@ -33,7 +33,7 @@ impl<'a> From<InstanceFamily<'a>> for InstanceFamilyInsert<'a> {
     }
 }
 
-impl InstanceFamily<'_> {
+impl<'a> InstanceFamily<'a> {
     fn _existing_entries(
         f_name: &str,
         f_type: &str,
@@ -59,7 +59,7 @@ impl InstanceFamily<'_> {
     }
 }
 
-impl InstanceFamilyInsert<'_> {
+impl<'a> InstanceFamilyInsert<'a> {
     fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
         use crate::schema::instance_family::dsl::instance_family;
 
@@ -104,7 +104,7 @@ pub struct InstanceList<'a> {
     pub generation: Cow<'a, str>,
 }
 
-impl InstanceList<'_> {
+impl<'a> InstanceList<'a> {
     pub fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_list::dsl::instance_list;
         let conn = pool.get()?;
@@ -190,7 +190,7 @@ impl<'a> From<InstancePricing<'a>> for InstancePricingInsert<'a> {
     }
 }
 
-impl InstancePricing<'_> {
+impl<'a> InstancePricing<'a> {
     fn _existing_entries(
         i_type: &str,
         p_type: &str,
@@ -216,7 +216,7 @@ impl InstancePricing<'_> {
     }
 }
 
-impl InstancePricingInsert<'_> {
+impl<'a> InstancePricingInsert<'a> {
     fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
         use crate::schema::instance_pricing::dsl::instance_pricing;
 
