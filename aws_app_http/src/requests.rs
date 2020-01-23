@@ -178,7 +178,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             r#"<tr style="text-align: center;">
                                 <td>{}</td><td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
                                 <td>{}</td></tr>"#,
-                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(|x| x.as_str()) {
+                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(String::as_str) {
                                 "".to_string()
                             } else {
                                 format!(
