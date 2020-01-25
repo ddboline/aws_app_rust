@@ -66,7 +66,7 @@ impl SSHInstance {
                 let stream = Exec::shell(command).stream_stdout()?;
                 let reader = BufReader::new(stream);
 
-                let results: Result<Vec<_>, Error> = reader.lines().map(|line| Ok(line?)).collect();
+                let results: Result<Vec<_>, _> = reader.lines().collect();
                 output = results?;
             };
             Ok(output)

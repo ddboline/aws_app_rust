@@ -41,6 +41,6 @@ impl ResponseError for ServiceError {
 
 impl<T: Debug> From<BlockingError<T>> for ServiceError {
     fn from(item: BlockingError<T>) -> Self {
-        Self::BlockingError(item.to_string())
+        Self::BlockingError(format!("{:?}", item))
     }
 }
