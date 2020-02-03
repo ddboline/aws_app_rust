@@ -4,6 +4,7 @@
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::missing_errors_doc)]
 
 #[macro_use]
 extern crate diesel;
