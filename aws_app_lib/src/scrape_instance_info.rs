@@ -23,20 +23,28 @@ pub fn scrape_instance_info(
     pool: &PgPool,
 ) -> Result<Vec<String>, Error> {
     let url = get_url(generation)?;
-
     let body = reqwest::blocking::get(url)?.text()?;
-    parse_result(&body, generation, pool)
+    let (instf, instl) = parse_result(&body, generation)?;
+    insert_result(&instf, &instl, pool)
+}
+
+pub async fn scrape_instance_info_async(
+    generation: AwsGeneration,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
+    let url = get_url(generation)?;
+    let body = reqwest::get(url).await?.text().await?;
+    let (instf, instl) = parse_result(&body, generation)?;
+    insert_result_async(instf, instl, pool).await
 }
 
 fn parse_result(
     text: &str,
     generation: AwsGeneration,
-    pool: &PgPool,
-) -> Result<Vec<String>, Error> {
+) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let doc = Document::from(text);
-    let mut output = Vec::new();
 
     match generation {
         AwsGeneration::HVM => {
@@ -73,13 +81,41 @@ fn parse_result(
         }
     }
 
-    for t in &instance_families {
+    Ok((instance_families, instance_types))
+}
+
+fn insert_result(
+    instance_families: &[InstanceFamilyInsert],
+    instance_types: &[InstanceList],
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
+    let mut output = Vec::new();
+    for t in instance_families {
         if t.insert_entry(&pool)? {
             output.push(format!("{:?}", t));
         }
     }
-    for t in &instance_types {
+    for t in instance_types {
         if t.insert_entry(&pool)? {
+            output.push(format!("{:?}", t));
+        }
+    }
+    Ok(output)
+}
+
+async fn insert_result_async(
+    instance_families: Vec<InstanceFamilyInsert>,
+    instance_types: Vec<InstanceList>,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
+    let mut output = Vec::new();
+    for t in instance_families {
+        if let (t, true) = t.insert_entry_async(&pool).await? {
+            output.push(format!("{:?}", t));
+        }
+    }
+    for t in instance_types {
+        if let (t, true) = t.insert_entry_async(&pool).await? {
             output.push(format!("{:?}", t));
         }
     }

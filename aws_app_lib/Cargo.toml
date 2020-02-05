@@ -40,3 +40,4 @@ dirs = "2.0"
 crossbeam-utils = "0.7"
 tokio = { version="0.2", features=["full"]}
 actix-threadpool = "0.3"
+futures = "0.3"

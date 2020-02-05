@@ -1,5 +1,6 @@
 use anyhow::{format_err, Error};
 use chrono::Utc;
+use futures::future::join_all;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use reqwest::Url;
 use serde::Deserialize;
@@ -24,6 +25,30 @@ pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<Stri
     Ok(output)
 }
 
+pub async fn scrape_pricing_info_async(
+    ptype: PricingType,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
+    let mut output = Vec::new();
+    let url = extract_json_url_async(get_url(ptype)?).await?;
+    output.push(format!("url {}", url));
+    let js: PricingJson = reqwest::get(url).await?.json().await?;
+    let results = parse_json(js, ptype)?;
+    output.push(format!("{}", results.len()));
+
+    let results: Vec<_> = results
+        .into_iter()
+        .map(|r| r.upsert_entry_async(pool))
+        .collect();
+    let result: Result<(), Error> = join_all(results)
+        .await
+        .into_iter()
+        .map(|x| x.map(|_| ()))
+        .collect();
+    result?;
+    Ok(output)
+}
+
 fn get_url(ptype: PricingType) -> Result<Url, Error> {
     match ptype {
         PricingType::Reserved => {
@@ -37,6 +62,15 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
 
 fn extract_json_url(url: Url) -> Result<Url, Error> {
     let body: String = reqwest::blocking::get(url)?.text()?;
+    parse_json_url_body(&body)
+}
+
+async fn extract_json_url_async(url: Url) -> Result<Url, Error> {
+    let body: String = reqwest::get(url).await?.text().await?;
+    parse_json_url_body(&body)
+}
+
+fn parse_json_url_body(body: &str) -> Result<Url, Error> {
     let condition = |l: &&str| l.contains("data-service-url") && l.contains("/linux/");
     body.split('\n')
         .filter(condition)

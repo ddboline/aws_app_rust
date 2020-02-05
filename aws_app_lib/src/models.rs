@@ -105,9 +105,9 @@ impl InstanceFamilyInsert {
         })
     }
 
-    pub async fn insert_entry_async(self, pool: &PgPool) -> Result<bool, Error> {
+    pub async fn insert_entry_async(self, pool: &PgPool) -> Result<(Self, bool), Error> {
         let pool = pool.clone();
-        block(move || self.insert_entry(&pool))
+        block(move || self.insert_entry(&pool).map(|r| (self, r)))
             .await
             .map_err(|e| format_err!("{:?}", e))
     }
@@ -216,9 +216,9 @@ impl InstanceList {
         })
     }
 
-    pub async fn insert_entry_async(self, pool: &PgPool) -> Result<bool, Error> {
+    pub async fn insert_entry_async(self, pool: &PgPool) -> Result<(Self, bool), Error> {
         let pool = pool.clone();
-        block(move || self.insert_entry(&pool))
+        block(move || self.insert_entry(&pool).map(|r| (self, r)))
             .await
             .map_err(|e| format_err!("{:?}", e))
     }
@@ -344,9 +344,9 @@ impl InstancePricingInsert {
         })
     }
 
-    pub async fn upsert_entry_async(self, pool: &PgPool) -> Result<bool, Error> {
+    pub async fn upsert_entry_async(self, pool: &PgPool) -> Result<(Self, bool), Error> {
         let pool = pool.clone();
-        block(move || self.upsert_entry(&pool))
+        block(move || self.upsert_entry(&pool).map(|r| (self, r)))
             .await
             .map_err(|e| format_err!("{:?}", e))
     }
