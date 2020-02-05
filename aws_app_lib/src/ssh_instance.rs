@@ -58,18 +58,16 @@ impl SSHInstance {
 
     pub fn run_command_stream_stdout(&self, cmd: &str) -> Result<Vec<String>, Error> {
         if let Some(host_lock) = LOCK_CACHE.read().get(&self.host) {
-            let output: Vec<String>;
-            *host_lock.lock() = {
-                debug!("cmd {}", cmd);
-                let user_host = self.get_ssh_username_host()?;
-                let command = format!(r#"ssh {} "{}""#, user_host, cmd);
-                let stream = Exec::shell(command).stream_stdout()?;
-                let reader = BufReader::new(stream);
-
-                let results: Result<Vec<_>, _> = reader.lines().collect();
-                output = results?;
-            };
-            Ok(output)
+            let _ = host_lock.lock();
+            debug!("cmd {}", cmd);
+            let user_host = self.get_ssh_username_host()?;
+            let command = format!(r#"ssh {} "{}""#, user_host, cmd);
+            let stream = Exec::shell(command).stream_stdout()?;
+            let reader = BufReader::new(stream);
+            reader
+                .lines()
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(Into::into)
         } else {
             Err(format_err!("Failed to acquire lock"))
         }
@@ -81,20 +79,24 @@ impl SSHInstance {
             .get(&self.host)
             .ok_or_else(|| format_err!("Failed to acquire lock"))
             .and_then(|host_lock| {
-                *host_lock.lock() = {
-                    debug!("cmd {}", cmd);
-                    let user_host = self.get_ssh_username_host()?;
-                    let command = format!(r#"ssh {} "{}""#, user_host, cmd);
-                    let stream = Exec::shell(command).stream_stdout()?;
-                    let reader = BufReader::new(stream);
+                let _ = host_lock.lock();
+                debug!("cmd {}", cmd);
+                let user_host = self.get_ssh_username_host()?;
+                let command = format!(r#"ssh {} "{}""#, user_host, cmd);
+                let stream = Exec::shell(command).stream_stdout()?;
+                let mut reader = BufReader::new(stream);
 
-                    let stdout = stdout();
-                    for line in reader.lines() {
-                        if let Ok(l) = line {
-                            writeln!(stdout.lock(), "ssh://{}{}", user_host, l)?;
+                let stdout = stdout();
+                let mut line = String::new();
+                loop {
+                    match reader.read_line(&mut line) {
+                        Ok(0) => break,
+                        Err(_) => continue,
+                        Ok(_) => {
+                            writeln!(stdout.lock(), "ssh://{}{}", user_host, line)?;
                         }
                     }
-                };
+                }
                 Ok(())
             })
     }
