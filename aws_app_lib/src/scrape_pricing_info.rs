@@ -57,10 +57,7 @@ fn extract_json_url(url: Url) -> Result<Url, Error> {
         .ok_or_else(|| format_err!("No url"))
 }
 
-fn parse_json(
-    js: PricingJson,
-    ptype: PricingType,
-) -> Result<Vec<InstancePricingInsert<'static>>, Error> {
+fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricingInsert>, Error> {
     writeln!(stdout(), "prices {}", js.prices.len())?;
     let empty = "".to_string();
     js.prices
@@ -96,7 +93,7 @@ fn parse_json(
 fn get_instance_pricing(
     price_entry: &PricingEntry,
     ptype: PricingType,
-) -> Result<InstancePricingInsert<'static>, Error> {
+) -> Result<InstancePricingInsert, Error> {
     match ptype {
         PricingType::OnDemand => {
             let price: f64 = price_entry

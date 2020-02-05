@@ -1,30 +1,30 @@
-use anyhow::Error;
+use actix_threadpool::run as block;
+use anyhow::{format_err, Error};
 use chrono::{DateTime, Utc};
 use diesel::{
     Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
     TextExpressionMethods,
 };
-use std::borrow::Cow;
 use std::fmt;
 
 use crate::pgpool::{PgPool, PgPoolConn};
 use crate::schema::{authorized_users, instance_family, instance_list, instance_pricing};
 
 #[derive(Queryable, Clone, Debug)]
-pub struct InstanceFamily<'a> {
+pub struct InstanceFamily {
     pub id: i32,
-    pub family_name: Cow<'a, str>,
-    pub family_type: Cow<'a, str>,
+    pub family_name: String,
+    pub family_type: String,
 }
 
 #[derive(Insertable, Clone, Debug)]
 #[table_name = "instance_family"]
-pub struct InstanceFamilyInsert<'a> {
-    pub family_name: Cow<'a, str>,
-    pub family_type: Cow<'a, str>,
+pub struct InstanceFamilyInsert {
+    pub family_name: String,
+    pub family_type: String,
 }
 
-impl<'a> From<InstanceFamily<'a>> for InstanceFamilyInsert<'a> {
+impl From<InstanceFamily> for InstanceFamilyInsert {
     fn from(item: InstanceFamily) -> InstanceFamilyInsert {
         InstanceFamilyInsert {
             family_name: item.family_name,
@@ -33,7 +33,7 @@ impl<'a> From<InstanceFamily<'a>> for InstanceFamilyInsert<'a> {
     }
 }
 
-impl<'a> InstanceFamily<'a> {
+impl InstanceFamily {
     fn _existing_entries(
         f_name: &str,
         f_type: &str,
@@ -52,14 +52,34 @@ impl<'a> InstanceFamily<'a> {
         Self::_existing_entries(f_name, f_type, &conn)
     }
 
+    pub async fn existing_entries_async(
+        f_name: &str,
+        f_type: &str,
+        pool: &PgPool,
+    ) -> Result<Vec<Self>, Error> {
+        let f_name = f_name.to_owned();
+        let f_type = f_type.to_owned();
+        let pool = pool.clone();
+        block(move || Self::existing_entries(&f_name, &f_type, &pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
+
     pub fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_family::dsl::instance_family;
         let conn = pool.get()?;
         instance_family.load(&conn).map_err(Into::into)
     }
+
+    pub async fn get_all_async(pool: &PgPool) -> Result<Vec<Self>, Error> {
+        let pool = pool.clone();
+        block(move || Self::get_all(&pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
 }
 
-impl<'a> InstanceFamilyInsert<'a> {
+impl InstanceFamilyInsert {
     fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
         use crate::schema::instance_family::dsl::instance_family;
 
@@ -84,6 +104,13 @@ impl<'a> InstanceFamilyInsert<'a> {
             }
         })
     }
+
+    pub async fn insert_entry_async(self, pool: &PgPool) -> Result<bool, Error> {
+        let pool = pool.clone();
+        block(move || self.insert_entry(&pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
 }
 
 impl fmt::Display for AwsGeneration {
@@ -97,18 +124,25 @@ impl fmt::Display for AwsGeneration {
 
 #[derive(Queryable, Insertable, Clone, Debug)]
 #[table_name = "instance_list"]
-pub struct InstanceList<'a> {
-    pub instance_type: Cow<'a, str>,
+pub struct InstanceList {
+    pub instance_type: String,
     pub n_cpu: i32,
     pub memory_gib: f64,
-    pub generation: Cow<'a, str>,
+    pub generation: String,
 }
 
-impl<'a> InstanceList<'a> {
+impl InstanceList {
     pub fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_list::dsl::instance_list;
         let conn = pool.get()?;
         instance_list.load(&conn).map_err(Into::into)
+    }
+
+    pub async fn get_all_instances_async(pool: &PgPool) -> Result<Vec<Self>, Error> {
+        let pool = pool.clone();
+        block(move || Self::get_all_instances(&pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
     }
 
     pub fn get_by_instance_family(
@@ -123,6 +157,17 @@ impl<'a> InstanceList<'a> {
             .map_err(Into::into)
     }
 
+    pub async fn get_by_instance_family_async(
+        instance_family: &str,
+        pool: &PgPool,
+    ) -> Result<Vec<Self>, Error> {
+        let instance_family = instance_family.to_owned();
+        let pool = pool.clone();
+        block(move || Self::get_by_instance_family(&instance_family, &pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
+
     fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_list::dsl::{instance_list, instance_type};
         instance_list
@@ -134,6 +179,17 @@ impl<'a> InstanceList<'a> {
     pub fn get_by_instance_type(instance_type_: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
         let conn = pool.get()?;
         Self::_get_by_instance_type(instance_type_, &conn)
+    }
+
+    pub async fn get_by_instance_type_async(
+        instance_type: &str,
+        pool: &PgPool,
+    ) -> Result<Vec<Self>, Error> {
+        let instance_type = instance_type.to_owned();
+        let pool = pool.clone();
+        block(move || Self::get_by_instance_type(&instance_type, &pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
     }
 
     fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
@@ -159,27 +215,34 @@ impl<'a> InstanceList<'a> {
             }
         })
     }
+
+    pub async fn insert_entry_async(self, pool: &PgPool) -> Result<bool, Error> {
+        let pool = pool.clone();
+        block(move || self.insert_entry(&pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
 }
 
 #[derive(Queryable, Clone, Debug)]
-pub struct InstancePricing<'a> {
+pub struct InstancePricing {
     pub id: i32,
-    pub instance_type: Cow<'a, str>,
+    pub instance_type: String,
     pub price: f64,
-    pub price_type: Cow<'a, str>,
+    pub price_type: String,
     pub price_timestamp: DateTime<Utc>,
 }
 
 #[derive(Insertable, Debug)]
 #[table_name = "instance_pricing"]
-pub struct InstancePricingInsert<'a> {
-    pub instance_type: Cow<'a, str>,
+pub struct InstancePricingInsert {
+    pub instance_type: String,
     pub price: f64,
-    pub price_type: Cow<'a, str>,
+    pub price_type: String,
     pub price_timestamp: DateTime<Utc>,
 }
 
-impl<'a> From<InstancePricing<'a>> for InstancePricingInsert<'a> {
+impl From<InstancePricing> for InstancePricingInsert {
     fn from(item: InstancePricing) -> InstancePricingInsert {
         InstancePricingInsert {
             instance_type: item.instance_type,
@@ -190,7 +253,7 @@ impl<'a> From<InstancePricing<'a>> for InstancePricingInsert<'a> {
     }
 }
 
-impl<'a> InstancePricing<'a> {
+impl InstancePricing {
     fn _existing_entries(
         i_type: &str,
         p_type: &str,
@@ -209,14 +272,34 @@ impl<'a> InstancePricing<'a> {
         Self::_existing_entries(i_type, p_type, &conn)
     }
 
+    pub async fn existing_entries_async(
+        i_type: &str,
+        p_type: &str,
+        pool: &PgPool,
+    ) -> Result<Vec<Self>, Error> {
+        let i_type = i_type.to_owned();
+        let p_type = p_type.to_owned();
+        let pool = pool.clone();
+        block(move || Self::existing_entries(&i_type, &p_type, &pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
+
     pub fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_pricing::dsl::instance_pricing;
         let conn = pool.get()?;
         instance_pricing.load(&conn).map_err(Into::into)
     }
+
+    pub async fn get_all_async(pool: &PgPool) -> Result<Vec<Self>, Error> {
+        let pool = pool.clone();
+        block(move || Self::get_all(&pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
 }
 
-impl<'a> InstancePricingInsert<'a> {
+impl InstancePricingInsert {
     fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
         use crate::schema::instance_pricing::dsl::instance_pricing;
 
@@ -260,6 +343,13 @@ impl<'a> InstancePricingInsert<'a> {
             }
         })
     }
+
+    pub async fn upsert_entry_async(self, pool: &PgPool) -> Result<bool, Error> {
+        let pool = pool.clone();
+        block(move || self.upsert_entry(&pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -287,5 +377,12 @@ impl AuthorizedUsers {
         use crate::schema::authorized_users::dsl::authorized_users;
         let conn = pool.get()?;
         authorized_users.load(&conn).map_err(Into::into)
+    }
+
+    pub async fn get_authorized_users_async(pool: &PgPool) -> Result<Vec<Self>, Error> {
+        let pool = pool.clone();
+        block(move || Self::get_authorized_users(&pool))
+            .await
+            .map_err(|e| format_err!("{:?}", e))
     }
 }

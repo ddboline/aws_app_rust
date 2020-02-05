@@ -86,9 +86,9 @@ fn parse_result(
     Ok(output)
 }
 
-fn extract_instance_types_pv<'a>(
+fn extract_instance_types_pv(
     table: &Node,
-) -> Result<(Vec<InstanceFamilyInsert<'a>>, Vec<InstanceList<'a>>), Error> {
+) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
     let allowed_columns = ["Instance Family", "Instance Type", "vCPU", "Memory (GiB)"];
     let rows: Vec<_> = table
         .find(Name("tr"))
@@ -143,7 +143,7 @@ fn extract_instance_types_pv<'a>(
 fn extract_instance_family_object_pv(
     row: &[String],
     indicies: [usize; 4],
-) -> Result<InstanceFamilyInsert<'static>, Error> {
+) -> Result<InstanceFamilyInsert, Error> {
     let family_type = row[indicies[0]].to_string();
     let family_name = row[indicies[1]]
         .split('.')
@@ -156,7 +156,7 @@ fn extract_instance_family_object_pv(
     })
 }
 
-fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>, Error> {
+fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> {
     let allowed_columns = [
         ["Instance Type", "vCPU", "Mem (GiB)"],
         ["Instance Type", "vCPU", "Memory (GiB)"],
@@ -253,7 +253,7 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
 fn extract_instance_type_object_hvm(
     row: &[String],
     indicies: [usize; 3],
-) -> Result<InstanceList<'static>, Error> {
+) -> Result<InstanceList, Error> {
     let idx = if row[indicies[0]].replace("*", "").parse::<i32>().is_ok() {
         1
     } else {
@@ -275,7 +275,7 @@ fn extract_instance_type_object_hvm(
 fn extract_instance_type_object_pv(
     row: &[String],
     indicies: [usize; 4],
-) -> Result<InstanceList<'static>, Error> {
+) -> Result<InstanceList, Error> {
     let idx = if row[indicies[1]].parse::<i32>().is_ok() {
         1
     } else {
