@@ -113,12 +113,9 @@ impl SSHInstance {
             .get(&self.host)
             .ok_or_else(|| format_err!("Failed to acquire lock"))
             .and_then(|host_lock| {
-                let status: bool;
-                *host_lock.lock() = {
-                    debug!("cmd {}", cmd);
-                    status = Exec::shell(cmd).join()?.success();
-                };
-                if status {
+                let _ = host_lock.lock();
+                debug!("cmd {}", cmd);
+                if Exec::shell(cmd).join()?.success() {
                     Ok(())
                 } else {
                     Err(format_err!("{} failed", cmd))
