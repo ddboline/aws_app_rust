@@ -114,7 +114,7 @@ fn get_instance_pricing(
                 .ok_or_else(|| format_err!("No instance type"))?
                 .to_string();
             let i = InstancePricingInsert {
-                instance_type: instance_type,
+                instance_type,
                 price,
                 price_type: "ondemand".into(),
                 price_timestamp: Utc::now(),
@@ -134,7 +134,7 @@ fn get_instance_pricing(
                 .ok_or_else(|| format_err!("No instance type"))?
                 .to_string();
             let i = InstancePricingInsert {
-                instance_type: instance_type,
+                instance_type,
                 price,
                 price_type: "reserved".into(),
                 price_timestamp: Utc::now(),
