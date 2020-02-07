@@ -12,6 +12,8 @@ aws_app_http = {path="aws_app_http"}
 actix-rt = "1.0"
 log = "0.4"
 env_logger = "0.7"
+anyhow = "1.0"
+tokio = {version="0.2", features=["full"]}
 
 [workspace]
 members = [

@@ -1,7 +1,6 @@
 use anyhow::{format_err, Error};
 use chrono::Utc;
 use futures::future::join_all;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -10,36 +9,15 @@ use std::io::{stdout, Write};
 use crate::models::{InstancePricingInsert, PricingType};
 use crate::pgpool::PgPool;
 
-pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<String>, Error> {
+pub async fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<String>, Error> {
     let mut output = Vec::new();
-    let url = extract_json_url(get_url(ptype)?)?;
-    output.push(format!("url {}", url));
-    let js: PricingJson = reqwest::blocking::get(url)?.json()?;
-    let results = parse_json(js, ptype)?;
-    output.push(format!("{}", results.len()));
-    let result: Result<(), Error> = results
-        .into_par_iter()
-        .map(|r| r.upsert_entry(pool).map(|_| ()))
-        .collect();
-    result?;
-    Ok(output)
-}
-
-pub async fn scrape_pricing_info_async(
-    ptype: PricingType,
-    pool: &PgPool,
-) -> Result<Vec<String>, Error> {
-    let mut output = Vec::new();
-    let url = extract_json_url_async(get_url(ptype)?).await?;
+    let url = extract_json_url(get_url(ptype)?).await?;
     output.push(format!("url {}", url));
     let js: PricingJson = reqwest::get(url).await?.json().await?;
     let results = parse_json(js, ptype)?;
     output.push(format!("{}", results.len()));
 
-    let results: Vec<_> = results
-        .into_iter()
-        .map(|r| r.upsert_entry_async(pool))
-        .collect();
+    let results: Vec<_> = results.into_iter().map(|r| r.upsert_entry(pool)).collect();
     let result: Result<(), Error> = join_all(results)
         .await
         .into_iter()
@@ -60,12 +38,7 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
     .map_err(Into::into)
 }
 
-fn extract_json_url(url: Url) -> Result<Url, Error> {
-    let body: String = reqwest::blocking::get(url)?.text()?;
-    parse_json_url_body(&body)
-}
-
-async fn extract_json_url_async(url: Url) -> Result<Url, Error> {
+async fn extract_json_url(url: Url) -> Result<Url, Error> {
     let body: String = reqwest::get(url).await?.text().await?;
     parse_json_url_body(&body)
 }

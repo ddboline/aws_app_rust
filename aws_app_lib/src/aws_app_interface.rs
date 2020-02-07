@@ -1,6 +1,7 @@
-use anyhow::Error;
+use actix_threadpool::run as block;
+use anyhow::{format_err, Error};
 use chrono::Local;
-use crossbeam_utils::thread::scope;
+use futures::future::{join, join_all};
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -59,18 +60,18 @@ impl AwsAppInterface {
         self.ecr.set_region(region)
     }
 
-    pub fn update(&self) -> Result<Vec<String>, Error> {
+    pub async fn update(&self) -> Result<Vec<String>, Error> {
         let mut output = Vec::new();
-        output.extend_from_slice(&scrape_instance_info(AwsGeneration::HVM, &self.pool)?);
-        output.extend_from_slice(&scrape_instance_info(AwsGeneration::PV, &self.pool)?);
+        output.extend_from_slice(&scrape_instance_info(AwsGeneration::HVM, &self.pool).await?);
+        output.extend_from_slice(&scrape_instance_info(AwsGeneration::PV, &self.pool).await?);
 
-        output.extend_from_slice(&scrape_pricing_info(PricingType::Reserved, &self.pool)?);
-        output.extend_from_slice(&scrape_pricing_info(PricingType::OnDemand, &self.pool)?);
+        output.extend_from_slice(&scrape_pricing_info(PricingType::Reserved, &self.pool).await?);
+        output.extend_from_slice(&scrape_pricing_info(PricingType::OnDemand, &self.pool).await?);
         Ok(output)
     }
 
-    pub fn fill_instance_list(&self) -> Result<(), Error> {
-        let mut instances = self.ec2.get_all_instances()?;
+    pub async fn fill_instance_list(&self) -> Result<(), Error> {
+        let mut instances = self.ec2.get_all_instances().await?;
         if !instances.is_empty() {
             instances.par_sort_by_key(|inst| inst.launch_time);
             instances.par_sort_by_key(|inst| inst.state != "running");
@@ -79,11 +80,11 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub fn process_resource(&self, resource: ResourceType) -> Result<Vec<String>, Error> {
+    pub async fn process_resource(&self, resource: ResourceType) -> Result<Vec<String>, Error> {
         let mut output = Vec::new();
         match resource {
             ResourceType::Instances => {
-                self.fill_instance_list()?;
+                self.fill_instance_list().await?;
 
                 let result: Vec<_> = INSTANCE_LIST
                     .read()
@@ -112,7 +113,7 @@ impl AwsAppInterface {
                 }
             }
             ResourceType::Reserved => {
-                let reserved = self.ec2.get_reserved_instances()?;
+                let reserved = self.ec2.get_reserved_instances().await?;
                 if reserved.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -129,7 +130,7 @@ impl AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::Spot => {
-                let requests = self.ec2.get_spot_instance_requests()?;
+                let requests = self.ec2.get_spot_instance_requests().await?;
                 if requests.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -151,41 +152,36 @@ impl AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::Ami => {
-                let res: Result<(), Error> = scope(|s| {
-                    let ubuntu_amis =
-                        s.spawn(|_| self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release));
+                let ubuntu_amis = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
+                let ami_tags = self.ec2.get_ami_tags();
+                let (ubuntu_amis, ami_tags) = join(ubuntu_amis, ami_tags).await;
 
-                    let mut ami_tags = self.ec2.get_ami_tags()?;
-                    let mut ubuntu_amis = ubuntu_amis.join().expect("thread panic")?;
-                    if ami_tags.is_empty() {
-                        return Ok(());
-                    }
-                    ubuntu_amis.par_sort_by_key(|x| x.name.clone());
-                    if let Some(ami) = ubuntu_amis.pop() {
-                        ami_tags.push(ami);
-                    }
-                    output.push("---\nAMI's:".to_string());
-                    let result: Vec<_> = ami_tags
-                        .par_iter()
-                        .map(|ami| {
-                            format!(
-                                "{} {} {} {}",
-                                ami.id,
-                                ami.name,
-                                ami.state,
-                                ami.snapshot_ids.join(" ")
-                            )
-                        })
-                        .collect();
-                    output.extend_from_slice(&result);
-
-                    Ok(())
-                })
-                .expect("thread panic");
-                res?;
+                let mut ubuntu_amis = ubuntu_amis?;
+                let mut ami_tags = ami_tags?;
+                if ami_tags.is_empty() {
+                    return Ok(Vec::new());
+                }
+                ubuntu_amis.par_sort_by_key(|x| x.name.clone());
+                if let Some(ami) = ubuntu_amis.pop() {
+                    ami_tags.push(ami);
+                }
+                output.push("---\nAMI's:".to_string());
+                let result: Vec<_> = ami_tags
+                    .par_iter()
+                    .map(|ami| {
+                        format!(
+                            "{} {} {} {}",
+                            ami.id,
+                            ami.name,
+                            ami.state,
+                            ami.snapshot_ids.join(" ")
+                        )
+                    })
+                    .collect();
+                output.extend_from_slice(&result);
             }
             ResourceType::Key => {
-                let keys = self.ec2.get_all_key_pairs()?;
+                let keys = self.ec2.get_all_key_pairs().await?;
                 output.push("---\nKeys:".to_string());
                 let result: Vec<_> = keys
                     .into_par_iter()
@@ -194,7 +190,7 @@ impl AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::Volume => {
-                let volumes = self.ec2.get_all_volumes()?;
+                let volumes = self.ec2.get_all_volumes().await?;
                 if volumes.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -216,7 +212,7 @@ impl AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::Snapshot => {
-                let snapshots = self.ec2.get_all_snapshots()?;
+                let snapshots = self.ec2.get_all_snapshots().await?;
                 if snapshots.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -237,15 +233,13 @@ impl AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::Ecr => {
-                let repos = self.ecr.get_all_repositories()?;
+                let repos = self.ecr.get_all_repositories().await?;
                 if repos.is_empty() {
                     return Ok(Vec::new());
                 }
                 output.push("---\nECR images".to_string());
-                let result: Result<Vec<_>, Error> = repos
-                    .par_iter()
-                    .map(|repo| {
-                        let images = self.ecr.get_all_images(&repo)?;
+                for repo in repos {
+                    let lines = self.ecr.get_all_images(&repo).await.and_then(|images| {
                         let lines: Vec<_> = images
                             .par_iter()
                             .map(|image| {
@@ -260,20 +254,19 @@ impl AwsAppInterface {
                             })
                             .collect();
                         Ok(lines)
-                    })
-                    .collect();
-                let result: Vec<_> = result?.into_par_iter().flatten().collect();
-                output.extend_from_slice(&result);
+                    })?;
+                    output.extend_from_slice(&lines);
+                }
             }
             ResourceType::Script => {
                 output.push("---\nScripts:".to_string());
-                output.extend_from_slice(&self.get_all_scripts()?);
+                output.extend_from_slice(&self.get_all_scripts().await?);
             }
         };
         Ok(output)
     }
 
-    pub fn get_all_scripts(&self) -> Result<Vec<String>, Error> {
+    pub async fn get_all_scripts(&self) -> Result<Vec<String>, Error> {
         let mut files: Vec<_> = WalkDir::new(&self.config.script_directory)
             .same_file_system(true)
             .into_iter()
@@ -291,7 +284,7 @@ impl AwsAppInterface {
         Ok(files)
     }
 
-    pub fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
+    pub async fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
         let mut visited_resources = HashSet::new();
         let resources: Vec<_> = [ResourceType::Instances]
             .iter()
@@ -299,10 +292,12 @@ impl AwsAppInterface {
             .filter(|x| visited_resources.insert(*x))
             .collect();
 
-        let result: Result<Vec<_>, Error> = resources
-            .into_par_iter()
+        let futures: Vec<_> = resources
+            .into_iter()
             .map(|resource| self.process_resource(*resource))
             .collect();
+
+        let result: Result<Vec<_>, Error> = join_all(futures).await.into_iter().collect();
         let output: Vec<_> = result?.into_par_iter().flatten().collect();
 
         for line in output {
@@ -312,18 +307,18 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub fn terminate(&self, instance_ids: &[String]) -> Result<(), Error> {
-        self.fill_instance_list()?;
+    pub async fn terminate(&self, instance_ids: &[String]) -> Result<(), Error> {
+        self.fill_instance_list().await?;
         let name_map = get_name_map()?;
         let mapped_inst_ids: Vec<String> = instance_ids
             .par_iter()
             .map(|id| map_or_val(&name_map, id))
             .collect();
-        self.ec2.terminate_instance(&mapped_inst_ids)
+        self.ec2.terminate_instance(&mapped_inst_ids).await
     }
 
-    pub fn connect(&self, instance_id: &str) -> Result<(), Error> {
-        self.fill_instance_list()?;
+    pub async fn connect(&self, instance_id: &str) -> Result<(), Error> {
+        self.fill_instance_list().await?;
         let name_map = get_name_map()?;
         let id_host_map = get_id_host_map()?;
         let inst_id = map_or_val(&name_map, instance_id);
@@ -333,28 +328,39 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub fn get_status(&self, instance_id: &str) -> Result<Vec<String>, Error> {
+    pub async fn get_status(&self, instance_id: &str) -> Result<Vec<String>, Error> {
         self.run_command(instance_id, "tail /var/log/cloud-init-output.log")
+            .await
     }
 
-    pub fn run_command(&self, instance_id: &str, command: &str) -> Result<Vec<String>, Error> {
-        self.fill_instance_list()?;
+    pub async fn run_command(
+        &self,
+        instance_id: &str,
+        command: &str,
+    ) -> Result<Vec<String>, Error> {
+        self.fill_instance_list().await?;
         let name_map = get_name_map()?;
         let id_host_map = get_id_host_map()?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(&inst_id) {
-            SSHInstance::new("ubuntu", host, 22).run_command_stream_stdout(command)
+            let command = command.to_owned();
+            let host = host.to_owned();
+            block(move || SSHInstance::new("ubuntu", &host, 22).run_command_stream_stdout(&command))
+                .await
+                .map_err(|e| format_err!("{:?}", e))
         } else {
             Ok(Vec::new())
         }
     }
 
-    pub fn get_ec2_prices(&self, search: &[String]) -> Result<Vec<AwsInstancePrice>, Error> {
-        let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)?
+    pub async fn get_ec2_prices(&self, search: &[String]) -> Result<Vec<AwsInstancePrice>, Error> {
+        let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)
+            .await?
             .into_par_iter()
             .map(|f| (f.family_name.to_string(), f))
             .collect();
-        let instance_list: HashMap<_, _> = InstanceList::get_all_instances(&self.pool)?
+        let instance_list: HashMap<_, _> = InstanceList::get_all_instances(&self.pool)
+            .await?
             .into_par_iter()
             .map(|i| (i.instance_type.to_string(), i))
             .collect();
@@ -369,9 +375,10 @@ impl AwsAppInterface {
             })
             .collect();
 
-        let spot_prices = self.ec2.get_latest_spot_inst_prices(&inst_list)?;
+        let spot_prices = self.ec2.get_latest_spot_inst_prices(&inst_list).await?;
 
-        let prices: HashMap<_, _> = InstancePricing::get_all(&self.pool)?
+        let prices: HashMap<_, _> = InstancePricing::get_all(&self.pool)
+            .await?
             .into_par_iter()
             .map(|p| ((p.instance_type.to_string(), p.price_type.to_string()), p))
             .collect();
@@ -410,8 +417,8 @@ impl AwsAppInterface {
         Ok(prices)
     }
 
-    pub fn print_ec2_prices(&self, search: &[String]) -> Result<(), Error> {
-        let prices = self.get_ec2_prices(search)?;
+    pub async fn print_ec2_prices(&self, search: &[String]) -> Result<(), Error> {
+        let prices = self.get_ec2_prices(search).await?;
 
         let mut outstrings: Vec<_> = prices
             .into_par_iter()
@@ -445,45 +452,46 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub fn delete_image(&self, ami: &str) -> Result<(), Error> {
-        let ami_map = self.ec2.get_ami_map()?;
+    pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
+        let ami_map = self.ec2.get_ami_map().await?;
         let ami = if let Some(a) = ami_map.get(ami) {
             a
         } else {
             ami
         };
-        self.ec2.delete_image(ami)
+        self.ec2.delete_image(ami).await
     }
 
-    pub fn request_spot_instance(&self, req: &mut SpotRequest) -> Result<(), Error> {
-        let ami_map = self.ec2.get_ami_map()?;
+    pub async fn request_spot_instance(&self, req: &mut SpotRequest) -> Result<(), Error> {
+        let ami_map = self.ec2.get_ami_map().await?;
         if let Some(a) = ami_map.get(&req.ami) {
             req.ami = a.to_string();
         }
 
-        self.ec2.request_spot_instance(&req)
+        self.ec2.request_spot_instance(&req).await
     }
 
-    pub fn run_ec2_instance(&self, req: &mut InstanceRequest) -> Result<(), Error> {
-        let ami_map = self.ec2.get_ami_map()?;
+    pub async fn run_ec2_instance(&self, req: &mut InstanceRequest) -> Result<(), Error> {
+        let ami_map = self.ec2.get_ami_map().await?;
         if let Some(a) = ami_map.get(&req.ami) {
             req.ami = a.to_string();
         }
 
-        self.ec2.run_ec2_instance(&req)
+        self.ec2.run_ec2_instance(&req).await
     }
 
-    pub fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
-        self.fill_instance_list()?;
+    pub async fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
+        self.fill_instance_list().await?;
         let name_map = get_name_map()?;
         let inst_id = map_or_val(&name_map, inst_id);
-        self.ec2.create_image(&inst_id, name)
+        self.ec2.create_image(&inst_id, name).await
     }
 
-    fn get_snapshot_map(&self) -> Result<HashMap<String, String>, Error> {
+    async fn get_snapshot_map(&self) -> Result<HashMap<String, String>, Error> {
         Ok(self
             .ec2
-            .get_all_snapshots()?
+            .get_all_snapshots()
+            .await?
             .into_par_iter()
             .filter_map(|snap| {
                 snap.tags
@@ -493,21 +501,22 @@ impl AwsAppInterface {
             .collect())
     }
 
-    pub fn create_ebs_volume(
+    pub async fn create_ebs_volume(
         &self,
         zoneid: &str,
         size: Option<i64>,
         snapid: Option<String>,
     ) -> Result<Option<String>, Error> {
-        let snap_map = self.get_snapshot_map()?;
+        let snap_map = self.get_snapshot_map().await?;
         let snapid = snapid.map(|s| map_or_val(&snap_map, &s));
-        self.ec2.create_ebs_volume(zoneid, size, snapid)
+        self.ec2.create_ebs_volume(zoneid, size, snapid).await
     }
 
-    fn get_volume_map(&self) -> Result<HashMap<String, String>, Error> {
+    async fn get_volume_map(&self) -> Result<HashMap<String, String>, Error> {
         Ok(self
             .ec2
-            .get_all_volumes()?
+            .get_all_volumes()
+            .await?
             .into_par_iter()
             .filter_map(|vol| {
                 vol.tags
@@ -517,57 +526,63 @@ impl AwsAppInterface {
             .collect())
     }
 
-    pub fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
-        let vol_map = self.get_volume_map()?;
+    pub async fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+        let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.delete_ebs_volume(&volid)
+        self.ec2.delete_ebs_volume(&volid).await
     }
 
-    pub fn attach_ebs_volume(&self, volid: &str, instid: &str, device: &str) -> Result<(), Error> {
-        self.fill_instance_list()?;
-        let vol_map = self.get_volume_map()?;
+    pub async fn attach_ebs_volume(
+        &self,
+        volid: &str,
+        instid: &str,
+        device: &str,
+    ) -> Result<(), Error> {
+        self.fill_instance_list().await?;
+        let vol_map = self.get_volume_map().await?;
         let name_map = get_name_map()?;
         let volid = map_or_val(&vol_map, volid);
         let instid = map_or_val(&name_map, instid);
-        self.ec2.attach_ebs_volume(&volid, &instid, device)
+        self.ec2.attach_ebs_volume(&volid, &instid, device).await
     }
 
-    pub fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
-        let vol_map = self.get_volume_map()?;
+    pub async fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+        let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.detach_ebs_volume(&volid)
+        self.ec2.detach_ebs_volume(&volid).await
     }
 
-    pub fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
-        let vol_map = self.get_volume_map()?;
+    pub async fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
+        let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.modify_ebs_volume(&volid, size)
+        self.ec2.modify_ebs_volume(&volid, size).await
     }
 
-    pub fn create_ebs_snapshot(
+    pub async fn create_ebs_snapshot(
         &self,
         volid: &str,
         tags: &HashMap<String, String>,
     ) -> Result<Option<String>, Error> {
-        let vol_map = self.get_volume_map()?;
+        let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.create_ebs_snapshot(&volid, tags)
+        self.ec2.create_ebs_snapshot(&volid, tags).await
     }
 
-    pub fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
-        let snap_map = self.get_snapshot_map()?;
+    pub async fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
+        let snap_map = self.get_snapshot_map().await?;
         let snapid = map_or_val(&snap_map, snapid);
-        self.ec2.delete_ebs_snapshot(&snapid)
+        self.ec2.delete_ebs_snapshot(&snapid).await
     }
 
-    pub fn get_all_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
-        let mut ami_tags = self.ec2.get_ami_tags()?;
+    pub async fn get_all_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
+        let mut ami_tags = self.ec2.get_ami_tags().await?;
         if ami_tags.is_empty() {
             return Ok(Vec::new());
         }
         let mut ubuntu_amis = self
             .ec2
-            .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
+            .get_latest_ubuntu_ami(&self.config.ubuntu_release)
+            .await?;
         ubuntu_amis.par_sort_by_key(|x| x.name.clone());
         if !ubuntu_amis.is_empty() {
             ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());

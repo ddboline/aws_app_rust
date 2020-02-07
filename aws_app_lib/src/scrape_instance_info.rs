@@ -18,24 +18,14 @@ pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
     .map_err(Into::into)
 }
 
-pub fn scrape_instance_info(
-    generation: AwsGeneration,
-    pool: &PgPool,
-) -> Result<Vec<String>, Error> {
-    let url = get_url(generation)?;
-    let body = reqwest::blocking::get(url)?.text()?;
-    let (instf, instl) = parse_result(&body, generation)?;
-    insert_result(&instf, &instl, pool)
-}
-
-pub async fn scrape_instance_info_async(
+pub async fn scrape_instance_info(
     generation: AwsGeneration,
     pool: &PgPool,
 ) -> Result<Vec<String>, Error> {
     let url = get_url(generation)?;
     let body = reqwest::get(url).await?.text().await?;
     let (instf, instl) = parse_result(&body, generation)?;
-    insert_result_async(instf, instl, pool).await
+    insert_result(instf, instl, pool).await
 }
 
 fn parse_result(
@@ -84,38 +74,19 @@ fn parse_result(
     Ok((instance_families, instance_types))
 }
 
-fn insert_result(
-    instance_families: &[InstanceFamilyInsert],
-    instance_types: &[InstanceList],
-    pool: &PgPool,
-) -> Result<Vec<String>, Error> {
-    let mut output = Vec::new();
-    for t in instance_families {
-        if t.insert_entry(&pool)? {
-            output.push(format!("{:?}", t));
-        }
-    }
-    for t in instance_types {
-        if t.insert_entry(&pool)? {
-            output.push(format!("{:?}", t));
-        }
-    }
-    Ok(output)
-}
-
-async fn insert_result_async(
+async fn insert_result(
     instance_families: Vec<InstanceFamilyInsert>,
     instance_types: Vec<InstanceList>,
     pool: &PgPool,
 ) -> Result<Vec<String>, Error> {
     let mut output = Vec::new();
     for t in instance_families {
-        if let (t, true) = t.insert_entry_async(&pool).await? {
+        if let (t, true) = t.insert_entry(&pool).await? {
             output.push(format!("{:?}", t));
         }
     }
     for t in instance_types {
-        if let (t, true) = t.insert_entry_async(&pool).await? {
+        if let (t, true) = t.insert_entry(&pool).await? {
             output.push(format!("{:?}", t));
         }
     }

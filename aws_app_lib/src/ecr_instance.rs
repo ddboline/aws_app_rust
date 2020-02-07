@@ -61,10 +61,10 @@ impl EcrInstance {
         Ok(())
     }
 
-    pub fn get_all_repositories(&self) -> Result<Vec<String>, Error> {
+    pub async fn get_all_repositories(&self) -> Result<Vec<String>, Error> {
         self.ecr_client
             .describe_repositories(DescribeRepositoriesRequest::default())
-            .sync()
+            .await
             .map_err(Into::into)
             .map(|r| {
                 r.repositories
@@ -75,13 +75,13 @@ impl EcrInstance {
             })
     }
 
-    pub fn get_all_images(&self, reponame: &str) -> Result<Vec<ImageInfo>, Error> {
+    pub async fn get_all_images(&self, reponame: &str) -> Result<Vec<ImageInfo>, Error> {
         self.ecr_client
             .describe_images(DescribeImagesRequest {
                 repository_name: reponame.to_string(),
                 ..DescribeImagesRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
             .map(|i| {
                 i.image_details
@@ -105,7 +105,11 @@ impl EcrInstance {
             })
     }
 
-    pub fn delete_ecr_images(&self, reponame: &str, imageids: &[String]) -> Result<(), Error> {
+    pub async fn delete_ecr_images(
+        &self,
+        reponame: &str,
+        imageids: &[String],
+    ) -> Result<(), Error> {
         self.ecr_client
             .batch_delete_image(BatchDeleteImageRequest {
                 repository_name: reponame.to_string(),
@@ -118,33 +122,30 @@ impl EcrInstance {
                     .collect(),
                 ..BatchDeleteImageRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
             .map(|_| ())
     }
 
-    pub fn cleanup_ecr_images(&self) -> Result<(), Error> {
-        self.get_all_repositories()?
-            .into_par_iter()
-            .map(|repo| {
-                let imageids: Vec<_> = self
-                    .get_all_images(&repo)?
-                    .into_par_iter()
-                    .filter_map(|i| {
-                        if i.tags.is_empty() {
-                            Some(i.digest)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                if imageids.is_empty() {
-                    Ok(())
-                } else {
-                    self.delete_ecr_images(&repo, &imageids)
-                }
-            })
-            .collect()
+    pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
+        for repo in self.get_all_repositories().await? {
+            let imageids: Vec<_> = self
+                .get_all_images(&repo)
+                .await?
+                .into_par_iter()
+                .filter_map(|i| {
+                    if i.tags.is_empty() {
+                        Some(i.digest)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if !imageids.is_empty() {
+                self.delete_ecr_images(&repo, &imageids).await?;
+            }
+        }
+        Ok(())
     }
 }
 

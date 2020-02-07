@@ -1,5 +1,5 @@
 use actix_web::http::StatusCode;
-use actix_web::web::{block, Data, Json, Query};
+use actix_web::web::{Data, Json, Query};
 use actix_web::HttpResponse;
 use aws_app_lib::resource_type::ResourceType;
 use maplit::hashmap;
@@ -27,7 +27,7 @@ fn form_http_response(body: String) -> Result<HttpResponse, Error> {
 }
 
 pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
-    let results = block(move || data.aws.handle(ResourceType::Instances)).await?;
+    let results = data.aws.handle(ResourceType::Instances).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
     form_http_response(body)
@@ -48,7 +48,7 @@ pub async fn list(
         .resource
         .parse()
         .unwrap_or(ResourceType::Instances);
-    let results = block(move || data.aws.handle(query)).await?;
+    let results = data.aws.handle(query).await?;
     form_http_response(results.join("\n"))
 }
 
@@ -58,7 +58,7 @@ pub async fn terminate(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query)).await?;
+    data.aws.handle(query).await?;
     form_http_response("finished".to_string())
 }
 
@@ -68,7 +68,7 @@ pub async fn delete_image(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query)).await?;
+    data.aws.handle(query).await?;
     form_http_response("finished".to_string())
 }
 
@@ -78,7 +78,7 @@ pub async fn delete_volume(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query)).await?;
+    data.aws.handle(query).await?;
     form_http_response("finished".to_string())
 }
 
@@ -88,7 +88,7 @@ pub async fn delete_snapshot(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query)).await?;
+    data.aws.handle(query).await?;
     form_http_response("finished".to_string())
 }
 
@@ -98,7 +98,7 @@ pub async fn delete_ecr_image(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    block(move || data.aws.handle(query)).await?;
+    data.aws.handle(query).await?;
     form_http_response("finished".to_string())
 }
 
@@ -106,7 +106,7 @@ pub async fn cleanup_ecr_images(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    block(move || data.aws.handle(CleanupEcrImagesRequest {})).await?;
+    data.aws.handle(CleanupEcrImagesRequest {}).await?;
     form_http_response("finished".to_string())
 }
 
@@ -189,7 +189,7 @@ pub async fn build_spot_request(
     let query = query.into_inner();
 
     let d = data.clone();
-    let mut amis = block(move || d.aws.get_all_ami_tags()).await?;
+    let mut amis = d.aws.get_all_ami_tags().await?;
 
     let ami_opt = if let Some(ami_) = &query.ami {
         let mut ami_opt: Vec<_> = amis.iter().filter(|ami| &ami.id == ami_).cloned().collect();
@@ -206,7 +206,7 @@ pub async fn build_spot_request(
         .collect();
 
     let d = data.clone();
-    let mut inst_fam: Vec<_> = block(move || InstanceFamily::get_all(&d.aws.pool)).await?;
+    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&d.aws.pool).await?;
 
     let inst_opt = if let Some(inst) = &query.ami {
         let mut inst_opt: Vec<_> = inst_fam
@@ -228,14 +228,14 @@ pub async fn build_spot_request(
 
     let d = data.clone();
     let inst = query.inst.unwrap_or_else(|| "t3".to_string());
-    let instances: Vec<_> = block(move || InstanceList::get_by_instance_family(&inst, &d.aws.pool))
+    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &d.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .collect();
 
     let d = data.clone();
-    let mut files = block(move || d.aws.get_all_scripts()).await?;
+    let mut files = d.aws.get_all_scripts().await?;
 
     let file_opts = if let Some(script) = &query.script {
         let mut file_opt: Vec<_> = files.iter().filter(|f| f == &script).cloned().collect();
@@ -251,7 +251,10 @@ pub async fn build_spot_request(
         .collect();
 
     let d = data.clone();
-    let keys: Vec<_> = block(move || d.aws.ec2.get_all_key_pairs())
+    let keys: Vec<_> = d
+        .aws
+        .ec2
+        .get_all_key_pairs()
         .await?
         .into_iter()
         .map(|k| format!(r#"<option value="{k}">{k}</option>"#, k = k.0))
@@ -316,7 +319,7 @@ pub async fn request_spot(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let req = req.into_inner().into_spot_request(&data.aws.config);
-    block(move || data.aws.ec2.request_spot_instance(&req)).await?;
+    data.aws.ec2.request_spot_instance(&req).await?;
     form_http_response("done".to_string())
 }
 
@@ -332,7 +335,7 @@ pub async fn get_prices(
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
     let d = data.clone();
-    let inst_fam: Vec<_> = block(move || InstanceFamily::get_all(&d.aws.pool))
+    let inst_fam: Vec<_> = InstanceFamily::get_all(&d.aws.pool)
         .await?
         .into_iter()
         .map(|fam| {
@@ -346,7 +349,7 @@ pub async fn get_prices(
 
     let prices = if let Some(search) = query.search {
         let d = data.clone();
-        block(move || d.aws.get_ec2_prices(&[search]))
+        d.aws.get_ec2_prices(&[search])
             .await
             ?
             .into_iter()
@@ -416,7 +419,7 @@ pub async fn get_prices(
 }
 
 pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
-    let entries = block(move || data.aws.update()).await?;
+    let entries = data.aws.update().await?;
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -434,7 +437,7 @@ pub async fn status(
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
     let host = query.instance.clone();
-    let entries = block(move || data.aws.handle(query)).await?;
+    let entries = data.aws.handle(query).await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -461,7 +464,7 @@ pub async fn command(
 ) -> Result<HttpResponse, Error> {
     let payload = payload.into_inner();
     let host = payload.instance.clone();
-    let entries = block(move || data.aws.handle(payload)).await?;
+    let entries = data.aws.handle(payload).await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -491,11 +494,10 @@ pub async fn get_instances(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let instances: Vec<_> =
-        block(move || InstanceList::get_by_instance_family(&query.inst, &data.aws.pool))
-            .await?
-            .into_iter()
-            .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-            .collect();
+    let instances: Vec<_> = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
+        .await?
+        .into_iter()
+        .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+        .collect();
     form_http_response(instances.join("\n"))
 }
