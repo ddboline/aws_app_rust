@@ -24,8 +24,8 @@ pub async fn scrape_instance_info(
 ) -> Result<Vec<String>, Error> {
     let url = get_url(generation)?;
     let body = reqwest::get(url).await?.text().await?;
-    let (instf, instl) = parse_result(&body, generation)?;
-    insert_result(instf, instl, pool).await
+    let (families, types) = parse_result(&body, generation)?;
+    insert_result(families, types, pool).await
 }
 
 fn parse_result(
@@ -52,8 +52,8 @@ fn parse_result(
                         continue;
                     }
                     let ifam = InstanceFamilyInsert {
-                        family_name: family_name.into(),
-                        family_type: family_type.to_string().into(),
+                        family_name,
+                        family_type: family_type.to_string(),
                     };
                     instance_families.push(ifam);
                 }
@@ -158,8 +158,8 @@ fn extract_instance_family_object_pv(
         .ok_or_else(|| format_err!("No family type"))?
         .to_string();
     Ok(InstanceFamilyInsert {
-        family_name: family_name.into(),
-        family_type: family_type.into(),
+        family_name: family_name,
+        family_type: family_type,
     })
 }
 
@@ -272,10 +272,10 @@ fn extract_instance_type_object_hvm(
     let memory_gib: f64 = row[(indicies[2] - idx)].replace(",", "").parse()?;
 
     Ok(InstanceList {
-        instance_type: instance_type.into(),
+        instance_type: instance_type,
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::HVM.to_string().into(),
+        generation: AwsGeneration::HVM.to_string(),
     })
 }
 
@@ -294,9 +294,9 @@ fn extract_instance_type_object_pv(
     let memory_gib: f64 = row[(indicies[3] - idx)].replace(",", "").parse()?;
 
     Ok(InstanceList {
-        instance_type: instance_type.into(),
+        instance_type: instance_type,
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::PV.to_string().into(),
+        generation: AwsGeneration::PV.to_string(),
     })
 }
