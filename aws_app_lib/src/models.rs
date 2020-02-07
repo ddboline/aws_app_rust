@@ -1,11 +1,11 @@
-use actix_threadpool::run as block;
-use anyhow::{format_err, Error};
+use anyhow::Error;
 use chrono::{DateTime, Utc};
 use diesel::{
     Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
     TextExpressionMethods,
 };
 use std::fmt;
+use tokio::task::spawn_blocking;
 
 use crate::pgpool::{PgPool, PgPoolConn};
 use crate::schema::{authorized_users, instance_family, instance_list, instance_pricing};
@@ -64,9 +64,7 @@ impl InstanceFamily {
         let f_name = f_name.to_owned();
         let f_type = f_type.to_owned();
         let pool = pool.clone();
-        block(move || Self::existing_entries_sync(&f_name, &f_type, &pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::existing_entries_sync(&f_name, &f_type, &pool)).await?
     }
 
     pub fn get_all_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
@@ -77,9 +75,7 @@ impl InstanceFamily {
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let pool = pool.clone();
-        block(move || Self::get_all_sync(&pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::get_all_sync(&pool)).await?
     }
 }
 
@@ -111,9 +107,7 @@ impl InstanceFamilyInsert {
 
     pub async fn insert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
         let pool = pool.clone();
-        block(move || self.insert_entry_sync(&pool).map(|r| (self, r)))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || self.insert_entry_sync(&pool).map(|r| (self, r))).await?
     }
 }
 
@@ -144,9 +138,7 @@ impl InstanceList {
 
     pub async fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let pool = pool.clone();
-        block(move || Self::get_all_instances_sync(&pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::get_all_instances_sync(&pool)).await?
     }
 
     pub fn get_by_instance_family_sync(
@@ -167,9 +159,7 @@ impl InstanceList {
     ) -> Result<Vec<Self>, Error> {
         let instance_family = instance_family.to_owned();
         let pool = pool.clone();
-        block(move || Self::get_by_instance_family_sync(&instance_family, &pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::get_by_instance_family_sync(&instance_family, &pool)).await?
     }
 
     fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
@@ -194,9 +184,7 @@ impl InstanceList {
     ) -> Result<Vec<Self>, Error> {
         let instance_type = instance_type.to_owned();
         let pool = pool.clone();
-        block(move || Self::get_by_instance_type_sync(&instance_type, &pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::get_by_instance_type_sync(&instance_type, &pool)).await?
     }
 
     fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
@@ -225,9 +213,7 @@ impl InstanceList {
 
     pub async fn insert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
         let pool = pool.clone();
-        block(move || self.insert_entry_sync(&pool).map(|r| (self, r)))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || self.insert_entry_sync(&pool).map(|r| (self, r))).await?
     }
 }
 
@@ -291,9 +277,7 @@ impl InstancePricing {
         let i_type = i_type.to_owned();
         let p_type = p_type.to_owned();
         let pool = pool.clone();
-        block(move || Self::existing_entries_sync(&i_type, &p_type, &pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::existing_entries_sync(&i_type, &p_type, &pool)).await?
     }
 
     pub fn get_all_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
@@ -304,9 +288,7 @@ impl InstancePricing {
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let pool = pool.clone();
-        block(move || Self::get_all_sync(&pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::get_all_sync(&pool)).await?
     }
 }
 
@@ -357,9 +339,7 @@ impl InstancePricingInsert {
 
     pub async fn upsert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
         let pool = pool.clone();
-        block(move || self.upsert_entry_sync(&pool).map(|r| (self, r)))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || self.upsert_entry_sync(&pool).map(|r| (self, r))).await?
     }
 }
 
@@ -392,8 +372,6 @@ impl AuthorizedUsers {
 
     pub async fn get_authorized_users(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let pool = pool.clone();
-        block(move || Self::get_authorized_users_sync(&pool))
-            .await
-            .map_err(|e| format_err!("{:?}", e))
+        spawn_blocking(move || Self::get_authorized_users_sync(&pool)).await?
     }
 }

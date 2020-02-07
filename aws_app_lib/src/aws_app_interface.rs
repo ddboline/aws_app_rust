@@ -1,5 +1,4 @@
-use actix_threadpool::run as block;
-use anyhow::{format_err, Error};
+use anyhow::Error;
 use chrono::Local;
 use futures::future::{join, join_all};
 use lazy_static::lazy_static;
@@ -9,6 +8,7 @@ use rayon::slice::ParallelSliceMut;
 use std::collections::{HashMap, HashSet};
 use std::io::{stdout, Write};
 use std::string::String;
+use tokio::task::spawn_blocking;
 use walkdir::WalkDir;
 
 use crate::config::Config;
@@ -84,29 +84,33 @@ impl AwsAppInterface {
         let mut output = Vec::new();
         match resource {
             ResourceType::Instances => {
+                fn process_list() -> Vec<String> {
+                    INSTANCE_LIST
+                        .read()
+                        .par_iter()
+                        .map(|inst| {
+                            let name = inst
+                                .tags
+                                .get("Name")
+                                .as_ref()
+                                .map_or_else(|| "", |x| x.as_str());
+                            format!(
+                                "{} {} {} {} {} {} {}",
+                                inst.id,
+                                inst.dns_name,
+                                inst.state,
+                                name,
+                                inst.instance_type,
+                                inst.launch_time.with_timezone(&Local),
+                                inst.availability_zone,
+                            )
+                        })
+                        .collect()
+                }
+
                 self.fill_instance_list().await?;
 
-                let result: Vec<_> = INSTANCE_LIST
-                    .read()
-                    .par_iter()
-                    .map(|inst| {
-                        let name = inst
-                            .tags
-                            .get("Name")
-                            .as_ref()
-                            .map_or_else(|| "", |x| x.as_str());
-                        format!(
-                            "{} {} {} {} {} {} {}",
-                            inst.id,
-                            inst.dns_name,
-                            inst.state,
-                            name,
-                            inst.instance_type,
-                            inst.launch_time.with_timezone(&Local),
-                            inst.availability_zone,
-                        )
-                    })
-                    .collect();
+                let result = spawn_blocking(|| process_list()).await?;
                 if !result.is_empty() {
                     output.push("instances:".to_string());
                     output.extend_from_slice(&result);
@@ -345,9 +349,10 @@ impl AwsAppInterface {
         if let Some(host) = id_host_map.get(&inst_id) {
             let command = command.to_owned();
             let host = host.to_owned();
-            block(move || SSHInstance::new("ubuntu", &host, 22).run_command_stream_stdout(&command))
-                .await
-                .map_err(|e| format_err!("{:?}", e))
+            spawn_blocking(move || {
+                SSHInstance::new("ubuntu", &host, 22).run_command_stream_stdout(&command)
+            })
+            .await?
         } else {
             Ok(Vec::new())
         }
