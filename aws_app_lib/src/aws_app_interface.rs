@@ -110,7 +110,7 @@ impl AwsAppInterface {
 
                 self.fill_instance_list().await?;
 
-                let result = spawn_blocking(|| process_list()).await?;
+                let result = spawn_blocking(process_list).await?;
                 if !result.is_empty() {
                     output.push("instances:".to_string());
                     output.extend_from_slice(&result);
