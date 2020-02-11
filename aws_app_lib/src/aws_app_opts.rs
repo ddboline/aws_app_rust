@@ -1,4 +1,5 @@
 use anyhow::Error;
+use futures::future::try_join_all;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use std::collections::HashMap;
@@ -249,11 +250,19 @@ impl AwsAppOpts {
                     let regions: Vec<_> =
                         app.ec2.get_all_regions().await?.keys().cloned().collect();
 
-                    for region in regions {
-                        let mut app_ = app.clone();
-                        app_.set_region(&region)?;
-                        app_.list(&resources).await?;
-                    }
+                    let futures: Vec<_> = regions
+                        .into_iter()
+                        .map(|region| {
+                            let mut app_ = app.clone();
+                            let region_ = region.clone();
+                            let resources_ = resources.clone();
+                            async move {
+                                app_.set_region(&region_)?;
+                                app_.list(&resources_).await
+                            }
+                        })
+                        .collect();
+                    try_join_all(futures).await?;
                     Ok(())
                 } else {
                     app.list(&resources).await
