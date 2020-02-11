@@ -251,35 +251,48 @@ impl AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 output.push("---\nECR images".to_string());
-                for repo in repos {
-                    let lines = self.ecr.get_all_images(&repo).await.and_then(|images| {
-                        let lines: Vec<_> = images
-                            .par_iter()
-                            .map(|image| {
-                                format!(
-                                    "{} {} {} {} {:0.2} MB",
-                                    repo,
-                                    image.tags.get(0).map_or_else(|| "None", String::as_str),
-                                    image.digest,
-                                    image.pushed_at,
-                                    image.image_size,
-                                )
+
+                let futures: Vec<_> = repos
+                    .into_iter()
+                    .map(|repo| {
+                        async {
+                            let images = self.ecr.get_all_images(&repo).await?;
+                            let lines: Vec<String> = spawn_blocking(move || {
+                                images
+                                    .par_iter()
+                                    .map(|image| {
+                                        format!(
+                                            "{} {} {} {} {:0.2} MB",
+                                            repo,
+                                            image
+                                                .tags
+                                                .get(0)
+                                                .map_or_else(|| "None", String::as_str),
+                                            image.digest,
+                                            image.pushed_at,
+                                            image.image_size,
+                                        )
+                                    })
+                                    .collect()
                             })
-                            .collect();
-                        Ok(lines)
-                    })?;
-                    output.extend_from_slice(&lines);
-                }
+                            .await?;
+                            Ok(lines)
+                        }
+                    })
+                    .collect();
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let lines: Vec<_> = results?.into_par_iter().flatten().collect();
+                output.extend_from_slice(&lines);
             }
             ResourceType::Script => {
                 output.push("---\nScripts:".to_string());
-                output.extend_from_slice(&self.get_all_scripts().await?);
+                output.extend_from_slice(&self.get_all_scripts()?);
             }
         };
         Ok(output)
     }
 
-    pub async fn get_all_scripts(&self) -> Result<Vec<String>, Error> {
+    pub fn get_all_scripts(&self) -> Result<Vec<String>, Error> {
         let mut files: Vec<_> = WalkDir::new(&self.config.script_directory)
             .same_file_system(true)
             .into_iter()
@@ -293,7 +306,7 @@ impl AwsAppInterface {
                 })
             })
             .collect();
-        files.sort();
+        files.par_sort();
         Ok(files)
     }
 

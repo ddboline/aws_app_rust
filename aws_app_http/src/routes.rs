@@ -235,7 +235,7 @@ pub async fn build_spot_request(
         .collect();
 
     let d = data.clone();
-    let mut files = d.aws.get_all_scripts().await?;
+    let mut files = d.aws.get_all_scripts()?;
 
     let file_opts = if let Some(script) = &query.script {
         let mut file_opt: Vec<_> = files.iter().filter(|f| f == &script).cloned().collect();

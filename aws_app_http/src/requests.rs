@@ -274,8 +274,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
                 let result: Vec<_> = self
-                    .get_all_scripts()
-                    .await?
+                    .get_all_scripts()?
                     .into_par_iter()
                     .map(|fname| {
                         format!(
