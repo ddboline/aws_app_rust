@@ -1,6 +1,6 @@
 use anyhow::Error;
 use chrono::Local;
-use futures::future::{join, join_all};
+use futures::future::{try_join, try_join_all};
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -61,12 +61,23 @@ impl AwsAppInterface {
     }
 
     pub async fn update(&self) -> Result<Vec<String>, Error> {
-        let mut output = Vec::new();
-        output.extend_from_slice(&scrape_instance_info(AwsGeneration::HVM, &self.pool).await?);
-        output.extend_from_slice(&scrape_instance_info(AwsGeneration::PV, &self.pool).await?);
+        let instances: Vec<_> = try_join_all(vec![
+            scrape_instance_info(AwsGeneration::HVM, &self.pool),
+            scrape_instance_info(AwsGeneration::PV, &self.pool),
+        ])
+        .await?;
+        let pricing: Vec<_> = try_join_all(vec![
+            scrape_pricing_info(PricingType::Reserved, &self.pool),
+            scrape_pricing_info(PricingType::OnDemand, &self.pool),
+        ])
+        .await?;
 
-        output.extend_from_slice(&scrape_pricing_info(PricingType::Reserved, &self.pool).await?);
-        output.extend_from_slice(&scrape_pricing_info(PricingType::OnDemand, &self.pool).await?);
+        let output: Vec<_> = instances
+            .into_iter()
+            .chain(pricing.into_iter())
+            .flatten()
+            .collect();
+
         Ok(output)
     }
 
@@ -158,10 +169,8 @@ impl AwsAppInterface {
             ResourceType::Ami => {
                 let ubuntu_amis = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_amis, ami_tags) = join(ubuntu_amis, ami_tags).await;
+                let (mut ubuntu_amis, mut ami_tags) = try_join(ubuntu_amis, ami_tags).await?;
 
-                let mut ubuntu_amis = ubuntu_amis?;
-                let mut ami_tags = ami_tags?;
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -301,8 +310,7 @@ impl AwsAppInterface {
             .map(|resource| self.process_resource(*resource))
             .collect();
 
-        let result: Result<Vec<_>, Error> = join_all(futures).await.into_iter().collect();
-        let output: Vec<_> = result?.into_par_iter().flatten().collect();
+        let output: Vec<_> = try_join_all(futures).await?.into_iter().flatten().collect();
 
         for line in output {
             writeln!(stdout(), "{}", line)?;

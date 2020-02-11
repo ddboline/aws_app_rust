@@ -1,7 +1,7 @@
 use anyhow::Error;
 use async_trait::async_trait;
 use chrono::Local;
-use futures::future::join;
+use futures::future::{try_join, try_join_all};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
@@ -99,9 +99,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
             ResourceType::Ami => {
                 let ubuntu_amis = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_amis, ami_tags) = join(ubuntu_amis, ami_tags).await;
-                let mut ubuntu_amis = ubuntu_amis?;
-                let mut ami_tags = ami_tags?;
+                let (mut ubuntu_amis, mut ami_tags) = try_join(ubuntu_amis, ami_tags).await?;
 
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
@@ -257,9 +255,13 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             <th>Image Size</th></tr></thead><tbody>"#
                         .to_string(),
                 );
-                for repo in &repos {
-                    output.extend_from_slice(&get_ecr_images(self, repo).await?);
-                }
+
+                let results: Vec<_> = repos
+                    .iter()
+                    .map(|repo| get_ecr_images(self, repo))
+                    .collect();
+                let results: Vec<_> = try_join_all(results).await?.into_iter().flatten().collect();
+                output.extend_from_slice(&results);
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Script => {
