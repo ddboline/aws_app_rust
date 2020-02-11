@@ -1,4 +1,5 @@
 use anyhow::{format_err, Error};
+use futures::future::try_join_all;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::Url;
 use select::document::Document;
@@ -79,17 +80,37 @@ async fn insert_result(
     instance_types: Vec<InstanceList>,
     pool: &PgPool,
 ) -> Result<Vec<String>, Error> {
-    let mut output = Vec::new();
-    for t in instance_families {
-        if let (t, true) = t.insert_entry(&pool).await? {
-            output.push(format!("{:?}", t));
-        }
-    }
-    for t in instance_types {
-        if let (t, true) = t.insert_entry(&pool).await? {
-            output.push(format!("{:?}", t));
-        }
-    }
+    let fam: Vec<_> = instance_families
+        .into_iter()
+        .map(|t| {
+            async {
+                if let (t, true) = t.insert_entry(&pool).await? {
+                    Ok(Some(format!("{:?}", t)))
+                } else {
+                    Ok(None)
+                }
+            }
+        })
+        .collect();
+    let fam: Result<Vec<_>, Error> = try_join_all(fam).await;
+    let typ: Vec<_> = instance_types
+        .into_iter()
+        .map(|t| {
+            async {
+                if let (t, true) = t.insert_entry(&pool).await? {
+                    Ok(Some(format!("{:?}", t)))
+                } else {
+                    Ok(None)
+                }
+            }
+        })
+        .collect();
+    let typ: Result<Vec<_>, Error> = try_join_all(typ).await;
+    let output: Vec<_> = fam?
+        .into_iter()
+        .chain(typ?.into_iter())
+        .filter_map(|x| x)
+        .collect();
     Ok(output)
 }
 

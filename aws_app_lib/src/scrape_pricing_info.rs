@@ -1,6 +1,6 @@
 use anyhow::{format_err, Error};
 use chrono::Utc;
-use futures::future::join_all;
+use futures::future::try_join_all;
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -18,12 +18,7 @@ pub async fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Ve
     output.push(format!("{}", results.len()));
 
     let results: Vec<_> = results.into_iter().map(|r| r.upsert_entry(pool)).collect();
-    let result: Result<(), Error> = join_all(results)
-        .await
-        .into_iter()
-        .map(|x| x.map(|_| ()))
-        .collect();
-    result?;
+    try_join_all(results).await?;
     Ok(output)
 }
 
