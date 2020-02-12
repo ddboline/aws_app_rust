@@ -310,6 +310,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
 
     let result: Vec<_> = INSTANCE_LIST
         .read()
+        .await
         .par_iter()
         .map(|inst| {
             let name = inst

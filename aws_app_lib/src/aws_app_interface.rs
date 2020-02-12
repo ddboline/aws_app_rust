@@ -2,12 +2,12 @@ use anyhow::Error;
 use chrono::Local;
 use futures::future::{try_join, try_join_all};
 use lazy_static::lazy_static;
-use parking_lot::RwLock;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use std::collections::{HashMap, HashSet};
 use std::io::{stdout, Write};
 use std::string::String;
+use tokio::sync::RwLock;
 use tokio::task::spawn_blocking;
 use walkdir::WalkDir;
 
@@ -87,7 +87,7 @@ impl AwsAppInterface {
             instances.par_sort_by_key(|inst| inst.launch_time);
             instances.par_sort_by_key(|inst| inst.state != "running");
         }
-        *INSTANCE_LIST.write() = instances;
+        *INSTANCE_LIST.write().await = instances;
         Ok(())
     }
 
@@ -95,33 +95,31 @@ impl AwsAppInterface {
         let mut output = Vec::new();
         match resource {
             ResourceType::Instances => {
-                fn process_list() -> Vec<String> {
-                    INSTANCE_LIST
-                        .read()
-                        .par_iter()
-                        .map(|inst| {
-                            let name = inst
-                                .tags
-                                .get("Name")
-                                .as_ref()
-                                .map_or_else(|| "", |x| x.as_str());
-                            format!(
-                                "{} {} {} {} {} {} {}",
-                                inst.id,
-                                inst.dns_name,
-                                inst.state,
-                                name,
-                                inst.instance_type,
-                                inst.launch_time.with_timezone(&Local),
-                                inst.availability_zone,
-                            )
-                        })
-                        .collect()
-                }
-
                 self.fill_instance_list().await?;
 
-                let result = spawn_blocking(process_list).await?;
+                let result: Vec<_> = INSTANCE_LIST
+                    .read()
+                    .await
+                    .par_iter()
+                    .map(|inst| {
+                        let name = inst
+                            .tags
+                            .get("Name")
+                            .as_ref()
+                            .map_or_else(|| "", |x| x.as_str());
+                        format!(
+                            "{} {} {} {} {} {} {}",
+                            inst.id,
+                            inst.dns_name,
+                            inst.state,
+                            name,
+                            inst.instance_type,
+                            inst.launch_time.with_timezone(&Local),
+                            inst.availability_zone,
+                        )
+                    })
+                    .collect();
+
                 if !result.is_empty() {
                     output.push("instances:".to_string());
                     output.extend_from_slice(&result);
@@ -334,7 +332,7 @@ impl AwsAppInterface {
 
     pub async fn terminate(&self, instance_ids: &[String]) -> Result<(), Error> {
         self.fill_instance_list().await?;
-        let name_map = get_name_map()?;
+        let name_map = get_name_map().await?;
         let mapped_inst_ids: Vec<String> = instance_ids
             .par_iter()
             .map(|id| map_or_val(&name_map, id))
@@ -344,8 +342,8 @@ impl AwsAppInterface {
 
     pub async fn connect(&self, instance_id: &str) -> Result<(), Error> {
         self.fill_instance_list().await?;
-        let name_map = get_name_map()?;
-        let id_host_map = get_id_host_map()?;
+        let name_map = get_name_map().await?;
+        let id_host_map = get_id_host_map().await?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(&inst_id) {
             writeln!(stdout(), "ssh ubuntu@{}", host)?;
@@ -364,8 +362,8 @@ impl AwsAppInterface {
         command: &str,
     ) -> Result<Vec<String>, Error> {
         self.fill_instance_list().await?;
-        let name_map = get_name_map()?;
-        let id_host_map = get_id_host_map()?;
+        let name_map = get_name_map().await?;
+        let id_host_map = get_id_host_map().await?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(&inst_id) {
             let command = command.to_owned();
@@ -508,7 +506,7 @@ impl AwsAppInterface {
 
     pub async fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
         self.fill_instance_list().await?;
-        let name_map = get_name_map()?;
+        let name_map = get_name_map().await?;
         let inst_id = map_or_val(&name_map, inst_id);
         self.ec2.create_image(&inst_id, name).await
     }
@@ -566,7 +564,7 @@ impl AwsAppInterface {
     ) -> Result<(), Error> {
         self.fill_instance_list().await?;
         let vol_map = self.get_volume_map().await?;
-        let name_map = get_name_map()?;
+        let name_map = get_name_map().await?;
         let volid = map_or_val(&vol_map, volid);
         let instid = map_or_val(&name_map, instid);
         self.ec2.attach_ebs_volume(&volid, &instid, device).await
@@ -633,9 +631,10 @@ fn map_or_val(name_map: &HashMap<String, String>, id: &str) -> String {
     }
 }
 
-fn get_name_map() -> Result<HashMap<String, String>, Error> {
+async fn get_name_map() -> Result<HashMap<String, String>, Error> {
     Ok(INSTANCE_LIST
         .read()
+        .await
         .par_iter()
         .filter_map(|inst| {
             if inst.state != "running" {
@@ -648,9 +647,10 @@ fn get_name_map() -> Result<HashMap<String, String>, Error> {
         .collect())
 }
 
-fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
+async fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
     Ok(INSTANCE_LIST
         .read()
+        .await
         .par_iter()
         .filter_map(|inst| {
             if inst.state != "running" {
