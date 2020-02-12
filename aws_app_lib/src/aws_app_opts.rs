@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::io::{stdout, Write};
 use std::string::ToString;
 use structopt::StructOpt;
+use std::sync::Arc;
 
 use crate::aws_app_interface::AwsAppInterface;
 use crate::config::Config;
@@ -246,6 +247,7 @@ impl AwsAppOpts {
                 resources,
                 all_regions,
             } => {
+                let resources = Arc::new(resources);
                 if all_regions {
                     let regions: Vec<_> =
                         app.ec2.get_all_regions().await?.keys().cloned().collect();
@@ -255,7 +257,7 @@ impl AwsAppOpts {
                         .map(|region| {
                             let mut app_ = app.clone();
                             let region_ = region.clone();
-                            let resources_ = resources.clone();
+                            let resources_ = Arc::clone(&resources);
                             async move {
                                 app_.set_region(&region_)?;
                                 app_.list(&resources_).await
