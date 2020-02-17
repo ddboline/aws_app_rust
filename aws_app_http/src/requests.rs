@@ -1,14 +1,41 @@
 use anyhow::Error;
 use async_trait::async_trait;
+use cached::{Cached, TimedCache};
 use chrono::Local;
 use futures::future::{try_join, try_join_all};
+use lazy_static::lazy_static;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tokio::sync::Mutex;
 
 use aws_app_lib::aws_app_interface::{AwsAppInterface, INSTANCE_LIST};
+use aws_app_lib::ec2_instance::AmiInfo;
 use aws_app_lib::resource_type::ResourceType;
+
+lazy_static! {
+    static ref CACHE_UBUNTU_AMI: Mutex<TimedCache<String, Option<AmiInfo>>> =
+        Mutex::new(TimedCache::with_lifespan(3600));
+}
+
+macro_rules! get_cached {
+    ($hash:ident, $mutex:expr, $call:expr) => {{
+        let mut has_cache = false;
+
+        let d = match $mutex.lock().await.cache_get(&$hash) {
+            Some(d) => {
+                has_cache = true;
+                d.clone()
+            }
+            None => $call.await?,
+        };
+        if !has_cache {
+            $mutex.lock().await.cache_set($hash.clone(), d.clone());
+        }
+        Ok(d)
+    }};
+}
 
 #[async_trait]
 pub trait HandleRequest<T> {
@@ -97,17 +124,24 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Ami => {
-                let ubuntu_amis = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
+                let ubuntu_ami = async {
+                    let hash = self.config.ubuntu_release.clone();
+                    get_cached!(
+                        hash,
+                        CACHE_UBUNTU_AMI,
+                        self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release)
+                    )
+                };
+
                 let ami_tags = self.ec2.get_ami_tags();
-                let (mut ubuntu_amis, mut ami_tags) = try_join(ubuntu_amis, ami_tags).await?;
+                let (ubuntu_ami, mut ami_tags) = try_join(ubuntu_ami, ami_tags).await?;
 
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
                 ami_tags.par_sort_by_key(|x| x.name.clone());
-                ubuntu_amis.par_sort_by_key(|x| x.name.clone());
-                if !ubuntu_amis.is_empty() {
-                    ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
+                if let Some(ami) = ubuntu_ami {
+                    ami_tags.push(ami);
                 }
                 output.push(
                     r#"<table border="1" class="dataframe"><thead>

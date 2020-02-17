@@ -165,15 +165,14 @@ impl AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::Ami => {
-                let ubuntu_amis = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
+                let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
                 let ami_tags = self.ec2.get_ami_tags();
-                let (mut ubuntu_amis, mut ami_tags) = try_join(ubuntu_amis, ami_tags).await?;
+                let (ubuntu_ami, mut ami_tags) = try_join(ubuntu_ami, ami_tags).await?;
 
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
-                ubuntu_amis.par_sort_by_key(|x| x.name.clone());
-                if let Some(ami) = ubuntu_amis.pop() {
+                if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
                 output.push("---\nAMI's:".to_string());
@@ -252,30 +251,25 @@ impl AwsAppInterface {
 
                 let futures: Vec<_> = repos
                     .into_iter()
-                    .map(|repo| {
-                        async {
-                            let images = self.ecr.get_all_images(&repo).await?;
-                            let lines: Vec<String> = spawn_blocking(move || {
-                                images
-                                    .par_iter()
-                                    .map(|image| {
-                                        format!(
-                                            "{} {} {} {} {:0.2} MB",
-                                            repo,
-                                            image
-                                                .tags
-                                                .get(0)
-                                                .map_or_else(|| "None", String::as_str),
-                                            image.digest,
-                                            image.pushed_at,
-                                            image.image_size,
-                                        )
-                                    })
-                                    .collect()
-                            })
-                            .await?;
-                            Ok(lines)
-                        }
+                    .map(|repo| async {
+                        let images = self.ecr.get_all_images(&repo).await?;
+                        let lines: Vec<String> = spawn_blocking(move || {
+                            images
+                                .par_iter()
+                                .map(|image| {
+                                    format!(
+                                        "{} {} {} {} {:0.2} MB",
+                                        repo,
+                                        image.tags.get(0).map_or_else(|| "None", String::as_str),
+                                        image.digest,
+                                        image.pushed_at,
+                                        image.image_size,
+                                    )
+                                })
+                                .collect()
+                        })
+                        .await?;
+                        Ok(lines)
                     })
                     .collect();
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;
@@ -603,13 +597,12 @@ impl AwsAppInterface {
         if ami_tags.is_empty() {
             return Ok(Vec::new());
         }
-        let mut ubuntu_amis = self
+        let ubuntu_ami = self
             .ec2
             .get_latest_ubuntu_ami(&self.config.ubuntu_release)
             .await?;
-        ubuntu_amis.par_sort_by_key(|x| x.name.clone());
-        if !ubuntu_amis.is_empty() {
-            ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
+        if let Some(ami) = ubuntu_ami {
+            ami_tags.push(ami);
         }
         Ok(ami_tags)
     }
