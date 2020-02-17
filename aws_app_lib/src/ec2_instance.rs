@@ -19,9 +19,9 @@ use std::fmt;
 use std::fs::File;
 use std::io::{stdout, Read, Write};
 use std::path::Path;
-use std::thread::sleep;
 use std::time;
 use sts_profile_auth::get_client_sts;
+use tokio::time::delay_for;
 
 use crate::config::Config;
 
@@ -454,7 +454,7 @@ impl Ec2Instance {
                         self.tag_ec2_instance(&instance_id, &spot.tags).await?;
                         break;
                     }
-                    sleep(time::Duration::from_secs(2));
+                    delay_for(time::Duration::from_secs(2)).await;
                 }
             }
         }
