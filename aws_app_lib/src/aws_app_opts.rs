@@ -256,7 +256,6 @@ impl AwsAppOpts {
                         .into_iter()
                         .map(|region| {
                             let mut app_ = app.clone();
-                            let region = region.clone();
                             let resources = Arc::clone(&resources);
                             async move {
                                 app_.set_region(&region)?;
