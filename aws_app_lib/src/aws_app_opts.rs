@@ -256,11 +256,11 @@ impl AwsAppOpts {
                         .into_iter()
                         .map(|region| {
                             let mut app_ = app.clone();
-                            let region_ = region.clone();
-                            let resources_ = Arc::clone(&resources);
+                            let region = region.clone();
+                            let resources = Arc::clone(&resources);
                             async move {
-                                app_.set_region(&region_)?;
-                                app_.list(&resources_).await
+                                app_.set_region(&region)?;
+                                app_.list(&resources).await
                             }
                         })
                         .collect();
