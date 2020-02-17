@@ -448,7 +448,7 @@ impl Ec2Instance {
                         self.tag_ec2_instance(&instance_id, &spot.tags).await?;
                         break;
                     }
-                    sleep(time::Duration::from_secs(5));
+                    sleep(time::Duration::from_secs(2));
                 }
             }
         }
