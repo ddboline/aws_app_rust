@@ -252,30 +252,25 @@ impl AwsAppInterface {
 
                 let futures: Vec<_> = repos
                     .into_iter()
-                    .map(|repo| {
-                        async {
-                            let images = self.ecr.get_all_images(&repo).await?;
-                            let lines: Vec<String> = spawn_blocking(move || {
-                                images
-                                    .par_iter()
-                                    .map(|image| {
-                                        format!(
-                                            "{} {} {} {} {:0.2} MB",
-                                            repo,
-                                            image
-                                                .tags
-                                                .get(0)
-                                                .map_or_else(|| "None", String::as_str),
-                                            image.digest,
-                                            image.pushed_at,
-                                            image.image_size,
-                                        )
-                                    })
-                                    .collect()
-                            })
-                            .await?;
-                            Ok(lines)
-                        }
+                    .map(|repo| async {
+                        let images = self.ecr.get_all_images(&repo).await?;
+                        let lines: Vec<String> = spawn_blocking(move || {
+                            images
+                                .par_iter()
+                                .map(|image| {
+                                    format!(
+                                        "{} {} {} {} {:0.2} MB",
+                                        repo,
+                                        image.tags.get(0).map_or_else(|| "None", String::as_str),
+                                        image.digest,
+                                        image.pushed_at,
+                                        image.image_size,
+                                    )
+                                })
+                                .collect()
+                        })
+                        .await?;
+                        Ok(lines)
                     })
                     .collect();
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;

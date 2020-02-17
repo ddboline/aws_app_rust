@@ -5,8 +5,8 @@ use rayon::slice::ParallelSliceMut;
 use std::collections::HashMap;
 use std::io::{stdout, Write};
 use std::string::ToString;
-use structopt::StructOpt;
 use std::sync::Arc;
+use structopt::StructOpt;
 
 use crate::aws_app_interface::AwsAppInterface;
 use crate::config::Config;

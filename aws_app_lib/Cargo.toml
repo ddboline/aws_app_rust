@@ -11,7 +11,7 @@ r2d2 = "0.8"
 r2d2_postgres = "0.16"
 diesel = {version="1.4", features=["postgres", "r2d2", "chrono"]}
 chrono = "0.4"
-reqwest = {version="0.10", features=["cookies", "blocking", "json", "rustls-tls"]}
+reqwest = {version="0.10", features=["cookies", "json", "rustls-tls"]}
 select = "0.4"
 dotenv = "0.15"
 json = "0.12"
