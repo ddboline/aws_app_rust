@@ -82,22 +82,26 @@ async fn insert_result(
 ) -> Result<Vec<String>, Error> {
     let fam: Vec<_> = instance_families
         .into_iter()
-        .map(|t| async {
-            if let (t, true) = t.insert_entry(&pool).await? {
-                Ok(Some(format!("{:?}", t)))
-            } else {
-                Ok(None)
+        .map(|t| {
+            async {
+                if let (t, true) = t.insert_entry(&pool).await? {
+                    Ok(Some(format!("{:?}", t)))
+                } else {
+                    Ok(None)
+                }
             }
         })
         .collect();
     let fam: Result<Vec<_>, Error> = try_join_all(fam).await;
     let typ: Vec<_> = instance_types
         .into_iter()
-        .map(|t| async {
-            if let (t, true) = t.insert_entry(&pool).await? {
-                Ok(Some(format!("{:?}", t)))
-            } else {
-                Ok(None)
+        .map(|t| {
+            async {
+                if let (t, true) = t.insert_entry(&pool).await? {
+                    Ok(Some(format!("{:?}", t)))
+                } else {
+                    Ok(None)
+                }
             }
         })
         .collect();
