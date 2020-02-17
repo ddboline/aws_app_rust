@@ -1,6 +1,7 @@
 use anyhow::Error;
 use chrono::{DateTime, Duration, Utc};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::slice::ParallelSliceMut;
 use rusoto_core::Region;
 use rusoto_ec2::{
     AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
@@ -120,7 +121,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_latest_ubuntu_ami(&self, ubuntu_release: &str) -> Result<Vec<AmiInfo>, Error> {
+    pub async fn get_latest_ubuntu_ami(
+        &self,
+        ubuntu_release: &str,
+    ) -> Result<Option<AmiInfo>, Error> {
         let ubuntu_owner = "099720109477".to_string();
         let request = DescribeImagesRequest {
             filters: Some(vec![
@@ -139,10 +143,10 @@ impl Ec2Instance {
             ..DescribeImagesRequest::default()
         };
         let req = self.ec2_client.describe_images(request).await?;
-        Ok(req
+        let mut images: Vec<_> = req
             .images
             .unwrap_or_else(Vec::new)
-            .into_iter()
+            .into_par_iter()
             .filter_map(|image| {
                 Some(AmiInfo {
                     id: some!(image.image_id),
@@ -154,7 +158,9 @@ impl Ec2Instance {
                         .collect(),
                 })
             })
-            .collect())
+            .collect();
+        images.par_sort_by_key(|x| x.name.clone());
+        Ok(images.into_iter().last())
     }
 
     pub async fn get_ami_map(&self) -> Result<HashMap<String, String>, Error> {
