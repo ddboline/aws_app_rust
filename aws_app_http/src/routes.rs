@@ -188,8 +188,7 @@ pub async fn build_spot_request(
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
 
-    let d = data.clone();
-    let mut amis = d.aws.get_all_ami_tags().await?;
+    let mut amis = data.aws.get_all_ami_tags().await?;
 
     let ami_opt = if let Some(ami_) = &query.ami {
         let mut ami_opt: Vec<_> = amis.iter().filter(|ami| &ami.id == ami_).cloned().collect();
@@ -205,8 +204,7 @@ pub async fn build_spot_request(
         .map(|ami| format!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
         .collect();
 
-    let d = data.clone();
-    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&d.aws.pool).await?;
+    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool).await?;
 
     let inst_opt = if let Some(inst) = &query.ami {
         let mut inst_opt: Vec<_> = inst_fam
@@ -226,16 +224,14 @@ pub async fn build_spot_request(
         .map(|fam| format!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
         .collect();
 
-    let d = data.clone();
     let inst = query.inst.unwrap_or_else(|| "t3".to_string());
-    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &d.aws.pool)
+    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .collect();
 
-    let d = data.clone();
-    let mut files = d.aws.get_all_scripts()?;
+    let mut files = data.aws.get_all_scripts()?;
 
     let file_opts = if let Some(script) = &query.script {
         let mut file_opt: Vec<_> = files.iter().filter(|f| f == &script).cloned().collect();
@@ -250,8 +246,7 @@ pub async fn build_spot_request(
         .map(|f| format!(r#"<option value="{f}">{f}</option>"#, f = f))
         .collect();
 
-    let d = data.clone();
-    let keys: Vec<_> = d
+    let keys: Vec<_> = data
         .aws
         .ec2
         .get_all_key_pairs()
@@ -334,8 +329,7 @@ pub async fn get_prices(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let d = data.clone();
-    let inst_fam: Vec<_> = InstanceFamily::get_all(&d.aws.pool)
+    let inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
         .await?
         .into_iter()
         .map(|fam| {
@@ -348,8 +342,7 @@ pub async fn get_prices(
         .collect();
 
     let prices = if let Some(search) = query.search {
-        let d = data.clone();
-        d.aws.get_ec2_prices(&[search])
+        data.aws.get_ec2_prices(&[search])
             .await
             ?
             .into_iter()

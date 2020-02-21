@@ -249,14 +249,19 @@ impl AwsAppOpts {
             } => {
                 let resources = Arc::new(resources);
                 if all_regions {
-                    let regions: Vec<_> =
-                        app.ec2.get_all_regions().await?.keys().cloned().collect();
+                    let regions: Vec<_> = app
+                        .ec2
+                        .get_all_regions()
+                        .await?
+                        .into_iter()
+                        .map(|(k, _)| k)
+                        .collect();
 
                     let futures: Vec<_> = regions
                         .into_iter()
                         .map(|region| {
                             let mut app_ = app.clone();
-                            let resources = Arc::clone(&resources);
+                            let resources = resources.clone();
                             async move {
                                 app_.set_region(&region)?;
                                 app_.list(&resources).await
