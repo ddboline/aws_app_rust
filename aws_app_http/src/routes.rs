@@ -14,7 +14,7 @@ use aws_app_lib::models::{InstanceFamily, InstanceList};
 
 use super::app::AppState;
 use super::errors::ServiceError as Error;
-use super::logged_user::LoggedUser;
+use super::logged_user::{LoggedUser, TRIGGER_DB_UPDATE};
 use super::requests::{
     CleanupEcrImagesRequest, CommandRequest, DeleteEcrImageRequest, DeleteImageRequest,
     DeleteSnapshotRequest, DeleteVolumeRequest, HandleRequest, StatusRequest, TerminateRequest,
@@ -413,6 +413,7 @@ pub async fn get_prices(
 
 pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
     let entries = data.aws.update().await?;
+    TRIGGER_DB_UPDATE.set();
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
