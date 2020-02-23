@@ -1,6 +1,7 @@
 use anyhow::Error;
 use chrono::{DateTime, Duration, Utc};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::slice::ParallelSliceMut;
 use rusoto_core::Region;
 use rusoto_ec2::{
     AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
@@ -18,9 +19,9 @@ use std::fmt;
 use std::fs::File;
 use std::io::{stdout, Read, Write};
 use std::path::Path;
-use std::thread::sleep;
 use std::time;
 use sts_profile_auth::get_client_sts;
+use tokio::time::delay_for;
 
 use crate::config::Config;
 
@@ -85,20 +86,21 @@ impl Ec2Instance {
         self.my_owner_id.replace(owner_id.to_string())
     }
 
-    pub fn get_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
+    pub async fn get_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
         let owner_id = match self.my_owner_id.as_ref() {
             Some(x) => x.to_string(),
             None => return Ok(Vec::new()),
         };
+        let req = DescribeImagesRequest {
+            filters: Some(vec![Filter {
+                name: Some("owner-id".to_string()),
+                values: Some(vec![owner_id]),
+            }]),
+            ..DescribeImagesRequest::default()
+        };
         self.ec2_client
-            .describe_images(DescribeImagesRequest {
-                filters: Some(vec![Filter {
-                    name: Some("owner-id".to_string()),
-                    values: Some(vec![owner_id]),
-                }]),
-                ..DescribeImagesRequest::default()
-            })
-            .sync()
+            .describe_images(req)
+            .await
             .map(|l| {
                 l.images
                     .unwrap_or_else(Vec::new)
@@ -119,58 +121,57 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn get_latest_ubuntu_ami(&self, ubuntu_release: &str) -> Result<Vec<AmiInfo>, Error> {
+    pub async fn get_latest_ubuntu_ami(
+        &self,
+        ubuntu_release: &str,
+    ) -> Result<Option<AmiInfo>, Error> {
         let ubuntu_owner = "099720109477".to_string();
-        self.ec2_client
-            .describe_images(DescribeImagesRequest {
-                filters: Some(vec![
-                    Filter {
-                        name: Some("owner-id".to_string()),
-                        values: Some(vec![ubuntu_owner]),
-                    },
-                    Filter {
-                        name: Some("name".to_string()),
-                        values: Some(vec![format!(
-                            "ubuntu/images/hvm-ssd/ubuntu-{}-amd64-server*",
-                            ubuntu_release
-                        )]),
-                    },
-                ]),
-                ..DescribeImagesRequest::default()
-            })
-            .sync()
-            .map(|l| {
-                l.images
-                    .unwrap_or_else(Vec::new)
-                    .into_par_iter()
-                    .filter_map(|image| {
-                        Some(AmiInfo {
-                            id: some!(image.image_id),
-                            name: some!(image.name),
-                            state: some!(image.state),
-                            snapshot_ids: some!(image.block_device_mappings)
-                                .into_par_iter()
-                                .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id))
-                                .collect(),
-                        })
-                    })
-                    .collect()
-            })
-            .map_err(Into::into)
-    }
-
-    pub fn get_ami_map(&self) -> Result<HashMap<String, String>, Error> {
-        Ok(self
-            .get_ami_tags()?
+        let request = DescribeImagesRequest {
+            filters: Some(vec![
+                Filter {
+                    name: Some("owner-id".to_string()),
+                    values: Some(vec![ubuntu_owner]),
+                },
+                Filter {
+                    name: Some("name".to_string()),
+                    values: Some(vec![format!(
+                        "ubuntu/images/hvm-ssd/ubuntu-{}-amd64-server*",
+                        ubuntu_release.to_string()
+                    )]),
+                },
+            ]),
+            ..DescribeImagesRequest::default()
+        };
+        let req = self.ec2_client.describe_images(request).await?;
+        let mut images: Vec<_> = req
+            .images
+            .unwrap_or_else(Vec::new)
             .into_par_iter()
-            .map(|ami| (ami.name, ami.id))
-            .collect())
+            .filter_map(|image| {
+                Some(AmiInfo {
+                    id: some!(image.image_id),
+                    name: some!(image.name),
+                    state: some!(image.state),
+                    snapshot_ids: some!(image.block_device_mappings)
+                        .into_iter()
+                        .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id))
+                        .collect(),
+                })
+            })
+            .collect();
+        images.par_sort_by_key(|x| x.name.clone());
+        Ok(images.into_iter().last())
     }
 
-    pub fn get_all_regions(&self) -> Result<HashMap<String, String>, Error> {
+    pub async fn get_ami_map(&self) -> Result<HashMap<String, String>, Error> {
+        let req = self.get_ami_tags().await?;
+        Ok(req.into_iter().map(|ami| (ami.name, ami.id)).collect())
+    }
+
+    pub async fn get_all_regions(&self) -> Result<HashMap<String, String>, Error> {
         self.ec2_client
             .describe_regions(DescribeRegionsRequest::default())
-            .sync()
+            .await
             .map(|r| {
                 r.regions
                     .unwrap_or_else(Vec::new)
@@ -183,10 +184,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn get_all_instances(&self) -> Result<Vec<Ec2InstanceInfo>, Error> {
+    pub async fn get_all_instances(&self) -> Result<Vec<Ec2InstanceInfo>, Error> {
         self.ec2_client
             .describe_instances(DescribeInstancesRequest::default())
-            .sync()
+            .await
             .map(|instances| {
                 instances
                     .reservations
@@ -227,10 +228,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn get_reserved_instances(&self) -> Result<Vec<ReservedInstanceInfo>, Error> {
+    pub async fn get_reserved_instances(&self) -> Result<Vec<ReservedInstanceInfo>, Error> {
         self.ec2_client
             .describe_reserved_instances(DescribeReservedInstancesRequest::default())
-            .sync()
+            .await
             .map(|res| {
                 res.reserved_instances
                     .unwrap_or_else(Vec::new)
@@ -255,7 +256,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn get_latest_spot_inst_prices(
+    pub async fn get_latest_spot_inst_prices(
         &self,
         inst_list: &[String],
     ) -> Result<HashMap<String, f32>, Error> {
@@ -288,7 +289,7 @@ impl Ec2Instance {
                 },
                 ..DescribeSpotPriceHistoryRequest::default()
             })
-            .sync()
+            .await
             .map(|spot_hist| {
                 spot_hist
                     .spot_price_history
@@ -305,10 +306,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn get_spot_instance_requests(&self) -> Result<Vec<SpotInstanceRequestInfo>, Error> {
+    pub async fn get_spot_instance_requests(&self) -> Result<Vec<SpotInstanceRequestInfo>, Error> {
         self.ec2_client
             .describe_spot_instance_requests(DescribeSpotInstanceRequestsRequest::default())
-            .sync()
+            .await
             .map(|s| {
                 s.spot_instance_requests
                     .unwrap_or_else(Vec::new)
@@ -338,10 +339,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn get_all_volumes(&self) -> Result<Vec<VolumeInfo>, Error> {
+    pub async fn get_all_volumes(&self) -> Result<Vec<VolumeInfo>, Error> {
         self.ec2_client
             .describe_volumes(DescribeVolumesRequest::default())
-            .sync()
+            .await
             .map(|v| {
                 v.volumes
                     .unwrap_or_else(Vec::new)
@@ -366,7 +367,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn get_all_snapshots(&self) -> Result<Vec<SnapshotInfo>, Error> {
+    pub async fn get_all_snapshots(&self) -> Result<Vec<SnapshotInfo>, Error> {
         let owner_id = match self.my_owner_id.as_ref() {
             Some(x) => x.to_string(),
             None => return Ok(Vec::new()),
@@ -380,7 +381,7 @@ impl Ec2Instance {
                 }]),
                 ..DescribeSnapshotsRequest::default()
             })
-            .sync()
+            .await
             .map(|s| {
                 s.snapshots
                     .unwrap_or_else(Vec::new)
@@ -404,21 +405,22 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub fn terminate_instance(&self, instance_ids: &[String]) -> Result<(), Error> {
+    pub async fn terminate_instance(&self, instance_ids: &[String]) -> Result<(), Error> {
         self.ec2_client
             .terminate_instances(TerminateInstancesRequest {
                 instance_ids: instance_ids.to_vec(),
                 ..TerminateInstancesRequest::default()
             })
-            .sync()
+            .await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    pub fn request_spot_instance(&self, spot: &SpotRequest) -> Result<(), Error> {
+    pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<(), Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
 
-        self.ec2_client
+        let req = self
+            .ec2_client
             .request_spot_instances(RequestSpotInstancesRequest {
                 spot_price: Some(spot.price.to_string()),
                 instance_count: Some(1),
@@ -432,52 +434,45 @@ impl Ec2Instance {
                 }),
                 ..RequestSpotInstancesRequest::default()
             })
-            .sync()
-            .map_err(Into::into)
-            .and_then(|req| {
-                if spot.tags.is_empty() {
-                    return Ok(());
+            .await?;
+
+        if spot.tags.is_empty() {
+            return Ok(());
+        }
+
+        for result in req.spot_instance_requests.unwrap_or_else(Vec::new) {
+            if let Some(spot_instance_request_id) = result.spot_instance_request_id {
+                for _ in 0..20 {
+                    let reqs: HashMap<_, _> = self
+                        .get_spot_instance_requests()
+                        .await?
+                        .into_par_iter()
+                        .map(|r| (r.id, r.instance_id))
+                        .collect();
+                    if let Some(Some(instance_id)) = reqs.get(&spot_instance_request_id) {
+                        writeln!(stdout(), "tag {} with {:?}", instance_id, spot.tags)?;
+                        self.tag_ec2_instance(&instance_id, &spot.tags).await?;
+                        break;
+                    }
+                    delay_for(time::Duration::from_secs(2)).await;
                 }
-                req.spot_instance_requests
-                    .unwrap_or_else(Vec::new)
-                    .into_par_iter()
-                    .map(|result| {
-                        if let Some(spot_instance_request_id) = result.spot_instance_request_id {
-                            for _ in 0..20 {
-                                let reqs: HashMap<_, _> = self
-                                    .get_spot_instance_requests()?
-                                    .into_par_iter()
-                                    .map(|r| (r.id, r.instance_id))
-                                    .collect();
-                                if let Some(Some(instance_id)) = reqs.get(&spot_instance_request_id)
-                                {
-                                    writeln!(stdout(), "tag {} with {:?}", instance_id, spot.tags)?;
-                                    self.tag_ec2_instance(&instance_id, &spot.tags)?;
-                                    break;
-                                }
-                                sleep(time::Duration::from_secs(5));
-                            }
-                            Ok(())
-                        } else {
-                            Ok(())
-                        }
-                    })
-                    .collect()
-            })
+            }
+        }
+        Ok(())
     }
 
-    pub fn cancel_spot_instance_request(&self, inst_ids: &[String]) -> Result<(), Error> {
+    pub async fn cancel_spot_instance_request(&self, inst_ids: &[String]) -> Result<(), Error> {
         self.ec2_client
             .cancel_spot_instance_requests(CancelSpotInstanceRequestsRequest {
                 spot_instance_request_ids: inst_ids.to_vec(),
                 ..CancelSpotInstanceRequestsRequest::default()
             })
-            .sync()
+            .await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    pub fn tag_ec2_instance(
+    pub async fn tag_ec2_instance(
         &self,
         inst_id: &str,
         tags: &HashMap<String, String>,
@@ -494,14 +489,15 @@ impl Ec2Instance {
                     .collect(),
                 ..CreateTagsRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
     }
 
-    pub fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
+    pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &request.script)?;
 
-        self.ec2_client
+        let req = self
+            .ec2_client
             .run_instances(RunInstancesRequest {
                 image_id: Some(request.ami.to_string()),
                 instance_type: Some(request.instance_type.to_string()),
@@ -512,42 +508,39 @@ impl Ec2Instance {
                 user_data: Some(base64::encode(&user_data)),
                 ..RunInstancesRequest::default()
             })
-            .sync()
-            .map_err(Into::into)
-            .and_then(|req| {
-                req.instances
-                    .unwrap_or_else(Vec::new)
-                    .into_par_iter()
-                    .filter_map(|inst| inst.instance_id)
-                    .map(|inst| self.tag_ec2_instance(&inst, &request.tags))
-                    .collect()
-            })
-            .map_err(Into::into)
+            .await?;
+
+        for inst in req.instances.unwrap_or_else(Vec::new) {
+            if let Some(inst) = inst.instance_id {
+                self.tag_ec2_instance(&inst, &request.tags).await?;
+            }
+        }
+        Ok(())
     }
 
-    pub fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
+    pub async fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
         self.ec2_client
             .create_image(CreateImageRequest {
                 instance_id: inst_id.to_string(),
                 name: name.to_string(),
                 ..CreateImageRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
             .map(|r| r.image_id)
     }
 
-    pub fn delete_image(&self, ami: &str) -> Result<(), Error> {
+    pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
         self.ec2_client
             .deregister_image(DeregisterImageRequest {
                 image_id: ami.to_string(),
                 ..DeregisterImageRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
     }
 
-    pub fn create_ebs_volume(
+    pub async fn create_ebs_volume(
         &self,
         zoneid: &str,
         size: Option<i64>,
@@ -561,22 +554,27 @@ impl Ec2Instance {
                 volume_type: Some("standard".to_string()),
                 ..CreateVolumeRequest::default()
             })
-            .sync()
+            .await
             .map(|v| v.volume_id)
             .map_err(Into::into)
     }
 
-    pub fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+    pub async fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
         self.ec2_client
             .delete_volume(DeleteVolumeRequest {
                 volume_id: volid.to_string(),
                 ..DeleteVolumeRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
     }
 
-    pub fn attach_ebs_volume(&self, volid: &str, instid: &str, device: &str) -> Result<(), Error> {
+    pub async fn attach_ebs_volume(
+        &self,
+        volid: &str,
+        instid: &str,
+        device: &str,
+    ) -> Result<(), Error> {
         self.ec2_client
             .attach_volume(AttachVolumeRequest {
                 device: device.to_string(),
@@ -584,35 +582,35 @@ impl Ec2Instance {
                 volume_id: volid.to_string(),
                 ..AttachVolumeRequest::default()
             })
-            .sync()
+            .await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    pub fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+    pub async fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
         self.ec2_client
             .detach_volume(DetachVolumeRequest {
                 volume_id: volid.to_string(),
                 ..DetachVolumeRequest::default()
             })
-            .sync()
+            .await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    pub fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
+    pub async fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
         self.ec2_client
             .modify_volume(ModifyVolumeRequest {
                 volume_id: volid.to_string(),
                 size: Some(size),
                 ..ModifyVolumeRequest::default()
             })
-            .sync()
+            .await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    pub fn create_ebs_snapshot(
+    pub async fn create_ebs_snapshot(
         &self,
         volid: &str,
         tags: &HashMap<String, String>,
@@ -637,25 +635,25 @@ impl Ec2Instance {
                 },
                 ..CreateSnapshotRequest::default()
             })
-            .sync()
+            .await
             .map(|s| s.snapshot_id)
             .map_err(Into::into)
     }
 
-    pub fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
+    pub async fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
         self.ec2_client
             .delete_snapshot(DeleteSnapshotRequest {
                 snapshot_id: snapid.to_string(),
                 ..DeleteSnapshotRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
     }
 
-    pub fn get_all_key_pairs(&self) -> Result<Vec<(String, String)>, Error> {
+    pub async fn get_all_key_pairs(&self) -> Result<Vec<(String, String)>, Error> {
         self.ec2_client
             .describe_key_pairs(DescribeKeyPairsRequest::default())
-            .sync()
+            .await
             .map(|x| {
                 x.key_pairs
                     .unwrap_or_else(Vec::new)

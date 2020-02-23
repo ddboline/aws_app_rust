@@ -1,5 +1,6 @@
 use anyhow::Error;
 use chrono::{DateTime, TimeZone, Utc};
+use futures::future::try_join_all;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rusoto_core::Region;
 use rusoto_ecr::{
@@ -61,10 +62,10 @@ impl EcrInstance {
         Ok(())
     }
 
-    pub fn get_all_repositories(&self) -> Result<Vec<String>, Error> {
+    pub async fn get_all_repositories(&self) -> Result<Vec<String>, Error> {
         self.ecr_client
             .describe_repositories(DescribeRepositoriesRequest::default())
-            .sync()
+            .await
             .map_err(Into::into)
             .map(|r| {
                 r.repositories
@@ -75,13 +76,13 @@ impl EcrInstance {
             })
     }
 
-    pub fn get_all_images(&self, reponame: &str) -> Result<Vec<ImageInfo>, Error> {
+    pub async fn get_all_images(&self, reponame: &str) -> Result<Vec<ImageInfo>, Error> {
         self.ecr_client
             .describe_images(DescribeImagesRequest {
                 repository_name: reponame.to_string(),
                 ..DescribeImagesRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
             .map(|i| {
                 i.image_details
@@ -105,7 +106,11 @@ impl EcrInstance {
             })
     }
 
-    pub fn delete_ecr_images(&self, reponame: &str, imageids: &[String]) -> Result<(), Error> {
+    pub async fn delete_ecr_images(
+        &self,
+        reponame: &str,
+        imageids: &[String],
+    ) -> Result<(), Error> {
         self.ecr_client
             .batch_delete_image(BatchDeleteImageRequest {
                 repository_name: reponame.to_string(),
@@ -118,17 +123,20 @@ impl EcrInstance {
                     .collect(),
                 ..BatchDeleteImageRequest::default()
             })
-            .sync()
+            .await
             .map_err(Into::into)
             .map(|_| ())
     }
 
-    pub fn cleanup_ecr_images(&self) -> Result<(), Error> {
-        self.get_all_repositories()?
-            .into_par_iter()
-            .map(|repo| {
+    pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
+        let futures: Vec<_> = self
+            .get_all_repositories()
+            .await?
+            .into_iter()
+            .map(|repo| async move {
                 let imageids: Vec<_> = self
-                    .get_all_images(&repo)?
+                    .get_all_images(&repo)
+                    .await?
                     .into_par_iter()
                     .filter_map(|i| {
                         if i.tags.is_empty() {
@@ -138,13 +146,15 @@ impl EcrInstance {
                         }
                     })
                     .collect();
-                if imageids.is_empty() {
-                    Ok(())
-                } else {
-                    self.delete_ecr_images(&repo, &imageids)
+                if !imageids.is_empty() {
+                    self.delete_ecr_images(&repo, &imageids).await?;
                 }
+                Ok(())
             })
-            .collect()
+            .collect();
+        let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+        results?;
+        Ok(())
     }
 }
 

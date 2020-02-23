@@ -1,9 +1,11 @@
 use anyhow::Error;
+use futures::future::try_join_all;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use std::collections::HashMap;
 use std::io::{stdout, Write};
 use std::string::ToString;
+use std::sync::Arc;
 use structopt::StructOpt;
 
 use crate::aws_app_interface::AwsAppInterface;
@@ -228,7 +230,7 @@ pub enum AwsAppOpts {
 }
 
 impl AwsAppOpts {
-    pub fn process_args() -> Result<(), Error> {
+    pub async fn process_args() -> Result<(), Error> {
         let opts = Self::from_args();
         let config = Config::init_config()?;
         let pool = PgPool::new(&config.database_url);
@@ -236,7 +238,7 @@ impl AwsAppOpts {
 
         match opts {
             Self::Update => {
-                for line in app.update()? {
+                for line in app.update().await? {
                     writeln!(stdout(), "{}", line)?;
                 }
                 Ok(())
@@ -245,38 +247,55 @@ impl AwsAppOpts {
                 resources,
                 all_regions,
             } => {
+                let resources = Arc::new(resources);
                 if all_regions {
-                    let regions: Vec<_> = app.ec2.get_all_regions()?.keys().cloned().collect();
-                    let results: Result<(), Error> = regions
-                        .par_iter()
+                    let regions: Vec<_> = app
+                        .ec2
+                        .get_all_regions()
+                        .await?
+                        .into_iter()
+                        .map(|(k, _)| k)
+                        .collect();
+
+                    let futures: Vec<_> = regions
+                        .into_iter()
                         .map(|region| {
                             let mut app_ = app.clone();
-                            app_.set_region(&region)?;
-                            app_.list(&resources)
+                            let resources = resources.clone();
+                            async move {
+                                app_.set_region(&region)?;
+                                app_.list(&resources).await
+                            }
                         })
                         .collect();
-                    results
+                    try_join_all(futures).await?;
+                    Ok(())
                 } else {
-                    app.list(&resources)
+                    app.list(&resources).await
                 }
             }
-            Self::Terminate { instance_ids } => app.terminate(&instance_ids),
+            Self::Terminate { instance_ids } => app.terminate(&instance_ids).await,
             Self::Request(req) => {
                 app.request_spot_instance(&mut req.into_spot_request(&app.config))
+                    .await
             }
             Self::CancelRequest { instance_ids } => {
-                app.ec2.cancel_spot_instance_request(&instance_ids)
+                app.ec2.cancel_spot_instance_request(&instance_ids).await
             }
-            Self::Run(req) => app.run_ec2_instance(&mut req.into_instance_request(&app.config)),
-            Self::Price { search } => app.print_ec2_prices(&search),
+            Self::Run(req) => {
+                app.run_ec2_instance(&mut req.into_instance_request(&app.config))
+                    .await
+            }
+            Self::Price { search } => app.print_ec2_prices(&search).await,
             Self::ListFamilies => {
-                for fam in InstanceFamily::get_all(&app.pool)? {
+                for fam in InstanceFamily::get_all(&app.pool).await? {
                     writeln!(stdout(), "{:5} {}", fam.family_name, fam.family_type)?;
                 }
                 Ok(())
             }
             Self::ListInstances { search } => {
-                let mut instances: Vec<_> = InstanceList::get_all_instances(&app.pool)?
+                let mut instances: Vec<_> = InstanceList::get_all_instances(&app.pool)
+                    .await?
                     .into_par_iter()
                     .filter(|inst| {
                         if search.is_empty() {
@@ -307,46 +326,49 @@ impl AwsAppOpts {
                 Ok(())
             }
             Self::CreateImage { instance_id, name } => {
-                if let Some(id) = app.create_image(&instance_id, &name)? {
+                if let Some(id) = app.create_image(&instance_id, &name).await? {
                     writeln!(stdout(), "New id {}", id)?;
                 }
                 Ok(())
             }
-            Self::DeleteImage { ami } => app.delete_image(&ami),
+            Self::DeleteImage { ami } => app.delete_image(&ami).await,
             Self::CreateVolume {
                 size,
                 zoneid,
                 snapid,
             } => {
                 writeln!(stdout(), "{:?} {} {:?}", size, zoneid, snapid)?;
-                if let Some(id) = app.create_ebs_volume(&zoneid, size, snapid)? {
+                if let Some(id) = app.create_ebs_volume(&zoneid, size, snapid).await? {
                     writeln!(stdout(), "Created Volume {}", id)?;
                 }
                 Ok(())
             }
-            Self::DeleteVolume { volid } => app.delete_ebs_volume(&volid),
+            Self::DeleteVolume { volid } => app.delete_ebs_volume(&volid).await,
             Self::AttachVolume {
                 volid,
                 instance_id,
                 device_id,
-            } => app.attach_ebs_volume(&volid, &instance_id, &device_id),
-            Self::DetachVolume { volid } => app.detach_ebs_volume(&volid),
-            Self::ModifyVolume { volid, size } => app.modify_ebs_volume(&volid, size),
+            } => {
+                app.attach_ebs_volume(&volid, &instance_id, &device_id)
+                    .await
+            }
+            Self::DetachVolume { volid } => app.detach_ebs_volume(&volid).await,
+            Self::ModifyVolume { volid, size } => app.modify_ebs_volume(&volid, size).await,
             Self::CreateSnapshot { volid, tags } => {
-                if let Some(id) = app.create_ebs_snapshot(&volid, &get_tags(&tags))? {
+                if let Some(id) = app.create_ebs_snapshot(&volid, &get_tags(&tags)).await? {
                     writeln!(stdout(), "Created snapshot {}", id)?;
                 }
                 Ok(())
             }
-            Self::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(&snapid),
-            Self::Tag { id, tags } => app.ec2.tag_ec2_instance(&id, &get_tags(&tags)),
+            Self::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(&snapid).await,
+            Self::Tag { id, tags } => app.ec2.tag_ec2_instance(&id, &get_tags(&tags)).await,
             Self::DeleteEcrImages { reponame, imageids } => {
-                app.ecr.delete_ecr_images(&reponame, &imageids)
+                app.ecr.delete_ecr_images(&reponame, &imageids).await
             }
-            Self::CleanupEcrImages => app.ecr.cleanup_ecr_images(),
-            Self::Connect { instance_id } => app.connect(&instance_id),
+            Self::CleanupEcrImages => app.ecr.cleanup_ecr_images().await,
+            Self::Connect { instance_id } => app.connect(&instance_id).await,
             Self::Status { instance_id } => {
-                for line in app.get_status(&instance_id)? {
+                for line in app.get_status(&instance_id).await? {
                     writeln!(stdout(), "{}", line)?;
                 }
                 Ok(())

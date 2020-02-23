@@ -1,6 +1,6 @@
 use anyhow::{format_err, Error};
 use chrono::Utc;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use futures::future::try_join_all;
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -9,18 +9,16 @@ use std::io::{stdout, Write};
 use crate::models::{InstancePricingInsert, PricingType};
 use crate::pgpool::PgPool;
 
-pub fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<String>, Error> {
+pub async fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<String>, Error> {
     let mut output = Vec::new();
-    let url = extract_json_url(get_url(ptype)?)?;
+    let url = extract_json_url(get_url(ptype)?).await?;
     output.push(format!("url {}", url));
-    let js: PricingJson = reqwest::blocking::get(url)?.json()?;
+    let js: PricingJson = reqwest::get(url).await?.json().await?;
     let results = parse_json(js, ptype)?;
     output.push(format!("{}", results.len()));
-    let result: Result<(), Error> = results
-        .into_par_iter()
-        .map(|r| r.upsert_entry(pool).map(|_| ()))
-        .collect();
-    result?;
+
+    let results: Vec<_> = results.into_iter().map(|r| r.upsert_entry(pool)).collect();
+    try_join_all(results).await?;
     Ok(output)
 }
 
@@ -35,8 +33,12 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
     .map_err(Into::into)
 }
 
-fn extract_json_url(url: Url) -> Result<Url, Error> {
-    let body: String = reqwest::blocking::get(url)?.text()?;
+async fn extract_json_url(url: Url) -> Result<Url, Error> {
+    let body: String = reqwest::get(url).await?.text().await?;
+    parse_json_url_body(&body)
+}
+
+fn parse_json_url_body(body: &str) -> Result<Url, Error> {
     let condition = |l: &&str| l.contains("data-service-url") && l.contains("/linux/");
     body.split('\n')
         .filter(condition)
@@ -57,10 +59,7 @@ fn extract_json_url(url: Url) -> Result<Url, Error> {
         .ok_or_else(|| format_err!("No url"))
 }
 
-fn parse_json(
-    js: PricingJson,
-    ptype: PricingType,
-) -> Result<Vec<InstancePricingInsert<'static>>, Error> {
+fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricingInsert>, Error> {
     writeln!(stdout(), "prices {}", js.prices.len())?;
     let empty = "".to_string();
     js.prices
@@ -96,7 +95,7 @@ fn parse_json(
 fn get_instance_pricing(
     price_entry: &PricingEntry,
     ptype: PricingType,
-) -> Result<InstancePricingInsert<'static>, Error> {
+) -> Result<InstancePricingInsert, Error> {
     match ptype {
         PricingType::OnDemand => {
             let price: f64 = price_entry
@@ -110,7 +109,7 @@ fn get_instance_pricing(
                 .ok_or_else(|| format_err!("No instance type"))?
                 .to_string();
             let i = InstancePricingInsert {
-                instance_type: instance_type.into(),
+                instance_type,
                 price,
                 price_type: "ondemand".into(),
                 price_timestamp: Utc::now(),
@@ -130,7 +129,7 @@ fn get_instance_pricing(
                 .ok_or_else(|| format_err!("No instance type"))?
                 .to_string();
             let i = InstancePricingInsert {
-                instance_type: instance_type.into(),
+                instance_type,
                 price,
                 price_type: "reserved".into(),
                 price_timestamp: Utc::now(),

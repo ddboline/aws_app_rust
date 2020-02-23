@@ -1,4 +1,5 @@
 use anyhow::{format_err, Error};
+use futures::future::try_join_all;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::Url;
 use select::document::Document;
@@ -18,25 +19,23 @@ pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
     .map_err(Into::into)
 }
 
-pub fn scrape_instance_info(
+pub async fn scrape_instance_info(
     generation: AwsGeneration,
     pool: &PgPool,
 ) -> Result<Vec<String>, Error> {
     let url = get_url(generation)?;
-
-    let body = reqwest::blocking::get(url)?.text()?;
-    parse_result(&body, generation, pool)
+    let body = reqwest::get(url).await?.text().await?;
+    let (families, types) = parse_result(&body, generation)?;
+    insert_result(families, types, pool).await
 }
 
 fn parse_result(
     text: &str,
     generation: AwsGeneration,
-    pool: &PgPool,
-) -> Result<Vec<String>, Error> {
+) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let doc = Document::from(text);
-    let mut output = Vec::new();
 
     match generation {
         AwsGeneration::HVM => {
@@ -54,8 +53,8 @@ fn parse_result(
                         continue;
                     }
                     let ifam = InstanceFamilyInsert {
-                        family_name: family_name.into(),
-                        family_type: family_type.to_string().into(),
+                        family_name,
+                        family_type: family_type.to_string(),
                     };
                     instance_families.push(ifam);
                 }
@@ -73,22 +72,47 @@ fn parse_result(
         }
     }
 
-    for t in &instance_families {
-        if t.insert_entry(&pool)? {
-            output.push(format!("{:?}", t));
-        }
-    }
-    for t in &instance_types {
-        if t.insert_entry(&pool)? {
-            output.push(format!("{:?}", t));
-        }
-    }
+    Ok((instance_families, instance_types))
+}
+
+async fn insert_result(
+    instance_families: Vec<InstanceFamilyInsert>,
+    instance_types: Vec<InstanceList>,
+    pool: &PgPool,
+) -> Result<Vec<String>, Error> {
+    let fam: Vec<_> = instance_families
+        .into_iter()
+        .map(|t| async {
+            if let (t, true) = t.insert_entry(&pool).await? {
+                Ok(Some(format!("{:?}", t)))
+            } else {
+                Ok(None)
+            }
+        })
+        .collect();
+    let fam: Result<Vec<_>, Error> = try_join_all(fam).await;
+    let typ: Vec<_> = instance_types
+        .into_iter()
+        .map(|t| async {
+            if let (t, true) = t.insert_entry(&pool).await? {
+                Ok(Some(format!("{:?}", t)))
+            } else {
+                Ok(None)
+            }
+        })
+        .collect();
+    let typ: Result<Vec<_>, Error> = try_join_all(typ).await;
+    let output: Vec<_> = fam?
+        .into_iter()
+        .chain(typ?.into_iter())
+        .filter_map(|x| x)
+        .collect();
     Ok(output)
 }
 
-fn extract_instance_types_pv<'a>(
+fn extract_instance_types_pv(
     table: &Node,
-) -> Result<(Vec<InstanceFamilyInsert<'a>>, Vec<InstanceList<'a>>), Error> {
+) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
     let allowed_columns = ["Instance Family", "Instance Type", "vCPU", "Memory (GiB)"];
     let rows: Vec<_> = table
         .find(Name("tr"))
@@ -143,7 +167,7 @@ fn extract_instance_types_pv<'a>(
 fn extract_instance_family_object_pv(
     row: &[String],
     indicies: [usize; 4],
-) -> Result<InstanceFamilyInsert<'static>, Error> {
+) -> Result<InstanceFamilyInsert, Error> {
     let family_type = row[indicies[0]].to_string();
     let family_name = row[indicies[1]]
         .split('.')
@@ -151,12 +175,12 @@ fn extract_instance_family_object_pv(
         .ok_or_else(|| format_err!("No family type"))?
         .to_string();
     Ok(InstanceFamilyInsert {
-        family_name: family_name.into(),
-        family_type: family_type.into(),
+        family_name,
+        family_type,
     })
 }
 
-fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>, Error> {
+fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> {
     let allowed_columns = [
         ["Instance Type", "vCPU", "Mem (GiB)"],
         ["Instance Type", "vCPU", "Memory (GiB)"],
@@ -253,7 +277,7 @@ fn extract_instance_types_hvm<'a>(table: &Node) -> Result<Vec<InstanceList<'a>>,
 fn extract_instance_type_object_hvm(
     row: &[String],
     indicies: [usize; 3],
-) -> Result<InstanceList<'static>, Error> {
+) -> Result<InstanceList, Error> {
     let idx = if row[indicies[0]].replace("*", "").parse::<i32>().is_ok() {
         1
     } else {
@@ -265,17 +289,17 @@ fn extract_instance_type_object_hvm(
     let memory_gib: f64 = row[(indicies[2] - idx)].replace(",", "").parse()?;
 
     Ok(InstanceList {
-        instance_type: instance_type.into(),
+        instance_type,
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::HVM.to_string().into(),
+        generation: AwsGeneration::HVM.to_string(),
     })
 }
 
 fn extract_instance_type_object_pv(
     row: &[String],
     indicies: [usize; 4],
-) -> Result<InstanceList<'static>, Error> {
+) -> Result<InstanceList, Error> {
     let idx = if row[indicies[1]].parse::<i32>().is_ok() {
         1
     } else {
@@ -287,9 +311,9 @@ fn extract_instance_type_object_pv(
     let memory_gib: f64 = row[(indicies[3] - idx)].replace(",", "").parse()?;
 
     Ok(InstanceList {
-        instance_type: instance_type.into(),
+        instance_type,
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::PV.to_string().into(),
+        generation: AwsGeneration::PV.to_string(),
     })
 }

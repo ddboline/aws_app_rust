@@ -1,25 +1,56 @@
 use anyhow::Error;
+use async_trait::async_trait;
+use cached::{Cached, TimedCache};
 use chrono::Local;
+use futures::future::{try_join, try_join_all};
+use lazy_static::lazy_static;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tokio::sync::Mutex;
 
 use aws_app_lib::aws_app_interface::{AwsAppInterface, INSTANCE_LIST};
+use aws_app_lib::ec2_instance::AmiInfo;
 use aws_app_lib::resource_type::ResourceType;
 
-pub trait HandleRequest<T> {
-    type Result;
-    fn handle(&self, req: T) -> Self::Result;
+lazy_static! {
+    static ref CACHE_UBUNTU_AMI: Mutex<TimedCache<String, Option<AmiInfo>>> =
+        Mutex::new(TimedCache::with_lifespan(3600));
 }
 
+macro_rules! get_cached {
+    ($hash:ident, $mutex:expr, $call:expr) => {{
+        let mut has_cache = false;
+
+        let d = match $mutex.lock().await.cache_get(&$hash) {
+            Some(d) => {
+                has_cache = true;
+                d.clone()
+            }
+            None => $call.await?,
+        };
+        if !has_cache {
+            $mutex.lock().await.cache_set($hash.clone(), d.clone());
+        }
+        Ok(d)
+    }};
+}
+
+#[async_trait]
+pub trait HandleRequest<T> {
+    type Result;
+    async fn handle(&self, req: T) -> Self::Result;
+}
+
+#[async_trait]
 impl HandleRequest<ResourceType> for AwsAppInterface {
     type Result = Result<Vec<String>, Error>;
-    fn handle(&self, req: ResourceType) -> Self::Result {
+    async fn handle(&self, req: ResourceType) -> Self::Result {
         let mut output = Vec::new();
         match req {
             ResourceType::Instances => {
-                let result = list_instance(self)?;
+                let result = list_instance(self).await?;
                 if result.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -36,7 +67,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Reserved => {
-                let reserved = self.ec2.get_reserved_instances()?;
+                let reserved = self.ec2.get_reserved_instances().await?;
                 if reserved.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -62,7 +93,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Spot => {
-                let requests = self.ec2.get_spot_instance_requests()?;
+                let requests = self.ec2.get_spot_instance_requests().await?;
                 if requests.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -93,17 +124,24 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Ami => {
-                let mut ami_tags = self.ec2.get_ami_tags()?;
+                let ubuntu_ami = async {
+                    let hash = self.config.ubuntu_release.clone();
+                    get_cached!(
+                        hash,
+                        CACHE_UBUNTU_AMI,
+                        self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release)
+                    )
+                };
+
+                let ami_tags = self.ec2.get_ami_tags();
+                let (ubuntu_ami, mut ami_tags) = try_join(ubuntu_ami, ami_tags).await?;
+
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
                 ami_tags.par_sort_by_key(|x| x.name.clone());
-                let mut ubuntu_amis = self
-                    .ec2
-                    .get_latest_ubuntu_ami(&self.config.ubuntu_release)?;
-                ubuntu_amis.par_sort_by_key(|x| x.name.clone());
-                if !ubuntu_amis.is_empty() {
-                    ami_tags.push(ubuntu_amis[ubuntu_amis.len() - 1].clone());
+                if let Some(ami) = ubuntu_ami {
+                    ami_tags.push(ami);
                 }
                 output.push(
                     r#"<table border="1" class="dataframe"><thead>
@@ -141,7 +179,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Key => {
-                let keys = self.ec2.get_all_key_pairs()?;
+                let keys = self.ec2.get_all_key_pairs().await?;
                 output.push(
                     r#"<table border="1" class="dataframe">
                         <thead><tr><th>Key Name</th><th>Key Fingerprint</th></tr></thead>
@@ -161,7 +199,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Volume => {
-                let volumes = self.ec2.get_all_volumes()?;
+                let volumes = self.ec2.get_all_volumes().await?;
                 if volumes.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -200,7 +238,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Snapshot => {
-                let mut snapshots = self.ec2.get_all_snapshots()?;
+                let mut snapshots = self.ec2.get_all_snapshots().await?;
                 if snapshots.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -239,7 +277,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Ecr => {
-                let repos = self.ecr.get_all_repositories()?;
+                let repos = self.ecr.get_all_repositories().await?;
                 if repos.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -251,12 +289,13 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             <th>Image Size</th></tr></thead><tbody>"#
                         .to_string(),
                 );
-                let result: Result<Vec<_>, Error> = repos
-                    .par_iter()
+
+                let results: Vec<_> = repos
+                    .iter()
                     .map(|repo| get_ecr_images(self, repo))
                     .collect();
-                let result: Vec<_> = result?.into_par_iter().flatten().collect();
-                output.extend_from_slice(&result);
+                let results: Vec<_> = try_join_all(results).await?.into_iter().flatten().collect();
+                output.extend_from_slice(&results);
                 output.push("</tbody></table>".to_string());
             }
             ResourceType::Script => {
@@ -300,11 +339,12 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
     }
 }
 
-fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
-    app.fill_instance_list()?;
+async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
+    app.fill_instance_list().await?;
 
     let result: Vec<_> = INSTANCE_LIST
         .read()
+        .await
         .par_iter()
         .map(|inst| {
             let name = inst
@@ -348,8 +388,8 @@ fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
     Ok(result)
 }
 
-fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Error> {
-    let images = app.ecr.get_all_images(&repo)?;
+async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Error> {
+    let images = app.ecr.get_all_images(&repo).await?;
     let lines: Vec<_> = images
         .par_iter()
         .map(|image| {
@@ -386,10 +426,11 @@ pub struct TerminateRequest {
     pub instance: String,
 }
 
+#[async_trait]
 impl HandleRequest<TerminateRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
-    fn handle(&self, req: TerminateRequest) -> Self::Result {
-        self.terminate(&[req.instance])
+    async fn handle(&self, req: TerminateRequest) -> Self::Result {
+        self.terminate(&[req.instance]).await
     }
 }
 
@@ -398,10 +439,11 @@ pub struct DeleteImageRequest {
     pub ami: String,
 }
 
+#[async_trait]
 impl HandleRequest<DeleteImageRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
-    fn handle(&self, req: DeleteImageRequest) -> Self::Result {
-        self.delete_image(&req.ami)
+    async fn handle(&self, req: DeleteImageRequest) -> Self::Result {
+        self.delete_image(&req.ami).await
     }
 }
 
@@ -410,10 +452,11 @@ pub struct DeleteVolumeRequest {
     pub volid: String,
 }
 
+#[async_trait]
 impl HandleRequest<DeleteVolumeRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
-    fn handle(&self, req: DeleteVolumeRequest) -> Self::Result {
-        self.delete_ebs_volume(&req.volid)
+    async fn handle(&self, req: DeleteVolumeRequest) -> Self::Result {
+        self.delete_ebs_volume(&req.volid).await
     }
 }
 
@@ -422,10 +465,11 @@ pub struct DeleteSnapshotRequest {
     pub snapid: String,
 }
 
+#[async_trait]
 impl HandleRequest<DeleteSnapshotRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
-    fn handle(&self, req: DeleteSnapshotRequest) -> Self::Result {
-        self.delete_ebs_snapshot(&req.snapid)
+    async fn handle(&self, req: DeleteSnapshotRequest) -> Self::Result {
+        self.delete_ebs_snapshot(&req.snapid).await
     }
 }
 
@@ -435,19 +479,23 @@ pub struct DeleteEcrImageRequest {
     pub imageid: String,
 }
 
+#[async_trait]
 impl HandleRequest<DeleteEcrImageRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
-    fn handle(&self, req: DeleteEcrImageRequest) -> Self::Result {
-        self.ecr.delete_ecr_images(&req.reponame, &[req.imageid])
+    async fn handle(&self, req: DeleteEcrImageRequest) -> Self::Result {
+        self.ecr
+            .delete_ecr_images(&req.reponame, &[req.imageid])
+            .await
     }
 }
 
 pub struct CleanupEcrImagesRequest {}
 
+#[async_trait]
 impl HandleRequest<CleanupEcrImagesRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
-    fn handle(&self, _: CleanupEcrImagesRequest) -> Self::Result {
-        self.ecr.cleanup_ecr_images()
+    async fn handle(&self, _: CleanupEcrImagesRequest) -> Self::Result {
+        self.ecr.cleanup_ecr_images().await
     }
 }
 
@@ -456,10 +504,11 @@ pub struct StatusRequest {
     pub instance: String,
 }
 
+#[async_trait]
 impl HandleRequest<StatusRequest> for AwsAppInterface {
     type Result = Result<Vec<String>, Error>;
-    fn handle(&self, req: StatusRequest) -> Self::Result {
-        self.get_status(&req.instance)
+    async fn handle(&self, req: StatusRequest) -> Self::Result {
+        self.get_status(&req.instance).await
     }
 }
 
@@ -469,9 +518,10 @@ pub struct CommandRequest {
     pub command: String,
 }
 
+#[async_trait]
 impl HandleRequest<CommandRequest> for AwsAppInterface {
     type Result = Result<Vec<String>, Error>;
-    fn handle(&self, req: CommandRequest) -> Self::Result {
-        self.run_command(&req.instance, &req.command)
+    async fn handle(&self, req: CommandRequest) -> Self::Result {
+        self.run_command(&req.instance, &req.command).await
     }
 }
