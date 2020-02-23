@@ -257,17 +257,14 @@ impl AwsAppOpts {
                         .map(|(k, _)| k)
                         .collect();
 
-                    let futures: Vec<_> = regions
-                        .into_iter()
-                        .map(|region| {
-                            let mut app_ = app.clone();
-                            let resources = resources.clone();
-                            async move {
-                                app_.set_region(&region)?;
-                                app_.list(&resources).await
-                            }
-                        })
-                        .collect();
+                    let futures = regions.into_iter().map(|region| {
+                        let mut app_ = app.clone();
+                        let resources = resources.clone();
+                        async move {
+                            app_.set_region(&region)?;
+                            app_.list(&resources).await
+                        }
+                    });
                     try_join_all(futures).await?;
                     Ok(())
                 } else {

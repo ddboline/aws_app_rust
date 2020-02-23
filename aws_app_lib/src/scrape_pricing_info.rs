@@ -17,7 +17,7 @@ pub async fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Ve
     let results = parse_json(js, ptype)?;
     output.push(format!("{}", results.len()));
 
-    let results: Vec<_> = results.into_iter().map(|r| r.upsert_entry(pool)).collect();
+    let results = results.into_iter().map(|r| r.upsert_entry(pool));
     try_join_all(results).await?;
     Ok(output)
 }

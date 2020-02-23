@@ -290,11 +290,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
 
-                let results: Vec<_> = repos
-                    .iter()
-                    .map(|repo| get_ecr_images(self, repo))
-                    .collect();
-                let results: Vec<_> = try_join_all(results).await?.into_iter().flatten().collect();
+                let futures = repos.iter().map(|repo| get_ecr_images(self, repo));
+                let results: Vec<_> = try_join_all(futures).await?.into_iter().flatten().collect();
                 output.extend_from_slice(&results);
                 output.push("</tbody></table>".to_string());
             }

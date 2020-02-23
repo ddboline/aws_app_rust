@@ -249,29 +249,26 @@ impl AwsAppInterface {
                 }
                 output.push("---\nECR images".to_string());
 
-                let futures: Vec<_> = repos
-                    .into_iter()
-                    .map(|repo| async {
-                        let images = self.ecr.get_all_images(&repo).await?;
-                        let lines: Vec<String> = spawn_blocking(move || {
-                            images
-                                .par_iter()
-                                .map(|image| {
-                                    format!(
-                                        "{} {} {} {} {:0.2} MB",
-                                        repo,
-                                        image.tags.get(0).map_or_else(|| "None", String::as_str),
-                                        image.digest,
-                                        image.pushed_at,
-                                        image.image_size,
-                                    )
-                                })
-                                .collect()
-                        })
-                        .await?;
-                        Ok(lines)
+                let futures = repos.into_iter().map(|repo| async {
+                    let images = self.ecr.get_all_images(&repo).await?;
+                    let lines: Vec<String> = spawn_blocking(move || {
+                        images
+                            .par_iter()
+                            .map(|image| {
+                                format!(
+                                    "{} {} {} {} {:0.2} MB",
+                                    repo,
+                                    image.tags.get(0).map_or_else(|| "None", String::as_str),
+                                    image.digest,
+                                    image.pushed_at,
+                                    image.image_size,
+                                )
+                            })
+                            .collect()
                     })
-                    .collect();
+                    .await?;
+                    Ok(lines)
+                });
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;
                 let lines: Vec<_> = results?.into_par_iter().flatten().collect();
                 output.extend_from_slice(&lines);
@@ -310,10 +307,9 @@ impl AwsAppInterface {
             .filter(|x| visited_resources.insert(*x))
             .collect();
 
-        let futures: Vec<_> = resources
+        let futures = resources
             .into_iter()
-            .map(|resource| self.process_resource(*resource))
-            .collect();
+            .map(|resource| self.process_resource(*resource));
 
         let output: Vec<_> = try_join_all(futures).await?.into_iter().flatten().collect();
 

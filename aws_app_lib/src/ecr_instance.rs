@@ -129,7 +129,7 @@ impl EcrInstance {
     }
 
     pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
-        let futures: Vec<_> = self
+        let futures = self
             .get_all_repositories()
             .await?
             .into_iter()
@@ -150,8 +150,7 @@ impl EcrInstance {
                     self.delete_ecr_images(&repo, &imageids).await?;
                 }
                 Ok(())
-            })
-            .collect();
+            });
         let results: Result<Vec<_>, Error> = try_join_all(futures).await;
         results?;
         Ok(())
