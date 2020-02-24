@@ -5,7 +5,6 @@ use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::io::{stdout, Write};
 
 use crate::models::{InstancePricingInsert, PricingType};
 use crate::pgpool::PgPool;

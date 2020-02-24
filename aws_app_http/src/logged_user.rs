@@ -1,11 +1,13 @@
 use anyhow::Error;
 pub use rust_auth_server::logged_user::{LoggedUser, AUTHORIZED_USERS, TRIGGER_DB_UPDATE};
 use std::env::var;
+use log::debug;
 
 use aws_app_lib::models::AuthorizedUsers as AuthorizedUsersDB;
 use aws_app_lib::pgpool::PgPool;
 
 pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
+    debug!("{:?}", AUTHORIZED_USERS.get_keys());
     if TRIGGER_DB_UPDATE.check() {
         let users: Vec<_> = AuthorizedUsersDB::get_authorized_users(&pool)
             .await?

@@ -6,7 +6,6 @@ use reqwest::Url;
 use select::document::Document;
 use select::node::Node;
 use select::predicate::{Class, Name};
-use std::io::{stdout, Write};
 
 use crate::models::{AwsGeneration, InstanceFamilyInsert, InstanceList};
 use crate::pgpool::PgPool;
