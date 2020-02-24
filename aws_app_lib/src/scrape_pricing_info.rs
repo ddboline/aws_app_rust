@@ -1,6 +1,7 @@
 use anyhow::{format_err, Error};
 use chrono::Utc;
 use futures::future::try_join_all;
+use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -60,7 +61,7 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
 }
 
 fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricingInsert>, Error> {
-    writeln!(stdout(), "prices {}", js.prices.len())?;
+    debug!("prices {}", js.prices.len());
     let empty = "".to_string();
     js.prices
         .into_iter()

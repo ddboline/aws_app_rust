@@ -1,5 +1,6 @@
 use anyhow::{format_err, Error};
 use futures::future::try_join_all;
+use log::debug;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::Url;
 use select::document::Document;
@@ -246,24 +247,24 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
                 |row| match extract_instance_type_object_hvm(row, final_indicies) {
                     Ok(x) => {
                         if x.instance_type == "1" || x.instance_type == "8" {
-                            writeln!(stdout(), "{:?}", final_indicies)?;
-                            writeln!(stdout(), "{:?}", rows[0])?;
-                            writeln!(stdout(), "row {:?}", row)?;
+                            debug!("{:?}", final_indicies);
+                            debug!("{:?}", rows[0]);
+                            debug!("row {:?}", row);
                         }
                         Ok(x)
                     }
                     Err(e) => {
-                        writeln!(stdout(), "{:?}", final_indicies)?;
-                        writeln!(stdout(), "{:?}", row)?;
+                        debug!("{:?}", final_indicies);
+                        debug!("{:?}", row);
                         Err(e)
                     }
                 },
             )
             .collect()
     } else {
-        writeln!(stdout(), "{:?}", rows[0])?;
-        writeln!(stdout(), "{:?}", rows[1])?;
-        writeln!(stdout(), "{:?}", final_indicies)?;
+        debug!("{:?}", rows[0]);
+        debug!("{:?}", rows[1]);
+        debug!("{:?}", final_indicies);
         Ok(Vec::new())
     }
 }

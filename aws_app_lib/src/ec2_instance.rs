@@ -1,5 +1,6 @@
 use anyhow::Error;
 use chrono::{DateTime, Duration, Utc};
+use log::debug;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 use rusoto_core::Region;
@@ -450,7 +451,7 @@ impl Ec2Instance {
                         .map(|r| (r.id, r.instance_id))
                         .collect();
                     if let Some(Some(instance_id)) = reqs.get(&spot_instance_request_id) {
-                        writeln!(stdout(), "tag {} with {:?}", instance_id, spot.tags)?;
+                        debug!("tag {} with {:?}", instance_id, spot.tags);
                         self.tag_ec2_instance(&instance_id, &spot.tags).await?;
                         break;
                     }
