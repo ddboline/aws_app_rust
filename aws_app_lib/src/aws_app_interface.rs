@@ -2,7 +2,9 @@ use anyhow::Error;
 use chrono::Local;
 use futures::future::{try_join, try_join_all};
 use lazy_static::lazy_static;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{
+    IntoParallelIterator, IntoParallelRefIterator, ParallelExtend, ParallelIterator,
+};
 use rayon::slice::ParallelSliceMut;
 use std::collections::{HashMap, HashSet};
 use std::io::{stdout, Write};
@@ -131,16 +133,12 @@ impl AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 output.push("---\nGet Reserved Instance\n---".to_string());
-                let result: Vec<_> = reserved
-                    .par_iter()
-                    .map(|res| {
-                        format!(
-                            "{} {} {} {} {}",
-                            res.id, res.price, res.instance_type, res.state, res.availability_zone
-                        )
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
+                output.par_extend(reserved.par_iter().map(|res| {
+                    format!(
+                        "{} {} {} {} {}",
+                        res.id, res.price, res.instance_type, res.state, res.availability_zone
+                    )
+                }));
             }
             ResourceType::Spot => {
                 let requests = self.ec2.get_spot_instance_requests().await?;
@@ -148,21 +146,17 @@ impl AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 output.push("---\nSpot Instance Requests:".to_string());
-                let result: Vec<_> = requests
-                    .par_iter()
-                    .map(|req| {
-                        format!(
-                            "{} {} {} {} {} {}",
-                            req.id,
-                            req.price,
-                            req.imageid,
-                            req.instance_type,
-                            req.spot_type,
-                            req.status
-                        )
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
+                output.par_extend(requests.par_iter().map(|req| {
+                    format!(
+                        "{} {} {} {} {} {}",
+                        req.id,
+                        req.price,
+                        req.imageid,
+                        req.instance_type,
+                        req.spot_type,
+                        req.status
+                    )
+                }));
             }
             ResourceType::Ami => {
                 let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
@@ -176,28 +170,23 @@ impl AwsAppInterface {
                     ami_tags.push(ami);
                 }
                 output.push("---\nAMI's:".to_string());
-                let result: Vec<_> = ami_tags
-                    .par_iter()
-                    .map(|ami| {
-                        format!(
-                            "{} {} {} {}",
-                            ami.id,
-                            ami.name,
-                            ami.state,
-                            ami.snapshot_ids.join(" ")
-                        )
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
+                output.par_extend(ami_tags.par_iter().map(|ami| {
+                    format!(
+                        "{} {} {} {}",
+                        ami.id,
+                        ami.name,
+                        ami.state,
+                        ami.snapshot_ids.join(" ")
+                    )
+                }));
             }
             ResourceType::Key => {
                 let keys = self.ec2.get_all_key_pairs().await?;
                 output.push("---\nKeys:".to_string());
-                let result: Vec<_> = keys
-                    .into_par_iter()
-                    .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
-                    .collect();
-                output.extend_from_slice(&result);
+                output.par_extend(
+                    keys.into_par_iter()
+                        .map(|(key, fingerprint)| format!("{} {}", key, fingerprint)),
+                );
             }
             ResourceType::Volume => {
                 let volumes = self.ec2.get_all_volumes().await?;
@@ -205,21 +194,17 @@ impl AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 output.push("---\nVolumes:".to_string());
-                let result: Vec<_> = volumes
-                    .par_iter()
-                    .map(|vol| {
-                        format!(
-                            "{} {} {} {} {} {}",
-                            vol.id,
-                            vol.availability_zone,
-                            vol.size,
-                            vol.iops,
-                            vol.state,
-                            print_tags(&vol.tags)
-                        )
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
+                output.par_extend(volumes.par_iter().map(|vol| {
+                    format!(
+                        "{} {} {} {} {} {}",
+                        vol.id,
+                        vol.availability_zone,
+                        vol.size,
+                        vol.iops,
+                        vol.state,
+                        print_tags(&vol.tags)
+                    )
+                }));
             }
             ResourceType::Snapshot => {
                 let snapshots = self.ec2.get_all_snapshots().await?;
@@ -227,20 +212,16 @@ impl AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 output.push("---\nSnapshots:".to_string());
-                let result: Vec<_> = snapshots
-                    .par_iter()
-                    .map(|snap| {
-                        format!(
-                            "{} {} GB {} {} {}",
-                            snap.id,
-                            snap.volume_size,
-                            snap.state,
-                            snap.progress,
-                            print_tags(&snap.tags)
-                        )
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
+                output.par_extend(snapshots.par_iter().map(|snap| {
+                    format!(
+                        "{} {} GB {} {} {}",
+                        snap.id,
+                        snap.volume_size,
+                        snap.state,
+                        snap.progress,
+                        print_tags(&snap.tags)
+                    )
+                }));
             }
             ResourceType::Ecr => {
                 let repos = self.ecr.get_all_repositories().await?;
@@ -270,8 +251,7 @@ impl AwsAppInterface {
                     Ok(lines)
                 });
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-                let lines: Vec<_> = results?.into_par_iter().flatten().collect();
-                output.extend_from_slice(&lines);
+                output.par_extend(results?.into_par_iter().flatten());
             }
             ResourceType::Script => {
                 output.push("---\nScripts:".to_string());
@@ -427,7 +407,7 @@ impl AwsAppInterface {
             })
             .collect();
         let mut prices = prices?;
-        prices.sort_by_key(|p| (p.ncpu, p.memory as i64));
+        prices.par_sort_by_key(|p| (p.ncpu, p.memory as i64));
         Ok(prices)
     }
 
@@ -502,7 +482,7 @@ impl AwsAppInterface {
     }
 
     async fn get_snapshot_map(&self) -> Result<HashMap<String, String>, Error> {
-        Ok(self
+        let snapshot_map = self
             .ec2
             .get_all_snapshots()
             .await?
@@ -512,7 +492,8 @@ impl AwsAppInterface {
                     .get("Name")
                     .map(|n| (n.to_string(), snap.id.to_string()))
             })
-            .collect())
+            .collect();
+        Ok(snapshot_map)
     }
 
     pub async fn create_ebs_volume(
@@ -527,7 +508,7 @@ impl AwsAppInterface {
     }
 
     async fn get_volume_map(&self) -> Result<HashMap<String, String>, Error> {
-        Ok(self
+        let volume_map = self
             .ec2
             .get_all_volumes()
             .await?
@@ -537,7 +518,8 @@ impl AwsAppInterface {
                     .get("Name")
                     .map(|n| (n.to_string(), vol.id.to_string()))
             })
-            .collect())
+            .collect();
+        Ok(volume_map)
     }
 
     pub async fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
@@ -621,7 +603,7 @@ fn map_or_val(name_map: &HashMap<String, String>, id: &str) -> String {
 }
 
 async fn get_name_map() -> Result<HashMap<String, String>, Error> {
-    Ok(INSTANCE_LIST
+    let name_map = INSTANCE_LIST
         .read()
         .await
         .par_iter()
@@ -633,11 +615,12 @@ async fn get_name_map() -> Result<HashMap<String, String>, Error> {
                 .get("Name")
                 .map(|name| (name.to_string(), inst.id.to_string()))
         })
-        .collect())
+        .collect();
+    Ok(name_map)
 }
 
 async fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
-    Ok(INSTANCE_LIST
+    let id_host_map = INSTANCE_LIST
         .read()
         .await
         .par_iter()
@@ -647,5 +630,6 @@ async fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
             }
             Some((inst.id.to_string(), inst.dns_name.to_string()))
         })
-        .collect())
+        .collect();
+    Ok(id_host_map)
 }
