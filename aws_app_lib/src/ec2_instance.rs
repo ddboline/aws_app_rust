@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
-use std::io::{Read};
+use std::io::Read;
 use std::path::Path;
 use std::time;
 use sts_profile_auth::get_client_sts;
