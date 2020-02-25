@@ -20,8 +20,6 @@ pub struct AppState {
 }
 
 pub async fn start_app() {
-    TRIGGER_DB_UPDATE.set();
-
     async fn _update_db(pool: PgPool) {
         let mut i = interval(time::Duration::from_secs(60));
         loop {
@@ -29,6 +27,7 @@ pub async fn start_app() {
             fill_from_db(&pool).await.unwrap_or(());
         }
     }
+    TRIGGER_DB_UPDATE.set();
 
     let config = Config::init_config().expect("Failed to load config");
     let pool = PgPool::new(&config.database_url);
