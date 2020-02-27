@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{format_err, Error};
 use chrono::Local;
 use futures::future::{try_join, try_join_all};
 use lazy_static::lazy_static;
@@ -387,11 +387,16 @@ impl AwsAppInterface {
                     .get(&(inst.to_string(), "reserved".to_string()))
                     .map(|x| x.price);
                 let spot_price = spot_prices.get(&inst);
-                let instance_metadata = instance_list.get(&inst).unwrap();
-                let inst_fam = inst.split('.').nth(0).unwrap();
+                let instance_metadata = instance_list
+                    .get(&inst)
+                    .ok_or_else(|| format_err!("this should be impossible {}", inst))?;
+                let inst_fam = inst
+                    .split('.')
+                    .nth(0)
+                    .ok_or_else(|| format_err!("invalid instance name {}", inst))?;
                 let instance_family = instance_families
                     .get(inst_fam)
-                    .unwrap()
+                    .ok_or_else(|| format_err!("inst_fam {} does not exist", inst_fam))?
                     .family_type
                     .parse()?;
 
