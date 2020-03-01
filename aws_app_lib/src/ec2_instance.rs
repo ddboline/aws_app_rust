@@ -1,8 +1,10 @@
 use anyhow::Error;
 use chrono::{DateTime, Duration, Utc};
 use log::debug;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use rayon::slice::ParallelSliceMut;
+use rayon::{
+    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
+    slice::ParallelSliceMut,
+};
 use rusoto_core::Region;
 use rusoto_ec2::{
     AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
@@ -15,12 +17,7 @@ use rusoto_ec2::{
     TagSpecification, TerminateInstancesRequest,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
-use std::time;
+use std::{collections::HashMap, fmt, fs::File, io::Read, path::Path, time};
 use sts_profile_auth::get_client_sts;
 use tokio::time::delay_for;
 

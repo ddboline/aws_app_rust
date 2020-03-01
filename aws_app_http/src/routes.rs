@@ -1,23 +1,31 @@
-use actix_web::http::StatusCode;
-use actix_web::web::{Data, Json, Query};
-use actix_web::HttpResponse;
+use actix_web::{
+    http::StatusCode,
+    web::{Data, Json, Query},
+    HttpResponse,
+};
 use aws_app_lib::resource_type::ResourceType;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
-use std::fs::{remove_file, File};
-use std::io::{Read, Write};
-use std::path::Path;
+use std::{
+    fs::{remove_file, File},
+    io::{Read, Write},
+    path::Path,
+};
 
-use aws_app_lib::config::Config;
-use aws_app_lib::ec2_instance::SpotRequest;
-use aws_app_lib::models::{InstanceFamily, InstanceList};
+use aws_app_lib::{
+    config::Config,
+    ec2_instance::SpotRequest,
+    models::{InstanceFamily, InstanceList},
+};
 
-use super::app::AppState;
-use super::errors::ServiceError as Error;
-use super::logged_user::LoggedUser;
-use super::requests::{
-    CleanupEcrImagesRequest, CommandRequest, DeleteEcrImageRequest, DeleteImageRequest,
-    DeleteSnapshotRequest, DeleteVolumeRequest, HandleRequest, StatusRequest, TerminateRequest,
+use super::{
+    app::AppState,
+    errors::ServiceError as Error,
+    logged_user::LoggedUser,
+    requests::{
+        CleanupEcrImagesRequest, CommandRequest, DeleteEcrImageRequest, DeleteImageRequest,
+        DeleteSnapshotRequest, DeleteVolumeRequest, HandleRequest, StatusRequest, TerminateRequest,
+    },
 };
 
 fn form_http_response(body: String) -> Result<HttpResponse, Error> {

@@ -4,15 +4,19 @@ use cached::{Cached, TimedCache};
 use chrono::Local;
 use futures::future::{try_join, try_join_all};
 use lazy_static::lazy_static;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use rayon::slice::ParallelSliceMut;
+use rayon::{
+    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
+    slice::ParallelSliceMut,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::sync::Mutex;
 
-use aws_app_lib::aws_app_interface::{AwsAppInterface, INSTANCE_LIST};
-use aws_app_lib::ec2_instance::AmiInfo;
-use aws_app_lib::resource_type::ResourceType;
+use aws_app_lib::{
+    aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
+    ec2_instance::AmiInfo,
+    resource_type::ResourceType,
+};
 
 lazy_static! {
     static ref CACHE_UBUNTU_AMI: Mutex<TimedCache<String, Option<AmiInfo>>> =

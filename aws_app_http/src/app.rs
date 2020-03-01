@@ -4,15 +4,15 @@ use chrono::Duration;
 use std::time;
 use tokio::time::interval;
 
-use aws_app_lib::aws_app_interface::AwsAppInterface;
-use aws_app_lib::config::Config;
-use aws_app_lib::pgpool::PgPool;
+use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
-use super::logged_user::{fill_from_db, TRIGGER_DB_UPDATE};
-use super::routes::{
-    build_spot_request, cleanup_ecr_images, command, delete_ecr_image, delete_image, delete_script,
-    delete_snapshot, delete_volume, edit_script, get_instances, get_prices, list, replace_script,
-    request_spot, status, sync_frontpage, terminate, update,
+use super::{
+    logged_user::{fill_from_db, TRIGGER_DB_UPDATE},
+    routes::{
+        build_spot_request, cleanup_ecr_images, command, delete_ecr_image, delete_image,
+        delete_script, delete_snapshot, delete_volume, edit_script, get_instances, get_prices,
+        list, replace_script, request_spot, status, sync_frontpage, terminate, update,
+    },
 };
 
 pub struct AppState {

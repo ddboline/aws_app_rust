@@ -3,12 +3,16 @@ use futures::future::try_join_all;
 use log::debug;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::Url;
-use select::document::Document;
-use select::node::Node;
-use select::predicate::{Class, Name};
+use select::{
+    document::Document,
+    node::Node,
+    predicate::{Class, Name},
+};
 
-use crate::models::{AwsGeneration, InstanceFamilyInsert, InstanceList};
-use crate::pgpool::PgPool;
+use crate::{
+    models::{AwsGeneration, InstanceFamilyInsert, InstanceList},
+    pgpool::PgPool,
+};
 
 pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
     match generation {

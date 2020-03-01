@@ -1,19 +1,25 @@
 use anyhow::Error;
 use futures::future::try_join_all;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use rayon::slice::ParallelSliceMut;
-use std::collections::HashMap;
-use std::io::{stdout, Write};
-use std::string::ToString;
-use std::sync::Arc;
+use rayon::{
+    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
+    slice::ParallelSliceMut,
+};
+use std::{
+    collections::HashMap,
+    io::{stdout, Write},
+    string::ToString,
+    sync::Arc,
+};
 use structopt::StructOpt;
 
-use crate::aws_app_interface::AwsAppInterface;
-use crate::config::Config;
-use crate::ec2_instance::{InstanceRequest, SpotRequest};
-use crate::models::{InstanceFamily, InstanceList};
-use crate::pgpool::PgPool;
-use crate::resource_type::ResourceType;
+use crate::{
+    aws_app_interface::AwsAppInterface,
+    config::Config,
+    ec2_instance::{InstanceRequest, SpotRequest},
+    models::{InstanceFamily, InstanceList},
+    pgpool::PgPool,
+    resource_type::ResourceType,
+};
 
 #[derive(Debug, Clone, StructOpt)]
 pub struct SpotRequestOpt {

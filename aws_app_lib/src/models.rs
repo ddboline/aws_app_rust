@@ -7,8 +7,10 @@ use diesel::{
 use std::fmt;
 use tokio::task::spawn_blocking;
 
-use crate::pgpool::{PgPool, PgPoolConn};
-use crate::schema::{authorized_users, instance_family, instance_list, instance_pricing};
+use crate::{
+    pgpool::{PgPool, PgPoolConn},
+    schema::{authorized_users, instance_family, instance_list, instance_pricing},
+};
 
 #[derive(Queryable, Clone, Debug)]
 pub struct InstanceFamily {

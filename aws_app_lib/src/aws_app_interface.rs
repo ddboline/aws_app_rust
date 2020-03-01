@@ -2,27 +2,30 @@ use anyhow::{format_err, Error};
 use chrono::Local;
 use futures::future::{try_join, try_join_all};
 use lazy_static::lazy_static;
-use rayon::iter::{
-    IntoParallelIterator, IntoParallelRefIterator, ParallelExtend, ParallelIterator,
+use rayon::{
+    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelExtend, ParallelIterator},
+    slice::ParallelSliceMut,
 };
-use rayon::slice::ParallelSliceMut;
-use std::collections::{HashMap, HashSet};
-use std::io::{stdout, Write};
-use std::string::String;
-use tokio::sync::RwLock;
-use tokio::task::spawn_blocking;
+use std::{
+    collections::{HashMap, HashSet},
+    io::{stdout, Write},
+    string::String,
+};
+use tokio::{sync::RwLock, task::spawn_blocking};
 use walkdir::WalkDir;
 
-use crate::config::Config;
-use crate::ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest};
-use crate::ecr_instance::EcrInstance;
-use crate::instance_family::InstanceFamilies;
-use crate::models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType};
-use crate::pgpool::PgPool;
-use crate::resource_type::ResourceType;
-use crate::scrape_instance_info::scrape_instance_info;
-use crate::scrape_pricing_info::scrape_pricing_info;
-use crate::ssh_instance::SSHInstance;
+use crate::{
+    config::Config,
+    ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
+    ecr_instance::EcrInstance,
+    instance_family::InstanceFamilies,
+    models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType},
+    pgpool::PgPool,
+    resource_type::ResourceType,
+    scrape_instance_info::scrape_instance_info,
+    scrape_pricing_info::scrape_pricing_info,
+    ssh_instance::SSHInstance,
+};
 
 lazy_static! {
     pub static ref INSTANCE_LIST: RwLock<Vec<Ec2InstanceInfo>> = RwLock::new(Vec::new());

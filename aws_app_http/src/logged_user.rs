@@ -3,8 +3,7 @@ use log::debug;
 pub use rust_auth_server::logged_user::{LoggedUser, AUTHORIZED_USERS, TRIGGER_DB_UPDATE};
 use std::env::var;
 
-use aws_app_lib::models::AuthorizedUsers as AuthorizedUsersDB;
-use aws_app_lib::pgpool::PgPool;
+use aws_app_lib::{models::AuthorizedUsers as AuthorizedUsersDB, pgpool::PgPool};
 
 pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
     debug!("{:?}", *TRIGGER_DB_UPDATE);

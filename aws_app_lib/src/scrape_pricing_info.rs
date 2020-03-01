@@ -6,8 +6,10 @@ use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-use crate::models::{InstancePricingInsert, PricingType};
-use crate::pgpool::PgPool;
+use crate::{
+    models::{InstancePricingInsert, PricingType},
+    pgpool::PgPool,
+};
 
 pub async fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<String>, Error> {
     let mut output = Vec::new();
