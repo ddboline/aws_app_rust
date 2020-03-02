@@ -202,7 +202,7 @@ pub async fn build_spot_request(
         .get_all_ami_tags()
         .await?
         .into_iter()
-        .map(|x| Arc::new(x))
+        .map(Arc::new)
         .collect();
 
     let ami_opt = if let Some(ami_) = &query.ami {
@@ -222,7 +222,7 @@ pub async fn build_spot_request(
     let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
         .await?
         .into_iter()
-        .map(|x| Arc::new(x))
+        .map(Arc::new)
         .collect();
 
     let inst_opt = if let Some(inst) = &query.ami {

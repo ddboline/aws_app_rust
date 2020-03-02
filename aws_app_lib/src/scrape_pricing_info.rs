@@ -62,28 +62,26 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
 }
 
 fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricingInsert>, Error> {
+    fn preserved_filter(p: &PricingEntry) -> bool {
+        fn _cmp(os: Option<&String>, s: &str) -> bool {
+            os.map(String::as_str) == Some(s)
+        }
+        _cmp(p.attributes.get("aws:offerTermLeaseLength"), "1yr")
+            && _cmp(
+                p.attributes.get("aws:offerTermPurchaseOption"),
+                "All Upfront",
+            )
+            && _cmp(p.attributes.get("aws:offerTermOfferingClass"), "standard")
+    }
+
     debug!("prices {}", js.prices.len());
-    let empty = "".to_string();
     js.prices
         .into_iter()
         .filter_map(|p| {
             let get_price = match ptype {
                 PricingType::OnDemand => true,
                 PricingType::Spot => false,
-                PricingType::Reserved => {
-                    p.attributes
-                        .get("aws:offerTermLeaseLength")
-                        .unwrap_or_else(|| &empty)
-                        == "1yr"
-                        && p.attributes
-                            .get("aws:offerTermPurchaseOption")
-                            .unwrap_or_else(|| &empty)
-                            == "All Upfront"
-                        && p.attributes
-                            .get("aws:offerTermOfferingClass")
-                            .unwrap_or_else(|| &empty)
-                            == "standard"
-                }
+                PricingType::Reserved => preserved_filter(&p),
             };
             if get_price {
                 Some(get_instance_pricing(&p, ptype))
