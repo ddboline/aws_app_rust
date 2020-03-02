@@ -10,6 +10,7 @@ use std::{
     fs::{remove_file, File},
     io::{Read, Write},
     path::Path,
+    sync::Arc,
 };
 
 use aws_app_lib::{
@@ -196,7 +197,13 @@ pub async fn build_spot_request(
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
 
-    let mut amis = data.aws.get_all_ami_tags().await?;
+    let mut amis: Vec<_> = data
+        .aws
+        .get_all_ami_tags()
+        .await?
+        .into_iter()
+        .map(|x| Arc::new(x))
+        .collect();
 
     let ami_opt = if let Some(ami_) = &query.ami {
         let mut ami_opt: Vec<_> = amis.iter().filter(|ami| &ami.id == ami_).cloned().collect();
@@ -212,7 +219,11 @@ pub async fn build_spot_request(
         .map(|ami| format!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
         .collect();
 
-    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool).await?;
+    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
+        .await?
+        .into_iter()
+        .map(|x| Arc::new(x))
+        .collect();
 
     let inst_opt = if let Some(inst) = &query.ami {
         let mut inst_opt: Vec<_> = inst_fam
@@ -437,8 +448,7 @@ pub async fn status(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let host = query.instance.clone();
-    let entries = data.aws.handle(query).await?;
+    let entries = data.aws.get_status(&query.instance).await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -450,7 +460,7 @@ pub async fn status(
             <input type="button" name="run_command" value="Run" onclick="runCommand('{host}');"/>
             </form>
         "#,
-            host = host
+            host = query.instance
         ),
         entries.len() + 5,
         entries.join("\n")
@@ -464,8 +474,10 @@ pub async fn command(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let payload = payload.into_inner();
-    let host = payload.instance.clone();
-    let entries = data.aws.handle(payload).await?;
+    let entries = data
+        .aws
+        .run_command(&payload.instance, &payload.command)
+        .await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -477,7 +489,7 @@ pub async fn command(
                 <input type="button" name="run_command" value="Run" onclick="runCommand('{host}');"/>
                 </form>
             "#,
-            host = host
+            host = payload.instance
         ),
         entries.len() + 5,
         entries.join("\n")

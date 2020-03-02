@@ -129,12 +129,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
             }
             ResourceType::Ami => {
                 let ubuntu_ami = async {
-                    let hash = self.config.ubuntu_release.clone();
-                    get_cached!(
-                        hash,
-                        CACHE_UBUNTU_AMI,
-                        self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release)
-                    )
+                    let hash = &self.config.ubuntu_release;
+                    get_cached!(hash, CACHE_UBUNTU_AMI, self.ec2.get_latest_ubuntu_ami(hash))
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
@@ -505,24 +501,8 @@ pub struct StatusRequest {
     pub instance: String,
 }
 
-#[async_trait]
-impl HandleRequest<StatusRequest> for AwsAppInterface {
-    type Result = Result<Vec<String>, Error>;
-    async fn handle(&self, req: StatusRequest) -> Self::Result {
-        self.get_status(&req.instance).await
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CommandRequest {
     pub instance: String,
     pub command: String,
-}
-
-#[async_trait]
-impl HandleRequest<CommandRequest> for AwsAppInterface {
-    type Result = Result<Vec<String>, Error>;
-    async fn handle(&self, req: CommandRequest) -> Self::Result {
-        self.run_command(&req.instance, &req.command).await
-    }
 }
