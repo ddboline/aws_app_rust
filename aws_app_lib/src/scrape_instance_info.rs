@@ -44,13 +44,12 @@ fn parse_result(
     match generation {
         AwsGeneration::HVM => {
             for c in doc.find(Class("lb-grid")) {
-                let mut family_type = "".to_string();
-                for d in c.find(Class("lb-title")) {
-                    family_type = d.text().trim().to_string();
-                }
-                if family_type == "" {
+                let family_type = if let Some(d) = c.find(Class("lb-title")).into_iter().last() {
+                    d.text().trim().to_string()
+                } else {
                     continue;
-                }
+                };
+
                 for d in c.find(Class("lb-txt-none")) {
                     let family_name = d.text().trim().to_lowercase();
                     if family_name.contains(' ') {
