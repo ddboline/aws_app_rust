@@ -139,7 +139,13 @@ impl AwsAppInterface {
                 output.par_extend(reserved.par_iter().map(|res| {
                     format!(
                         "{} {} {} {} {}",
-                        res.id, res.price, res.instance_type, res.state, res.availability_zone
+                        res.id,
+                        res.price,
+                        res.instance_type,
+                        res.state,
+                        res.availability_zone
+                            .as_ref()
+                            .map_or_else(|| "", String::as_str)
                     )
                 }));
             }

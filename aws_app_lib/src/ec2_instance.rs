@@ -33,6 +33,8 @@ macro_rules! some {
     };
 }
 
+static UBUNTU_OWNER: &str = "099720109477";
+
 #[derive(Clone)]
 pub struct Ec2Instance {
     ec2_client: Ec2Client,
@@ -123,12 +125,11 @@ impl Ec2Instance {
         &self,
         ubuntu_release: &str,
     ) -> Result<Option<AmiInfo>, Error> {
-        let ubuntu_owner = "099720109477".to_string();
         let request = DescribeImagesRequest {
             filters: Some(vec![
                 Filter {
                     name: Some("owner-id".to_string()),
-                    values: Some(vec![ubuntu_owner]),
+                    values: Some(vec![UBUNTU_OWNER.to_string()]),
                 },
                 Filter {
                     name: Some("name".to_string()),
@@ -244,9 +245,7 @@ impl Ec2Instance {
                             price: some!(inst.fixed_price),
                             instance_type: some!(inst.instance_type),
                             state: some!(inst.state),
-                            availability_zone: inst
-                                .availability_zone
-                                .unwrap_or_else(|| "".to_string()),
+                            availability_zone: inst.availability_zone,
                         })
                     })
                     .collect()
@@ -258,6 +257,18 @@ impl Ec2Instance {
         &self,
         inst_list: &[String],
     ) -> Result<HashMap<String, f32>, Error> {
+        // TODO: Generalize this beyond us-east-1...
+        let zones: Vec<_> = [
+            "us-east-1a",
+            "us-east-1b",
+            "us-east-1c",
+            "us-east-1d",
+            "us-east-1e",
+            "us-east-1f",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
         let filters = vec![
             Filter {
                 name: Some("product-description".to_string()),
@@ -265,14 +276,7 @@ impl Ec2Instance {
             },
             Filter {
                 name: Some("availability-zone".to_string()),
-                values: Some(vec![
-                    "us-east-1a".to_string(),
-                    "us-east-1b".to_string(),
-                    "us-east-1c".to_string(),
-                    "us-east-1d".to_string(),
-                    "us-east-1e".to_string(),
-                    "us-east-1f".to_string(),
-                ]),
+                values: Some(zones),
             },
         ];
         let start_time = Utc::now() - Duration::hours(4);
@@ -320,15 +324,11 @@ impl Ec2Instance {
                                 .spot_price
                                 .and_then(|s| s.parse::<f32>().ok())
                                 .unwrap_or(0.0),
-                            instance_type: launch_spec
-                                .instance_type
-                                .unwrap_or_else(|| "".to_string()),
-                            spot_type: inst.type_.unwrap_or_else(|| "".to_string()),
-                            status: match inst.status {
-                                Some(s) => s.code.unwrap_or_else(|| "".to_string()),
-                                None => "".to_string(),
-                            },
-                            imageid: launch_spec.image_id.unwrap_or_else(|| "".to_string()),
+                            instance_type: some!(launch_spec
+                                .instance_type),
+                            spot_type: some!(inst.type_),
+                            status: some!(some!(inst.status).code),
+                            imageid: some!(launch_spec.image_id),
                             instance_id: inst.instance_id,
                         })
                     })
@@ -712,7 +712,7 @@ pub struct ReservedInstanceInfo {
     pub price: f32,
     pub instance_type: String,
     pub state: String,
-    pub availability_zone: String,
+    pub availability_zone: Option<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]

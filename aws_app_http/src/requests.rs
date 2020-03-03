@@ -89,7 +89,13 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             r#"<tr style="text-align: center;">
                                 <td>{}</td><td>${:0.2}</td><td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
-                            res.id, res.price, res.instance_type, res.state, res.availability_zone
+                            res.id,
+                            res.price,
+                            res.instance_type,
+                            res.state,
+                            res.availability_zone
+                                .as_ref()
+                                .map_or_else(|| "", String::as_str)
                         )
                     })
                     .collect();
