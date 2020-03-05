@@ -324,8 +324,7 @@ impl Ec2Instance {
                                 .spot_price
                                 .and_then(|s| s.parse::<f32>().ok())
                                 .unwrap_or(0.0),
-                            instance_type: some!(launch_spec
-                                .instance_type),
+                            instance_type: some!(launch_spec.instance_type),
                             spot_type: some!(inst.type_),
                             status: some!(some!(inst.status).code),
                             imageid: some!(launch_spec.image_id),
