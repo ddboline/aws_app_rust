@@ -44,7 +44,7 @@ fn parse_result(
     match generation {
         AwsGeneration::HVM => {
             for c in doc.find(Class("lb-grid")) {
-                let family_type = if let Some(d) = c.find(Class("lb-title")).into_iter().last() {
+                let family_type = if let Some(d) = c.find(Class("lb-title")).last() {
                     d.text().trim().to_string()
                 } else {
                     continue;

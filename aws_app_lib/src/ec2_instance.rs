@@ -267,7 +267,7 @@ impl Ec2Instance {
             "us-east-1f",
         ]
         .iter()
-        .map(|s| s.to_string())
+        .map(|s| (*s).to_string())
         .collect();
         let filters = vec![
             Filter {
