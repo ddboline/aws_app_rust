@@ -15,6 +15,7 @@ pub struct ConfigInner {
     pub port: u32,
     pub secret_key: String,
     pub domain: String,
+    pub novnc_path: Option<String>,
 }
 
 macro_rules! set_config_ok {
@@ -110,6 +111,7 @@ impl Config {
         set_config_ok!(conf, my_owner_id);
         set_config_parse!(conf, max_spot_price, 0.20);
         set_config_parse!(conf, port, 3096);
+        set_config_ok!(conf, novnc_path);
 
         Ok(Self(Arc::new(conf)))
     }
