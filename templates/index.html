@@ -215,7 +215,7 @@ DISPLAY_TEXT
     function updateScriptAndBuildSpotRequest(script) {
         let url = '/aws/replace_script';
         let text = document.getElementById( 'script_editor_form' );
-        let data = JSON.stringify({'filename': filename, 'text': text.value});
+        let data = JSON.stringify({'filename': script, 'text': text.value});
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.open('POST', url, true);
         xmlhttp.onload = function see_result() {
