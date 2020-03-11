@@ -3,7 +3,6 @@ use actix_web::{
     web::{Data, Json, Query},
     HttpResponse,
 };
-use aws_app_lib::resource_type::ResourceType;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -17,6 +16,7 @@ use aws_app_lib::{
     config::Config,
     ec2_instance::SpotRequest,
     models::{InstanceFamily, InstanceList},
+    resource_type::ResourceType,
 };
 
 use super::{
@@ -24,8 +24,9 @@ use super::{
     errors::ServiceError as Error,
     logged_user::LoggedUser,
     requests::{
-        CleanupEcrImagesRequest, CommandRequest, DeleteEcrImageRequest, DeleteImageRequest,
-        DeleteSnapshotRequest, DeleteVolumeRequest, HandleRequest, StatusRequest, TerminateRequest,
+        get_websock_pids, CleanupEcrImagesRequest, CommandRequest, DeleteEcrImageRequest,
+        DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest, HandleRequest,
+        NoVncStartRequest, NoVncStatusRequest, NoVncStopRequest, StatusRequest, TerminateRequest,
     },
 };
 
@@ -514,4 +515,39 @@ pub async fn get_instances(
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .collect();
     form_http_response(instances.join("\n"))
+}
+
+pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+    data.aws.handle(NoVncStartRequest {}).await?;
+    let body = format!(
+        r#"<a href="https://{}:8787/vnc.html">Connect to NoVNC</a>"#,
+        &data.aws.config.domain
+    );
+    form_http_response(body)
+}
+
+pub async fn novnc_shutdown(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+    data.aws.handle(NoVncStopRequest {}).await?;
+    form_http_response("novnc stopped".to_string())
+}
+
+pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+    let number = data.aws.handle(NoVncStatusRequest {}).await;
+    let body = if number == 0 {
+        r#"
+            <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
+        "#.to_string()
+    } else {
+        let pids = get_websock_pids().await?;
+        format!(
+            r#"{} processes currenty running {:?}
+                <br>
+                <a href="https://{}:8787/vnc.html">Connect to NoVNC</a>
+                <br>
+                <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
+            "#,
+            number, pids, &data.aws.config.domain,
+        )
+    };
+    form_http_response(body)
 }

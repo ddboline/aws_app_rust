@@ -64,6 +64,7 @@ footer {
 <input type="button" name="list_requests" value="SpotRequests" onclick="listResource('spot');"/>
 <input type="button" name="list_scripts" value="Scripts" onclick="listResource('script');"/>
 <input type="button" name="list_price" value="Price" onclick="listAllPrices()"/>
+<input type="button" name="novnc" value="NoVNC" onclick="noVncTab('/aws/novnc/status')"/>
 <input type="button" name="update" value="Update" onclick="updateMetadata()"/>
 <button name="garminconnectoutput" id="garminconnectoutput"> &nbsp; </button>
 
@@ -333,6 +334,17 @@ DISPLAY_TEXT
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
+    }
+    function noVncTab(url) {
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("sub_article").innerHTML = "&nbsp;";
+            document.getElementById("main_article").innerHTML = xmlhttp.responseText;
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
     }
 </script>
 
