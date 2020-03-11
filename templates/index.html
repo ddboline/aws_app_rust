@@ -212,6 +212,20 @@ DISPLAY_TEXT
         document.getElementById("sub_article").innerHTML = "&nbsp;";
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function updateScriptAndBuildSpotRequest(script) {
+        let url = '/aws/replace_script';
+        let text = document.getElementById( 'script_editor_form' );
+        let data = JSON.stringify({'filename': filename, 'text': text.value});
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.open('POST', url, true);
+        xmlhttp.onload = function see_result() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            buildSpotRequest(null, null, script);
+        }
+        xmlhttp.setRequestHeader('Content-Type', 'application/json');
+        xmlhttp.send(data);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
     function requestSpotInstance() {
         let url = "/aws/request_spot";
 

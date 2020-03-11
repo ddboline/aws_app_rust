@@ -143,6 +143,7 @@ pub async fn edit_script(
         <form id="script_edit_form">
         <input type="button" name="update" value="Update" onclick="submitFormData('{fname}')">
         <input type="button" name="cancel" value="Cancel" onclick="listResource('script')">
+        <input type="button" name="Request" value="Request" onclick="updateScriptAndBuildSpotRequest(null, null, '{fname}')">
         </form>"#,
         text = text,
         fname = &query.filename,
