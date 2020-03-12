@@ -11,7 +11,7 @@ use std::{
     io::{stdout, Write},
     string::String,
 };
-use tokio::{sync::RwLock, task::spawn_blocking};
+use tokio::sync::RwLock;
 use walkdir::WalkDir;
 
 use crate::{
@@ -239,24 +239,23 @@ impl AwsAppInterface {
                 }
                 output.push("---\nECR images".to_string());
 
-                let futures = repos.into_iter().map(|repo| async {
-                    let images = self.ecr.get_all_images(&repo).await?;
-                    let lines: Vec<String> = spawn_blocking(move || {
-                        images
-                            .par_iter()
-                            .map(|image| {
-                                format!(
-                                    "{} {} {} {} {:0.2} MB",
-                                    repo,
-                                    image.tags.get(0).map_or_else(|| "None", String::as_str),
-                                    image.digest,
-                                    image.pushed_at,
-                                    image.image_size,
-                                )
-                            })
-                            .collect()
-                    })
-                    .await?;
+                let futures = repos.into_iter().map(|repo| async move {
+                    let lines: Vec<_> = self
+                        .ecr
+                        .get_all_images(&repo)
+                        .await?
+                        .into_par_iter()
+                        .map(|image| {
+                            format!(
+                                "{} {} {} {} {:0.2} MB",
+                                repo,
+                                image.tags.get(0).map_or_else(|| "None", String::as_str),
+                                image.digest,
+                                image.pushed_at,
+                                image.image_size,
+                            )
+                        })
+                        .collect();
                     Ok(lines)
                 });
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;
@@ -347,10 +346,10 @@ impl AwsAppInterface {
         if let Some(host) = id_host_map.get(&inst_id) {
             let command = command.to_owned();
             let host = host.to_owned();
-            spawn_blocking(move || {
-                SSHInstance::new("ubuntu", &host, 22).run_command_stream_stdout(&command)
-            })
-            .await?
+            SSHInstance::new("ubuntu", &host, 22)
+                .await
+                .run_command_stream_stdout(&command)
+                .await
         } else {
             Ok(Vec::new())
         }
