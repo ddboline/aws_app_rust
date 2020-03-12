@@ -517,15 +517,27 @@ pub async fn get_instances(
     form_http_response(instances.join("\n"))
 }
 
+async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Error> {
+    let pids = get_websock_pids().await?;
+    Ok(format!(
+        r#"{} processes currenty running {:?}
+            <br>
+            <a href="https://{}:8787/vnc.html">Connect to NoVNC</a>
+            <br>
+            <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
+        "#,
+        number, pids, &domain,
+    ))
+}
+
 pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
     if data.aws.config.novnc_path.is_none() {
         return form_http_response("NoVNC not configured".to_string());
     }
     data.aws.handle(NoVncStartRequest {}).await?;
-    let body = format!(
-        r#"<a href="https://{}:8787/vnc.html">Connect to NoVNC</a>"#,
-        &data.aws.config.domain
-    );
+
+    let number = data.aws.handle(NoVncStatusRequest {}).await;
+    let body = novnc_status_response(number, &data.aws.config.domain).await?;
     form_http_response(body)
 }
 
@@ -547,16 +559,7 @@ pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpRes
             <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
         "#.to_string()
     } else {
-        let pids = get_websock_pids().await?;
-        format!(
-            r#"{} processes currenty running {:?}
-                <br>
-                <a href="https://{}:8787/vnc.html">Connect to NoVNC</a>
-                <br>
-                <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
-            "#,
-            number, pids, &data.aws.config.domain,
-        )
+        novnc_status_response(number, &data.aws.config.domain).await?
     };
     form_http_response(body)
 }
