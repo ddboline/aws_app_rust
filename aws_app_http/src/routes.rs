@@ -518,6 +518,9 @@ pub async fn get_instances(
 }
 
 pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+    if data.aws.config.novnc_path.is_none() {
+        return form_http_response("NoVNC not configured".to_string());
+    }
     data.aws.handle(NoVncStartRequest {}).await?;
     let body = format!(
         r#"<a href="https://{}:8787/vnc.html">Connect to NoVNC</a>"#,
@@ -527,11 +530,17 @@ pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
 }
 
 pub async fn novnc_shutdown(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+    if data.aws.config.novnc_path.is_none() {
+        return form_http_response("NoVNC not configured".to_string());
+    }
     data.aws.handle(NoVncStopRequest {}).await?;
     form_http_response("novnc stopped".to_string())
 }
 
 pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+    if data.aws.config.novnc_path.is_none() {
+        return form_http_response("NoVNC not configured".to_string());
+    }
     let number = data.aws.handle(NoVncStatusRequest {}).await;
     let body = if number == 0 {
         r#"
