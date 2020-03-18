@@ -419,7 +419,7 @@ impl Ec2Instance {
         let req = self
             .ec2_client
             .request_spot_instances(RequestSpotInstancesRequest {
-                spot_price: Some(spot.price.to_string()),
+                spot_price: spot.price.map(|x| x.to_string()),
                 instance_count: Some(1),
                 launch_specification: Some(RequestSpotLaunchSpecification {
                     image_id: Some(spot.ami.to_string()),
@@ -682,7 +682,7 @@ pub struct SpotRequest {
     pub security_group: String,
     pub script: String,
     pub key_name: String,
-    pub price: f32,
+    pub price: Option<f32>,
     pub tags: HashMap<String, String>,
 }
 

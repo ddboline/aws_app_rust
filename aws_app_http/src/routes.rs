@@ -13,7 +13,6 @@ use std::{
 };
 
 use aws_app_lib::{
-    config::Config,
     ec2_instance::SpotRequest,
     models::{InstanceFamily, InstanceList},
     resource_type::ResourceType,
@@ -315,15 +314,15 @@ pub struct SpotRequestData {
     pub name: String,
 }
 
-impl SpotRequestData {
-    pub fn into_spot_request(self, config: &Config) -> SpotRequest {
+impl Into<SpotRequest> for SpotRequestData {
+    fn into(self) -> SpotRequest {
         SpotRequest {
             ami: self.ami,
             instance_type: self.instance_type,
             security_group: self.security_group,
             script: self.script,
             key_name: self.key_name,
-            price: self.price.parse().unwrap_or(config.max_spot_price),
+            price: self.price.parse().ok(),
             tags: hashmap! { "Name".to_string() => self.name },
         }
     }
@@ -334,7 +333,7 @@ pub async fn request_spot(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let req = req.into_inner().into_spot_request(&data.aws.config);
+    let req = req.into_inner().into();
     data.aws.ec2.request_spot_instance(&req).await?;
     form_http_response("done".to_string())
 }

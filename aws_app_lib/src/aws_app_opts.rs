@@ -68,7 +68,7 @@ impl SpotRequestOpt {
             key_name: self
                 .key_name
                 .unwrap_or_else(|| config.default_key_name.to_string()),
-            price: self.price.unwrap_or(config.max_spot_price),
+            price: self.price,
             tags: get_tags(&self.tags),
         }
     }
