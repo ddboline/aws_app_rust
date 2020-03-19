@@ -168,7 +168,7 @@ fn extract_instance_family_object_pv(
     let family_type = row[indicies[0]].to_string();
     let family_name = row[indicies[1]]
         .split('.')
-        .nth(0)
+        .next()
         .ok_or_else(|| format_err!("No family type"))?
         .to_string();
     Ok(InstanceFamilyInsert {

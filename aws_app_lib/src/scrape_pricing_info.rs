@@ -44,11 +44,11 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
     let condition = |l: &&str| l.contains("data-service-url") && l.contains("/linux/");
     body.split('\n')
         .filter(condition)
-        .nth(0)
+        .next()
         .and_then(|line| {
             line.split_whitespace()
                 .filter(condition)
-                .nth(0)
+                .next()
                 .and_then(|entry| {
                     entry.split('=').nth(1).and_then(|s| {
                         s.replace('"', "")

@@ -312,7 +312,7 @@ impl AwsAppOpts {
                 instances.par_sort_by_key(|i| {
                     i.instance_type
                         .split('.')
-                        .nth(0)
+                        .next()
                         .unwrap_or_else(|| "")
                         .to_string()
                 });

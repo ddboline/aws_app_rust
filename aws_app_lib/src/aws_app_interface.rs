@@ -400,7 +400,7 @@ impl AwsAppInterface {
                     .ok_or_else(|| format_err!("this should be impossible {}", inst))?;
                 let inst_fam = inst
                     .split('.')
-                    .nth(0)
+                    .next()
                     .ok_or_else(|| format_err!("invalid instance name {}", inst))?;
                 let instance_family = instance_families
                     .get(inst_fam)

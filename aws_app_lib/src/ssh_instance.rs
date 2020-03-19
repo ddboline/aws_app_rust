@@ -49,7 +49,7 @@ impl SSHInstance {
                 .output()
                 .await?;
             let output = String::from_utf8(output.stdout)?;
-            let output: Vec<_> = output.split('\n').map(|s| s.to_string()).collect();
+            let output: Vec<_> = output.split('\n').map(ToString::to_string).collect();
             Ok(output)
         } else {
             Err(format_err!("Failed to acquire lock"))
