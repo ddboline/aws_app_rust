@@ -43,12 +43,10 @@ async fn extract_json_url(url: Url) -> Result<Url, Error> {
 fn parse_json_url_body(body: &str) -> Result<Url, Error> {
     let condition = |l: &&str| l.contains("data-service-url") && l.contains("/linux/");
     body.split('\n')
-        .filter(condition)
-        .next()
+        .find(condition)
         .and_then(|line| {
             line.split_whitespace()
-                .filter(condition)
-                .next()
+                .find(condition)
                 .and_then(|entry| {
                     entry.split('=').nth(1).and_then(|s| {
                         s.replace('"', "")
