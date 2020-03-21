@@ -2,8 +2,10 @@ use anyhow::{format_err, Error};
 use lazy_static::lazy_static;
 use log::debug;
 use std::collections::HashMap;
-use tokio::process::Command;
-use tokio::sync::{Mutex, RwLock};
+use tokio::{
+    process::Command,
+    sync::{Mutex, RwLock},
+};
 
 lazy_static! {
     static ref LOCK_CACHE: RwLock<HashMap<String, Mutex<()>>> = RwLock::new(HashMap::new());

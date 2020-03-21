@@ -9,11 +9,11 @@ use rayon::{
     slice::ParallelSliceMut,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
-use std::process::Stdio;
-use tokio::process::{Child, Command};
-use tokio::sync::{Mutex, RwLock};
+use std::{collections::HashMap, path::Path, process::Stdio};
+use tokio::{
+    process::{Child, Command},
+    sync::{Mutex, RwLock},
+};
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},

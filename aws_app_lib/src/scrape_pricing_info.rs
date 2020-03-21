@@ -45,16 +45,14 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
     body.split('\n')
         .find(condition)
         .and_then(|line| {
-            line.split_whitespace()
-                .find(condition)
-                .and_then(|entry| {
-                    entry.split('=').nth(1).and_then(|s| {
-                        s.replace('"', "")
-                            .replace(r#"{{region}}"#, "us-east-1")
-                            .parse()
-                            .ok()
-                    })
+            line.split_whitespace().find(condition).and_then(|entry| {
+                entry.split('=').nth(1).and_then(|s| {
+                    s.replace('"', "")
+                        .replace(r#"{{region}}"#, "us-east-1")
+                        .parse()
+                        .ok()
                 })
+            })
         })
         .ok_or_else(|| format_err!("No url"))
 }
