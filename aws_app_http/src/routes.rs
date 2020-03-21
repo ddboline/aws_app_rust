@@ -35,6 +35,13 @@ fn form_http_response(body: String) -> Result<HttpResponse, Error> {
         .body(body))
 }
 
+fn to_json<T>(js: T) -> Result<HttpResponse, Error>
+where
+    T: Serialize,
+{
+    Ok(HttpResponse::Ok().json(js))
+}
+
 pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
     let results = data.aws.handle(ResourceType::Instances).await?;
     let body =
@@ -561,4 +568,8 @@ pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpRes
         novnc_status_response(number, &data.aws.config.domain).await?
     };
     form_http_response(body)
+}
+
+pub async fn user(user: LoggedUser, _: Data<AppState>) -> Result<HttpResponse, Error> {
+    to_json(user)
 }

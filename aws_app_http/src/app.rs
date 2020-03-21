@@ -12,7 +12,7 @@ use super::{
         build_spot_request, cleanup_ecr_images, command, delete_ecr_image, delete_image,
         delete_script, delete_snapshot, delete_volume, edit_script, get_instances, get_prices,
         list, novnc_launcher, novnc_shutdown, novnc_status, replace_script, request_spot, status,
-        sync_frontpage, terminate, update,
+        sync_frontpage, terminate, update, user,
     },
 };
 
@@ -74,6 +74,7 @@ pub async fn start_app() {
             .service(web::resource("/aws/novnc/start").route(web::get().to(novnc_launcher)))
             .service(web::resource("/aws/novnc/status").route(web::get().to(novnc_status)))
             .service(web::resource("/aws/novnc/stop").route(web::get().to(novnc_shutdown)))
+            .service(web::resource("/aws/user").route(web::get().to(user)))
     })
     .bind(&format!("127.0.0.1:{}", port))
     .unwrap_or_else(|_| panic!("Failed to bind to port {}", port))
