@@ -257,6 +257,17 @@ DISPLAY_TEXT
         xmlhttp.send(data);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function cancelSpotRequest(spot_id) {
+        let url = "/aws/cancel_spot?spot_id=" + spot_id;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('spot');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.set(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
     function listAllPrices() {
         let url = "/aws/prices";
         let xmlhttp = new XMLHttpRequest();

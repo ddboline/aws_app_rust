@@ -1,6 +1,6 @@
 use anyhow::{format_err, Error};
 use chrono::Local;
-use futures::future::{try_join, try_join_all};
+use futures::future::try_join_all;
 use lazy_static::lazy_static;
 use rayon::{
     iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelExtend, ParallelIterator},
@@ -12,6 +12,7 @@ use std::{
     string::String,
 };
 use tokio::sync::RwLock;
+use tokio::try_join;
 use walkdir::WalkDir;
 
 use crate::{
@@ -66,23 +67,18 @@ impl AwsAppInterface {
     }
 
     pub async fn update(&self) -> Result<Vec<String>, Error> {
-        let instances: Vec<_> = try_join_all(vec![
+        let (hvm, pv, res, ond) = try_join!(
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
             scrape_instance_info(AwsGeneration::PV, &self.pool),
-        ])
-        .await?;
-        let pricing: Vec<_> = try_join_all(vec![
             scrape_pricing_info(PricingType::Reserved, &self.pool),
             scrape_pricing_info(PricingType::OnDemand, &self.pool),
-        ])
-        .await?;
-
-        let output: Vec<_> = instances
+        )?;
+        let output: Vec<_> = hvm
             .into_iter()
-            .chain(pricing.into_iter())
-            .flatten()
+            .chain(pv.into_iter())
+            .chain(res.into_iter())
+            .chain(ond.into_iter())
             .collect();
-
         Ok(output)
     }
 
@@ -170,7 +166,7 @@ impl AwsAppInterface {
             ResourceType::Ami => {
                 let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, mut ami_tags) = try_join(ubuntu_ami, ami_tags).await?;
+                let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
 
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());

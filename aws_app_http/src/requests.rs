@@ -2,7 +2,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 use cached::{Cached, TimedCache};
 use chrono::Local;
-use futures::future::{try_join, try_join_all};
+use futures::future::try_join_all;
 use lazy_static::lazy_static;
 use rayon::{
     iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
@@ -13,6 +13,7 @@ use std::{collections::HashMap, path::Path, process::Stdio};
 use tokio::{
     process::{Child, Command},
     sync::{Mutex, RwLock},
+    try_join,
 };
 
 use aws_app_lib::{
@@ -123,14 +124,24 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .map(|req| {
                         format!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>${}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>${}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
                             req.id,
                             req.price,
                             req.imageid,
                             req.instance_type,
                             req.spot_type,
-                            req.status
+                            req.status,
+                            if req.status == "pending" {
+                                format!(
+                                    r#"<input type="button" name="cancel" value="Cancel"
+                                        onclick="cancelSpotRequest('{}')">"#,
+                                    req.id
+                                )
+                            } else {
+                                "".to_string()
+                            }
                         )
                     })
                     .collect();
@@ -144,7 +155,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, mut ami_tags) = try_join(ubuntu_ami, ami_tags).await?;
+                let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
 
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());

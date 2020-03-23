@@ -346,6 +346,24 @@ pub async fn request_spot(
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct CancelSpotRequest {
+    pub spot_id: String,
+}
+
+pub async fn cancel_spot(
+    query: Query<CancelSpotRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let query = query.into_inner();
+    data.aws
+        .ec2
+        .cancel_spot_instance_request(&[query.spot_id])
+        .await?;
+    form_http_response("".to_string())
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct PriceRequest {
     pub search: Option<String>,
 }

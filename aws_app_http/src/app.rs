@@ -12,7 +12,7 @@ use super::{
         build_spot_request, cleanup_ecr_images, command, delete_ecr_image, delete_image,
         delete_script, delete_snapshot, delete_volume, edit_script, get_instances, get_prices,
         list, novnc_launcher, novnc_shutdown, novnc_status, replace_script, request_spot, status,
-        sync_frontpage, terminate, update, user,
+        sync_frontpage, terminate, update, user, cancel_spot,
     },
 };
 
@@ -66,6 +66,7 @@ pub async fn start_app() {
                 web::resource("/aws/build_spot_request").route(web::get().to(build_spot_request)),
             )
             .service(web::resource("/aws/request_spot").route(web::post().to(request_spot)))
+            .service(web::resource("/aws/cancel_spot").route(web::get().to(cancel_spot)))
             .service(web::resource("/aws/prices").route(web::get().to(get_prices)))
             .service(web::resource("/aws/update").route(web::get().to(update)))
             .service(web::resource("/aws/status").route(web::get().to(status)))
