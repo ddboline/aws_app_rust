@@ -4,6 +4,7 @@ use cached::{Cached, TimedCache};
 use chrono::Local;
 use futures::future::try_join_all;
 use lazy_static::lazy_static;
+use log::debug;
 use rayon::{
     iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
     slice::ParallelSliceMut,
@@ -555,6 +556,8 @@ impl HandleRequest<NoVncStartRequest> for AwsAppInterface {
                         ":0",
                     ])
                     .kill_on_drop(true)
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
                 let websockify_command = Command::new("sudo")
                     .args(&[
@@ -570,6 +573,8 @@ impl HandleRequest<NoVncStartRequest> for AwsAppInterface {
                         "localhost:5900",
                     ])
                     .kill_on_drop(true)
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
 
                 let mut children = NOVNC_CHILDREN.write().await;
@@ -585,10 +590,14 @@ pub struct NoVncStopRequest {}
 
 #[async_trait]
 impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
+    type Result = Result<Vec<String>, Error>;
     async fn handle(&self, _: NoVncStopRequest) -> Self::Result {
         let mut children = NOVNC_CHILDREN.write().await;
-        children.clear();
+        for child in children.iter_mut() {
+            if let Err(e) = child.kill() {
+                debug!("Failed to kill {}", e);
+            }
+        }
 
         let mut kill = Command::new("sudo");
         kill.args(&["kill", "-9"]);
@@ -596,7 +605,18 @@ impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
         kill.args(ids);
         let kill = kill.spawn()?;
         kill.wait_with_output().await?;
-        Ok(())
+
+        let mut output = Vec::new();
+        while let Some(mut child) = children.pop() {
+            if let Err(e) = child.kill() {
+                debug!("Failed to kill {}", e);
+            }
+            let result = child.wait_with_output().await?;
+            output.push(String::from_utf8(result.stdout)?);
+            output.push(String::from_utf8(result.stderr)?);
+        }
+        children.clear();
+        Ok(output)
     }
 }
 

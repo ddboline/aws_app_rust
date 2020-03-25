@@ -9,10 +9,10 @@ use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::Pg
 use super::{
     logged_user::{fill_from_db, TRIGGER_DB_UPDATE},
     routes::{
-        build_spot_request, cleanup_ecr_images, command, delete_ecr_image, delete_image,
-        delete_script, delete_snapshot, delete_volume, edit_script, get_instances, get_prices,
-        list, novnc_launcher, novnc_shutdown, novnc_status, replace_script, request_spot, status,
-        sync_frontpage, terminate, update, user, cancel_spot,
+        build_spot_request, cancel_spot, cleanup_ecr_images, command, delete_ecr_image,
+        delete_image, delete_script, delete_snapshot, delete_volume, edit_script, get_instances,
+        get_prices, list, novnc_launcher, novnc_shutdown, novnc_status, replace_script,
+        request_spot, status, sync_frontpage, terminate, update, user,
     },
 };
 

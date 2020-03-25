@@ -569,8 +569,12 @@ pub async fn novnc_shutdown(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
     if data.aws.config.novnc_path.is_none() {
         return form_http_response("NoVNC not configured".to_string());
     }
-    data.aws.handle(NoVncStopRequest {}).await?;
-    form_http_response("novnc stopped".to_string())
+    let output = data.aws.handle(NoVncStopRequest {}).await?;
+    let body = format!(
+        "<textarea cols=100 rows=50>{}</textarea>",
+        output.join("\n")
+    );
+    form_http_response(body)
 }
 
 pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
