@@ -11,8 +11,7 @@ use std::{
     io::{stdout, Write},
     string::String,
 };
-use tokio::sync::RwLock;
-use tokio::try_join;
+use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
 
 use crate::{
