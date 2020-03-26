@@ -122,39 +122,44 @@ impl AwsAppInterface {
                     .collect();
 
                 if !result.is_empty() {
-                    self.stdout.send("instances:".to_string())?;
-                    self.stdout.send_all(result)?;
+                    self.stdout
+                        .send(format!("instances:\n{}", result.join("\n")))?;
                 }
             }
             ResourceType::Reserved => {
-                let reserved = self.ec2.get_reserved_instances().await?;
+                let reserved: Vec<_> = self
+                    .ec2
+                    .get_reserved_instances()
+                    .await?
+                    .into_iter()
+                    .map(|res| {
+                        format!(
+                            "{} {} {} {} {}",
+                            res.id,
+                            res.price,
+                            res.instance_type,
+                            res.state,
+                            res.availability_zone
+                                .as_ref()
+                                .map_or_else(|| "", String::as_str)
+                        )
+                    })
+                    .collect();
                 if reserved.is_empty() {
                     return Ok(());
                 }
-                self.stdout
-                    .send("---\nGet Reserved Instance\n---".to_string())?;
-                self.stdout.send_all(reserved.into_iter().map(|res| {
-                    format!(
-                        "{} {} {} {} {}",
-                        res.id,
-                        res.price,
-                        res.instance_type,
-                        res.state,
-                        res.availability_zone
-                            .as_ref()
-                            .map_or_else(|| "", String::as_str)
-                    )
-                }))?;
+                self.stdout.send(format!(
+                    "---\nGet Reserved Instance\n---\n{}",
+                    reserved.join("\n")
+                ))?;
             }
             ResourceType::Spot => {
-                let requests = self.ec2.get_spot_instance_requests().await?;
-                if requests.is_empty() {
-                    return Ok(());
-                }
-                self.stdout
-                    .send("---\nSpot Instance Requests:".to_string())?;
-                self.stdout.send_all(
-                    requests.into_iter().map(|req| {
+                let requests: Vec<_> = self
+                    .ec2
+                    .get_spot_instance_requests()
+                    .await?
+                    .into_iter()
+                    .map(|req| {
                         format!(
                             "{} {} {} {} {} {}",
                             req.id,
@@ -165,7 +170,14 @@ impl AwsAppInterface {
                             req.status
                         )
                     })
-                )?;
+                    .collect();
+                if requests.is_empty() {
+                    return Ok(());
+                }
+                self.stdout.send(format!(
+                    "---\nSpot Instance Requests:\n{}",
+                    requests.join("\n")
+                ))?;
             }
             ResourceType::Ami => {
                 let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
@@ -178,9 +190,9 @@ impl AwsAppInterface {
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
-                self.stdout.send("---\nAMI's:".to_string())?;
-                self.stdout.send_all(
-                    ami_tags.into_iter().map(|ami| {
+                let ami_tags: Vec<_> = ami_tags
+                    .into_iter()
+                    .map(|ami| {
                         format!(
                             "{} {} {} {}",
                             ami.id,
@@ -189,51 +201,73 @@ impl AwsAppInterface {
                             ami.snapshot_ids.join(" ")
                         )
                     })
-                )?;
+                    .collect();
+                self.stdout
+                    .send(format!("---\nAMI's:\n{}", ami_tags.join("\n")))?;
             }
             ResourceType::Key => {
-                let keys = self.ec2.get_all_key_pairs().await?;
-                self.stdout.send("---\nKeys:".to_string())?;
-                self.stdout.send_all(keys.into_iter().map(|(key, fingerprint)| format!("{} {}", key, fingerprint)))?;
+                let keys: Vec<_> = self
+                    .ec2
+                    .get_all_key_pairs()
+                    .await?
+                    .into_iter()
+                    .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
+                    .collect();
+                self.stdout
+                    .send(format!("---\nKeys:\n{}", keys.join("\n")))?;
             }
             ResourceType::Volume => {
-                let volumes = self.ec2.get_all_volumes().await?;
+                let volumes: Vec<_> = self
+                    .ec2
+                    .get_all_volumes()
+                    .await?
+                    .into_iter()
+                    .map(|vol| {
+                        format!(
+                            "{} {} {} {} {} {}",
+                            vol.id,
+                            vol.availability_zone,
+                            vol.size,
+                            vol.iops,
+                            vol.state,
+                            print_tags(&vol.tags)
+                        )
+                    })
+                    .collect();
                 if volumes.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send("---\nVolumes:".to_string())?;
-                self.stdout.send_all(volumes.into_iter().map(|vol| format!(
-                        "{} {} {} {} {} {}",
-                        vol.id,
-                        vol.availability_zone,
-                        vol.size,
-                        vol.iops,
-                        vol.state,
-                        print_tags(&vol.tags)
-                    )))?;
+                self.stdout
+                    .send(format!("---\nVolumes:\n{}", volumes.join("\n")))?;
             }
             ResourceType::Snapshot => {
-                let snapshots = self.ec2.get_all_snapshots().await?;
+                let snapshots: Vec<_> = self
+                    .ec2
+                    .get_all_snapshots()
+                    .await?
+                    .into_iter()
+                    .map(|snap| {
+                        format!(
+                            "{} {} GB {} {} {}",
+                            snap.id,
+                            snap.volume_size,
+                            snap.state,
+                            snap.progress,
+                            print_tags(&snap.tags)
+                        )
+                    })
+                    .collect();
                 if snapshots.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send("---\nSnapshots:".to_string())?;
-                self.stdout.send_all(snapshots.into_iter().map(|snap| {
-                    format!(
-                        "{} {} GB {} {} {}",
-                        snap.id,
-                        snap.volume_size,
-                        snap.state,
-                        snap.progress,
-                        print_tags(&snap.tags))
-                }))?;
+                self.stdout
+                    .send(format!("---\nSnapshots:\n{}", snapshots.join("\n")))?;
             }
             ResourceType::Ecr => {
                 let repos = self.ecr.get_all_repositories().await?;
                 if repos.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send("---\nECR images".to_string())?;
 
                 let futures = repos.into_iter().map(|repo| async move {
                     let lines: Vec<_> = self
@@ -255,11 +289,15 @@ impl AwsAppInterface {
                     Ok(lines)
                 });
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-                self.stdout.send_all(results?.into_iter().flatten())?;
+                let results: Vec<_> = results?.into_iter().flatten().collect();
+                self.stdout
+                    .send(format!("---\nECR images:\n{}", results.join("\n")))?;
             }
             ResourceType::Script => {
-                self.stdout.send("---\nScripts:".to_string())?;
-                self.stdout.send_all(self.get_all_scripts()?)?;
+                self.stdout.send(format!(
+                    "---\nScripts:\n{}",
+                    self.get_all_scripts()?.join("\n")
+                ))?;
             }
         };
         Ok(())

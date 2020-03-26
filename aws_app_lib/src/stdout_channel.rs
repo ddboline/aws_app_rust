@@ -1,6 +1,6 @@
 use anyhow::Error;
-use tokio::io::{stdout, AsyncWriteExt};
 use std::sync::Arc;
+use tokio::io::{stdout, AsyncWriteExt};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
 use tokio::task::{spawn, JoinHandle};
@@ -23,15 +23,6 @@ impl StdoutChannel {
         self.sender.send(item).map_err(Into::into)
     }
 
-    pub fn send_all<T>(&self, items: T) -> Result<(), Error> 
-    where T: IntoIterator<Item=String>,
-    {
-        for item in items {
-            self.sender.send(item)?;
-        }
-        Ok(())
-    }
-
     pub async fn recv(&self) -> Option<String> {
         self.receiver.lock().await.recv().await
     }
@@ -45,6 +36,6 @@ impl StdoutChannel {
     }
 
     pub fn spawn_stdout_task(self) -> JoinHandle<Result<(), Error>> {
-        spawn(async move {self.stdout_task().await})
+        spawn(async move { self.stdout_task().await })
     }
 }
