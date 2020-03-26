@@ -3,12 +3,11 @@ use chrono::Local;
 use futures::future::try_join_all;
 use lazy_static::lazy_static;
 use rayon::{
-    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelExtend, ParallelIterator},
+    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
     slice::ParallelSliceMut,
 };
 use std::{
     collections::{HashMap, HashSet},
-    io::{stdout, Write},
     string::String,
 };
 use tokio::{sync::RwLock, try_join};
@@ -25,6 +24,7 @@ use crate::{
     scrape_instance_info::scrape_instance_info,
     scrape_pricing_info::scrape_pricing_info,
     ssh_instance::SSHInstance,
+    stdout_channel::StdoutChannel,
 };
 
 lazy_static! {
@@ -48,6 +48,7 @@ pub struct AwsAppInterface {
     pub pool: PgPool,
     pub ec2: Ec2Instance,
     pub ecr: EcrInstance,
+    pub stdout: StdoutChannel,
 }
 
 impl AwsAppInterface {
@@ -57,6 +58,7 @@ impl AwsAppInterface {
             ecr: EcrInstance::new(&config),
             config,
             pool,
+            stdout: StdoutChannel::new(),
         }
     }
 
@@ -91,8 +93,7 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub async fn process_resource(&self, resource: ResourceType) -> Result<Vec<String>, Error> {
-        let mut output = Vec::new();
+    pub async fn process_resource(&self, resource: ResourceType) -> Result<(), Error> {
         match resource {
             ResourceType::Instances => {
                 self.fill_instance_list().await?;
@@ -121,17 +122,18 @@ impl AwsAppInterface {
                     .collect();
 
                 if !result.is_empty() {
-                    output.push("instances:".to_string());
-                    output.extend_from_slice(&result);
+                    self.stdout.send("instances:".to_string())?;
+                    self.stdout.send_all(result)?;
                 }
             }
             ResourceType::Reserved => {
                 let reserved = self.ec2.get_reserved_instances().await?;
                 if reserved.is_empty() {
-                    return Ok(Vec::new());
+                    return Ok(());
                 }
-                output.push("---\nGet Reserved Instance\n---".to_string());
-                output.par_extend(reserved.par_iter().map(|res| {
+                self.stdout
+                    .send("---\nGet Reserved Instance\n---".to_string())?;
+                self.stdout.send_all(reserved.into_iter().map(|res| {
                     format!(
                         "{} {} {} {} {}",
                         res.id,
@@ -142,25 +144,28 @@ impl AwsAppInterface {
                             .as_ref()
                             .map_or_else(|| "", String::as_str)
                     )
-                }));
+                }))?;
             }
             ResourceType::Spot => {
                 let requests = self.ec2.get_spot_instance_requests().await?;
                 if requests.is_empty() {
-                    return Ok(Vec::new());
+                    return Ok(());
                 }
-                output.push("---\nSpot Instance Requests:".to_string());
-                output.par_extend(requests.par_iter().map(|req| {
-                    format!(
-                        "{} {} {} {} {} {}",
-                        req.id,
-                        req.price,
-                        req.imageid,
-                        req.instance_type,
-                        req.spot_type,
-                        req.status
-                    )
-                }));
+                self.stdout
+                    .send("---\nSpot Instance Requests:".to_string())?;
+                self.stdout.send_all(
+                    requests.into_iter().map(|req| {
+                        format!(
+                            "{} {} {} {} {} {}",
+                            req.id,
+                            req.price,
+                            req.imageid,
+                            req.instance_type,
+                            req.spot_type,
+                            req.status
+                        )
+                    })
+                )?;
             }
             ResourceType::Ami => {
                 let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
@@ -168,38 +173,36 @@ impl AwsAppInterface {
                 let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
 
                 if ami_tags.is_empty() {
-                    return Ok(Vec::new());
+                    return Ok(());
                 }
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
-                output.push("---\nAMI's:".to_string());
-                output.par_extend(ami_tags.par_iter().map(|ami| {
-                    format!(
-                        "{} {} {} {}",
-                        ami.id,
-                        ami.name,
-                        ami.state,
-                        ami.snapshot_ids.join(" ")
-                    )
-                }));
+                self.stdout.send("---\nAMI's:".to_string())?;
+                self.stdout.send_all(
+                    ami_tags.into_iter().map(|ami| {
+                        format!(
+                            "{} {} {} {}",
+                            ami.id,
+                            ami.name,
+                            ami.state,
+                            ami.snapshot_ids.join(" ")
+                        )
+                    })
+                )?;
             }
             ResourceType::Key => {
                 let keys = self.ec2.get_all_key_pairs().await?;
-                output.push("---\nKeys:".to_string());
-                output.par_extend(
-                    keys.into_par_iter()
-                        .map(|(key, fingerprint)| format!("{} {}", key, fingerprint)),
-                );
+                self.stdout.send("---\nKeys:".to_string())?;
+                self.stdout.send_all(keys.into_iter().map(|(key, fingerprint)| format!("{} {}", key, fingerprint)))?;
             }
             ResourceType::Volume => {
                 let volumes = self.ec2.get_all_volumes().await?;
                 if volumes.is_empty() {
-                    return Ok(Vec::new());
+                    return Ok(());
                 }
-                output.push("---\nVolumes:".to_string());
-                output.par_extend(volumes.par_iter().map(|vol| {
-                    format!(
+                self.stdout.send("---\nVolumes:".to_string())?;
+                self.stdout.send_all(volumes.into_iter().map(|vol| format!(
                         "{} {} {} {} {} {}",
                         vol.id,
                         vol.availability_zone,
@@ -207,32 +210,30 @@ impl AwsAppInterface {
                         vol.iops,
                         vol.state,
                         print_tags(&vol.tags)
-                    )
-                }));
+                    )))?;
             }
             ResourceType::Snapshot => {
                 let snapshots = self.ec2.get_all_snapshots().await?;
                 if snapshots.is_empty() {
-                    return Ok(Vec::new());
+                    return Ok(());
                 }
-                output.push("---\nSnapshots:".to_string());
-                output.par_extend(snapshots.par_iter().map(|snap| {
+                self.stdout.send("---\nSnapshots:".to_string())?;
+                self.stdout.send_all(snapshots.into_iter().map(|snap| {
                     format!(
                         "{} {} GB {} {} {}",
                         snap.id,
                         snap.volume_size,
                         snap.state,
                         snap.progress,
-                        print_tags(&snap.tags)
-                    )
-                }));
+                        print_tags(&snap.tags))
+                }))?;
             }
             ResourceType::Ecr => {
                 let repos = self.ecr.get_all_repositories().await?;
                 if repos.is_empty() {
-                    return Ok(Vec::new());
+                    return Ok(());
                 }
-                output.push("---\nECR images".to_string());
+                self.stdout.send("---\nECR images".to_string())?;
 
                 let futures = repos.into_iter().map(|repo| async move {
                     let lines: Vec<_> = self
@@ -254,14 +255,14 @@ impl AwsAppInterface {
                     Ok(lines)
                 });
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-                output.par_extend(results?.into_par_iter().flatten());
+                self.stdout.send_all(results?.into_iter().flatten())?;
             }
             ResourceType::Script => {
-                output.push("---\nScripts:".to_string());
-                output.extend_from_slice(&self.get_all_scripts()?);
+                self.stdout.send("---\nScripts:".to_string())?;
+                self.stdout.send_all(self.get_all_scripts()?)?;
             }
         };
-        Ok(output)
+        Ok(())
     }
 
     pub fn get_all_scripts(&self) -> Result<Vec<String>, Error> {
@@ -294,11 +295,8 @@ impl AwsAppInterface {
             .into_iter()
             .map(|resource| self.process_resource(*resource));
 
-        let output: Vec<_> = try_join_all(futures).await?.into_iter().flatten().collect();
-
-        for line in output {
-            writeln!(stdout(), "{}", line)?;
-        }
+        let result: Result<Vec<_>, Error> = try_join_all(futures).await;
+        result?;
 
         Ok(())
     }
@@ -319,7 +317,7 @@ impl AwsAppInterface {
         let id_host_map = get_id_host_map().await?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(&inst_id) {
-            writeln!(stdout(), "ssh ubuntu@{}", host)?;
+            self.stdout.send(format!("ssh ubuntu@{}", host))?;
         }
         Ok(())
     }
@@ -449,7 +447,7 @@ impl AwsAppInterface {
         outstrings.par_sort();
 
         for (_, _, line) in &outstrings {
-            writeln!(stdout(), "{}", line)?;
+            self.stdout.send(format!("{}", line))?;
         }
         Ok(())
     }
