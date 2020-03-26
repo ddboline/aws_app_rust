@@ -4,12 +4,7 @@ use rayon::{
     iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
     slice::ParallelSliceMut,
 };
-use std::{
-    collections::HashMap,
-    io::{stdout, Write},
-    string::ToString,
-    sync::Arc,
-};
+use std::{collections::HashMap, string::ToString, sync::Arc};
 use structopt::StructOpt;
 
 use crate::{
@@ -242,10 +237,13 @@ impl AwsAppOpts {
         let pool = PgPool::new(&config.database_url);
         let app = AwsAppInterface::new(config, pool);
 
+        let stdout = app.stdout.clone();
+        stdout.spawn_stdout_task();
+
         match opts {
             Self::Update => {
                 for line in app.update().await? {
-                    writeln!(stdout(), "{}", line)?;
+                    app.stdout.send(format!("{}", line))?;
                 }
                 Ok(())
             }
@@ -292,7 +290,8 @@ impl AwsAppOpts {
             Self::Price { search } => app.print_ec2_prices(&search).await,
             Self::ListFamilies => {
                 for fam in InstanceFamily::get_all(&app.pool).await? {
-                    writeln!(stdout(), "{:5} {}", fam.family_name, fam.family_type)?;
+                    app.stdout
+                        .send(format!("{:5} {}", fam.family_name, fam.family_type))?;
                 }
                 Ok(())
             }
@@ -317,20 +316,16 @@ impl AwsAppOpts {
                         .to_string()
                 });
                 for inst in instances {
-                    writeln!(
-                        stdout(),
+                    app.stdout.send(format!(
                         "{:18} cpu: {:3} mem: {:6.2} {}",
-                        inst.instance_type,
-                        inst.n_cpu,
-                        inst.memory_gib,
-                        inst.generation,
-                    )?;
+                        inst.instance_type, inst.n_cpu, inst.memory_gib, inst.generation,
+                    ))?;
                 }
                 Ok(())
             }
             Self::CreateImage { instance_id, name } => {
                 if let Some(id) = app.create_image(&instance_id, &name).await? {
-                    writeln!(stdout(), "New id {}", id)?;
+                    app.stdout.send(format!("New id {}", id))?;
                 }
                 Ok(())
             }
@@ -340,9 +335,10 @@ impl AwsAppOpts {
                 zoneid,
                 snapid,
             } => {
-                writeln!(stdout(), "{:?} {} {:?}", size, zoneid, snapid)?;
+                app.stdout
+                    .send(format!("{:?} {} {:?}", size, zoneid, snapid))?;
                 if let Some(id) = app.create_ebs_volume(&zoneid, size, snapid).await? {
-                    writeln!(stdout(), "Created Volume {}", id)?;
+                    app.stdout.send(format!("Created Volume {}", id))?;
                 }
                 Ok(())
             }
@@ -359,7 +355,7 @@ impl AwsAppOpts {
             Self::ModifyVolume { volid, size } => app.modify_ebs_volume(&volid, size).await,
             Self::CreateSnapshot { volid, tags } => {
                 if let Some(id) = app.create_ebs_snapshot(&volid, &get_tags(&tags)).await? {
-                    writeln!(stdout(), "Created snapshot {}", id)?;
+                    app.stdout.send(format!("Created snapshot {}", id))?;
                 }
                 Ok(())
             }
@@ -372,7 +368,7 @@ impl AwsAppOpts {
             Self::Connect { instance_id } => app.connect(&instance_id).await,
             Self::Status { instance_id } => {
                 for line in app.get_status(&instance_id).await? {
-                    writeln!(stdout(), "{}", line)?;
+                    app.stdout.send(format!("{}", line))?;
                 }
                 Ok(())
             }
