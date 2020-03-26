@@ -761,17 +761,18 @@ pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<Stri
 
 #[cfg(test)]
 mod tests {
+    use log::debug;
+
     use crate::ec2_instance::get_user_data_from_script;
-    use std::io::{stdout, Write};
 
     #[test]
-    fn test_get_user_data_from_script() {
+    fn test_get_user_data_from_script() -> Result<(), Error> {
         let user_data = get_user_data_from_script(
             "/home/ddboline/.config/aws_app_rust/scripts",
             "build_rust_repo.sh",
-        )
-        .unwrap();
-        writeln!(stdout(), "{}", user_data).unwrap();
+        )?;
+        debug!("{}", user_data);
         assert!(user_data.len() > 0);
+        Ok(())
     }
 }
