@@ -456,9 +456,9 @@ impl AwsAppInterface {
     }
 
     pub async fn print_ec2_prices(&self, search: &[String]) -> Result<(), Error> {
-        let prices = self.get_ec2_prices(search).await?;
-
-        let mut outstrings: Vec<_> = prices
+        let mut prices: Vec<_> = self
+            .get_ec2_prices(search)
+            .await?
             .into_par_iter()
             .map(|price| {
                 let mut outstr = Vec::new();
@@ -482,12 +482,10 @@ impl AwsAppInterface {
                 (price.ncpu, price.memory as i64, outstr.join(""))
             })
             .collect();
-        outstrings.par_sort();
+        prices.par_sort();
 
-        for (_, _, line) in outstrings {
-            self.stdout.send(line)?;
-        }
-        Ok(())
+        let outstrings: Vec<_> = prices.into_iter().map(|(_, _, line)| line).collect();
+        self.stdout.send(outstrings.join("\n"))
     }
 
     pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
