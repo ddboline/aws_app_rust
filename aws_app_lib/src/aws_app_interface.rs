@@ -484,8 +484,8 @@ impl AwsAppInterface {
             .collect();
         outstrings.par_sort();
 
-        for (_, _, line) in &outstrings {
-            self.stdout.send(format!("{}", line))?;
+        for (_, _, line) in outstrings {
+            self.stdout.send(line)?;
         }
         Ok(())
     }
