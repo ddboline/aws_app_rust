@@ -11,6 +11,12 @@ pub struct StdoutChannel {
     sender: Arc<UnboundedSender<String>>,
 }
 
+impl Default for StdoutChannel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StdoutChannel {
     pub fn new() -> Self {
         let (sender, receiver) = unbounded_channel();

@@ -243,7 +243,7 @@ impl AwsAppOpts {
         match opts {
             Self::Update => {
                 for line in app.update().await? {
-                    app.stdout.send(format!("{}", line))?;
+                    app.stdout.send(line)?;
                 }
                 Ok(())
             }
@@ -368,7 +368,7 @@ impl AwsAppOpts {
             Self::Connect { instance_id } => app.connect(&instance_id).await,
             Self::Status { instance_id } => {
                 for line in app.get_status(&instance_id).await? {
-                    app.stdout.send(format!("{}", line))?;
+                    app.stdout.send(line)?;
                 }
                 Ok(())
             }
