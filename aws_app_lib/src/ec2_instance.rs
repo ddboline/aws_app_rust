@@ -761,6 +761,7 @@ pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<Stri
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Error;
     use log::debug;
 
     use crate::ec2_instance::get_user_data_from_script;

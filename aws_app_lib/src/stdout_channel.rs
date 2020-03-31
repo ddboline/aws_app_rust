@@ -1,9 +1,13 @@
 use anyhow::Error;
 use std::sync::Arc;
-use tokio::io::{stdout, AsyncWriteExt};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tokio::sync::Mutex;
-use tokio::task::{spawn, JoinHandle};
+use tokio::{
+    io::{stdout, AsyncWriteExt},
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        Mutex,
+    },
+    task::{spawn, JoinHandle},
+};
 
 #[derive(Clone)]
 pub struct StdoutChannel {

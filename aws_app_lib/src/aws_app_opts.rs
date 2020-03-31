@@ -240,7 +240,7 @@ impl AwsAppOpts {
         let stdout = app.stdout.clone();
         stdout.spawn_stdout_task();
 
-        match opts {
+        let result = match opts {
             Self::Update => {
                 for line in app.update().await? {
                     app.stdout.send(line)?;
@@ -372,6 +372,7 @@ impl AwsAppOpts {
                 }
                 Ok(())
             }
-        }
+        };
+        result
     }
 }
