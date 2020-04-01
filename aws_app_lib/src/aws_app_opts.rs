@@ -237,8 +237,7 @@ impl AwsAppOpts {
         let pool = PgPool::new(&config.database_url);
         let app = AwsAppInterface::new(config, pool);
 
-        let stdout = app.stdout.clone();
-        let stdout = stdout.spawn_stdout_task();
+        let task = app.stdout.spawn_stdout_task();
 
         let result = match opts {
             Self::Update => {
@@ -375,6 +374,6 @@ impl AwsAppOpts {
         };
         result?;
         app.stdout.close().await;
-        stdout.await?
+        task.await?
     }
 }
