@@ -238,7 +238,7 @@ impl AwsAppOpts {
         let app = AwsAppInterface::new(config, pool);
 
         let stdout = app.stdout.clone();
-        stdout.spawn_stdout_task();
+        let stdout = stdout.spawn_stdout_task();
 
         let result = match opts {
             Self::Update => {
@@ -373,6 +373,8 @@ impl AwsAppOpts {
                 Ok(())
             }
         };
-        result
+        result?;
+        app.stdout.close().await;
+        stdout.await?
     }
 }
