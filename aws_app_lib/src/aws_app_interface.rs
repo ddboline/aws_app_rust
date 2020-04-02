@@ -2,10 +2,6 @@ use anyhow::{format_err, Error};
 use chrono::Local;
 use futures::future::try_join_all;
 use lazy_static::lazy_static;
-use rayon::{
-    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
-    slice::ParallelSliceMut,
-};
 use std::{
     collections::{HashMap, HashSet},
     string::String,
@@ -86,8 +82,8 @@ impl AwsAppInterface {
     pub async fn fill_instance_list(&self) -> Result<(), Error> {
         let mut instances = self.ec2.get_all_instances().await?;
         if !instances.is_empty() {
-            instances.par_sort_by_key(|inst| inst.launch_time);
-            instances.par_sort_by_key(|inst| inst.state != "running");
+            instances.sort_by_key(|inst| inst.launch_time);
+            instances.sort_by_key(|inst| inst.state != "running");
         }
         *INSTANCE_LIST.write().await = instances;
         Ok(())
@@ -101,7 +97,7 @@ impl AwsAppInterface {
                 let result: Vec<_> = INSTANCE_LIST
                     .read()
                     .await
-                    .par_iter()
+                    .iter()
                     .map(|inst| {
                         let name = inst
                             .tags
@@ -274,7 +270,7 @@ impl AwsAppInterface {
                         .ecr
                         .get_all_images(&repo)
                         .await?
-                        .into_par_iter()
+                        .into_iter()
                         .map(|image| {
                             format!(
                                 "{} {} {} {} {:0.2} MB",
@@ -317,7 +313,7 @@ impl AwsAppInterface {
                 })
             })
             .collect();
-        files.par_sort();
+        files.sort();
         Ok(files)
     }
 
@@ -343,7 +339,7 @@ impl AwsAppInterface {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let mapped_inst_ids: Vec<String> = instance_ids
-            .par_iter()
+            .iter()
             .map(|id| map_or_val(&name_map, id))
             .collect();
         self.ec2.terminate_instance(&mapped_inst_ids).await
@@ -389,18 +385,18 @@ impl AwsAppInterface {
     pub async fn get_ec2_prices(&self, search: &[String]) -> Result<Vec<AwsInstancePrice>, Error> {
         let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)
             .await?
-            .into_par_iter()
+            .into_iter()
             .map(|f| (f.family_name.to_string(), f))
             .collect();
         let instance_list: HashMap<_, _> = InstanceList::get_all_instances(&self.pool)
             .await?
-            .into_par_iter()
+            .into_iter()
             .map(|i| (i.instance_type.to_string(), i))
             .collect();
         let inst_list: Vec<_> = instance_list
             .keys()
             .filter_map(|inst| {
-                if search.par_iter().any(|s| inst.contains(s)) {
+                if search.iter().any(|s| inst.contains(s)) {
                     Some(inst.to_string())
                 } else {
                     None
@@ -412,12 +408,12 @@ impl AwsAppInterface {
 
         let prices: HashMap<_, _> = InstancePricing::get_all(&self.pool)
             .await?
-            .into_par_iter()
+            .into_iter()
             .map(|p| ((p.instance_type.to_string(), p.price_type.to_string()), p))
             .collect();
 
         let prices: Result<Vec<_>, Error> = inst_list
-            .into_par_iter()
+            .into_iter()
             .map(|inst| {
                 let ond_price = prices
                     .get(&(inst.to_string(), "ondemand".to_string()))
@@ -451,7 +447,7 @@ impl AwsAppInterface {
             })
             .collect();
         let mut prices = prices?;
-        prices.par_sort_by_key(|p| (p.ncpu, p.memory as i64));
+        prices.sort_by_key(|p| (p.ncpu, p.memory as i64));
         Ok(prices)
     }
 
@@ -459,7 +455,7 @@ impl AwsAppInterface {
         let mut prices: Vec<_> = self
             .get_ec2_prices(search)
             .await?
-            .into_par_iter()
+            .into_iter()
             .map(|price| {
                 let mut outstr = Vec::new();
                 outstr.push(format!("{:14} ", price.instance_type));
@@ -482,7 +478,7 @@ impl AwsAppInterface {
                 (price.ncpu, price.memory as i64, outstr.join(""))
             })
             .collect();
-        prices.par_sort();
+        prices.sort();
 
         let outstrings: Vec<_> = prices.into_iter().map(|(_, _, line)| line).collect();
         self.stdout.send(outstrings.join("\n"))
@@ -528,7 +524,7 @@ impl AwsAppInterface {
             .ec2
             .get_all_snapshots()
             .await?
-            .into_par_iter()
+            .into_iter()
             .filter_map(|snap| {
                 snap.tags
                     .get("Name")
@@ -554,7 +550,7 @@ impl AwsAppInterface {
             .ec2
             .get_all_volumes()
             .await?
-            .into_par_iter()
+            .into_iter()
             .filter_map(|vol| {
                 vol.tags
                     .get("Name")
@@ -630,7 +626,7 @@ impl AwsAppInterface {
 
 fn print_tags(tags: &HashMap<String, String>) -> String {
     let results: Vec<_> = tags
-        .par_iter()
+        .iter()
         .map(|(k, v)| format!("{}={}", k, v))
         .collect();
     results.join(", ")
@@ -648,7 +644,7 @@ async fn get_name_map() -> Result<HashMap<String, String>, Error> {
     let name_map = INSTANCE_LIST
         .read()
         .await
-        .par_iter()
+        .iter()
         .filter_map(|inst| {
             if inst.state != "running" {
                 return None;
@@ -665,7 +661,7 @@ async fn get_id_host_map() -> Result<HashMap<String, String>, Error> {
     let id_host_map = INSTANCE_LIST
         .read()
         .await
-        .par_iter()
+        .iter()
         .filter_map(|inst| {
             if inst.state != "running" {
                 return None;

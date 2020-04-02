@@ -1,7 +1,6 @@
 use anyhow::Error;
 use chrono::{DateTime, TimeZone, Utc};
 use futures::future::try_join_all;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rusoto_core::Region;
 use rusoto_ecr::{
     BatchDeleteImageRequest, DescribeImagesRequest, DescribeRepositoriesRequest, Ecr, EcrClient,
@@ -70,7 +69,7 @@ impl EcrInstance {
             .map(|r| {
                 r.repositories
                     .unwrap_or_else(Vec::new)
-                    .into_par_iter()
+                    .into_iter()
                     .filter_map(|repo| repo.repository_name)
                     .collect()
             })
@@ -87,7 +86,7 @@ impl EcrInstance {
             .map(|i| {
                 i.image_details
                     .unwrap_or_else(Vec::new)
-                    .into_par_iter()
+                    .into_iter()
                     .filter_map(|image| {
                         let pushed_at = image.image_pushed_at.map_or_else(Utc::now, |p| {
                             let s = p as i64;
@@ -115,7 +114,7 @@ impl EcrInstance {
             .batch_delete_image(BatchDeleteImageRequest {
                 repository_name: reponame.to_string(),
                 image_ids: imageids
-                    .par_iter()
+                    .iter()
                     .map(|i| ImageIdentifier {
                         image_digest: Some(i.to_string()),
                         ..ImageIdentifier::default()
@@ -137,7 +136,7 @@ impl EcrInstance {
                 let imageids: Vec<_> = self
                     .get_all_images(&repo)
                     .await?
-                    .into_par_iter()
+                    .into_iter()
                     .filter_map(|i| {
                         if i.tags.is_empty() {
                             Some(i.digest)

@@ -1,9 +1,5 @@
 use anyhow::Error;
 use futures::future::try_join_all;
-use rayon::{
-    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
-    slice::ParallelSliceMut,
-};
 use std::{collections::HashMap, string::ToString, sync::Arc};
 use structopt::StructOpt;
 
@@ -35,7 +31,7 @@ pub struct SpotRequestOpt {
 }
 
 fn get_tags(tags: &[String]) -> HashMap<String, String> {
-    tags.par_iter()
+    tags.iter()
         .map(|tag| {
             if tag.contains(':') {
                 let t: Vec<_> = tag.split(':').collect();
@@ -297,17 +293,17 @@ impl AwsAppOpts {
             Self::ListInstances { search } => {
                 let mut instances: Vec<_> = InstanceList::get_all_instances(&app.pool)
                     .await?
-                    .into_par_iter()
+                    .into_iter()
                     .filter(|inst| {
                         if search.is_empty() {
                             true
                         } else {
-                            search.par_iter().any(|s| inst.instance_type.contains(s))
+                            search.iter().any(|s| inst.instance_type.contains(s))
                         }
                     })
                     .collect();
-                instances.par_sort_by_key(|i| i.n_cpu);
-                instances.par_sort_by_key(|i| {
+                instances.sort_by_key(|i| i.n_cpu);
+                instances.sort_by_key(|i| {
                     i.instance_type
                         .split('.')
                         .next()

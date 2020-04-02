@@ -1,7 +1,6 @@
 use anyhow::{format_err, Error};
 use futures::future::try_join_all;
 use log::debug;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use reqwest::Url;
 use select::{
     document::Document,
@@ -118,14 +117,14 @@ fn extract_instance_types_pv(
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.par_iter().all(|x| x == "") {
+            if !row.is_empty() && !row.iter().all(|x| x == "") {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.par_iter().all(|x| x == "") {
+                if row.iter().all(|x| x == "") {
                     return None;
                 }
 
@@ -201,14 +200,14 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.par_iter().all(|x| x == "") {
+            if !row.is_empty() && !row.iter().all(|x| x == "") {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.par_iter().all(|x| x == "") {
+                if row.iter().all(|x| x == "") {
                     return None;
                 }
 
@@ -244,7 +243,7 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
     }
     if final_bitmap == 0x7 {
         rows[1..]
-            .par_iter()
+            .iter()
             .map(
                 |row| match extract_instance_type_object_hvm(row, final_indicies) {
                     Ok(x) => {

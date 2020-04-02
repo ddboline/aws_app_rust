@@ -5,10 +5,6 @@ use chrono::Local;
 use futures::future::try_join_all;
 use lazy_static::lazy_static;
 use log::debug;
-use rayon::{
-    iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
-    slice::ParallelSliceMut,
-};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path, process::Stdio};
 use tokio::{
@@ -89,7 +85,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
                 let result: Vec<_> = reserved
-                    .par_iter()
+                    .iter()
                     .map(|res| {
                         format!(
                             r#"<tr style="text-align: center;">
@@ -121,7 +117,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
                 let result: Vec<_> = requests
-                    .par_iter()
+                    .iter()
                     .map(|req| {
                         format!(
                             r#"<tr style="text-align: center;">
@@ -161,7 +157,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
-                ami_tags.par_sort_by_key(|x| x.name.clone());
+                ami_tags.sort_by_key(|x| x.name.clone());
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
@@ -174,7 +170,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
                 let result: Vec<_> = ami_tags
-                    .par_iter()
+                    .iter()
                     .map(|ami| {
                         format!(
                             r#"<tr style="text-align: center;">
@@ -209,7 +205,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
                 let result: Vec<_> = keys
-                    .into_par_iter()
+                    .into_iter()
                     .map(|(key, fingerprint)| {
                         format!(
                             r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
@@ -232,7 +228,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
                 let result: Vec<_> = volumes
-                    .par_iter()
+                    .iter()
                     .map(|vol| {
                         format!(
                             r#"<tr style="text-align: center;">
@@ -264,7 +260,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if snapshots.is_empty() {
                     return Ok(Vec::new());
                 }
-                snapshots.par_sort_by_key(|k| {
+                snapshots.sort_by_key(|k| {
                     k.tags
                         .get("Name")
                         .map_or_else(|| "".to_string(), ToString::to_string)
@@ -276,7 +272,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .to_string(),
                 );
                 let result: Vec<_> = snapshots
-                    .par_iter()
+                    .iter()
                     .map(|snap| {
                         format!(
                             r#"<tr style="text-align: center;">
@@ -328,7 +324,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 );
                 let result: Vec<_> = self
                     .get_all_scripts()?
-                    .into_par_iter()
+                    .into_iter()
                     .map(|fname| {
                         format!(
                             "{} {} {} {}<br>",
@@ -364,7 +360,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
     let result: Vec<_> = INSTANCE_LIST
         .read()
         .await
-        .par_iter()
+        .iter()
         .map(|inst| {
             let name = inst
                 .tags
@@ -410,7 +406,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
 async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Error> {
     let images = app.ecr.get_all_images(&repo).await?;
     let lines: Vec<_> = images
-        .par_iter()
+        .iter()
         .map(|image| {
             format!(
                 r#"<tr style="text-align: center;">
@@ -434,7 +430,7 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>
 
 fn print_tags(tags: &HashMap<String, String>) -> String {
     let results: Vec<_> = tags
-        .par_iter()
+        .iter()
         .map(|(k, v)| format!("{} = {}", k, v))
         .collect();
     results.join(", ")
