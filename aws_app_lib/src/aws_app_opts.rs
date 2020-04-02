@@ -373,7 +373,7 @@ impl AwsAppOpts {
             }
         };
         result?;
-        app.stdout.close().await;
+        app.stdout.close().await?;
         task.await?
     }
 }
