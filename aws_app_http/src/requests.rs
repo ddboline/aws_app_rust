@@ -429,10 +429,7 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>
 }
 
 fn print_tags(tags: &HashMap<String, String>) -> String {
-    let results: Vec<_> = tags
-        .iter()
-        .map(|(k, v)| format!("{} = {}", k, v))
-        .collect();
+    let results: Vec<_> = tags.iter().map(|(k, v)| format!("{} = {}", k, v)).collect();
     results.join(", ")
 }
 
