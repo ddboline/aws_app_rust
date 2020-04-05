@@ -157,7 +157,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
-                ami_tags.sort_by_key(|x| x.name.clone());
+                ami_tags.sort_by(|x, y| x.name.cmp(&y.name));
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
@@ -260,10 +260,10 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if snapshots.is_empty() {
                     return Ok(Vec::new());
                 }
-                snapshots.sort_by_key(|k| {
-                    k.tags
-                        .get("Name")
-                        .map_or_else(|| "".to_string(), ToString::to_string)
+                snapshots.sort_by(|x, y| {
+                    let x = x.tags.get("Name").map_or("", String::as_str);
+                    let y = y.tags.get("Name").map_or("", String::as_str);
+                    x.cmp(&y)
                 });
                 output.push(
                     r#"<table border="1" class="dataframe"><thead><tr>

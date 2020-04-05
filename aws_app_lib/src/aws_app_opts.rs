@@ -303,12 +303,10 @@ impl AwsAppOpts {
                     })
                     .collect();
                 instances.sort_by_key(|i| i.n_cpu);
-                instances.sort_by_key(|i| {
-                    i.instance_type
-                        .split('.')
-                        .next()
-                        .unwrap_or_else(|| "")
-                        .to_string()
+                instances.sort_by(|x, y| {
+                    let x = x.instance_type.split('.').next().unwrap_or("");
+                    let y = y.instance_type.split('.').next().unwrap_or("");
+                    x.cmp(&y)
                 });
                 for inst in instances {
                     app.stdout.send(format!(

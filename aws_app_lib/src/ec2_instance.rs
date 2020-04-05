@@ -154,7 +154,7 @@ impl Ec2Instance {
                 })
             })
             .collect();
-        images.sort_by_key(|x| x.name.clone());
+        images.sort_by(|x, y| x.name.cmp(&y.name));
         Ok(images.into_iter().last())
     }
 
