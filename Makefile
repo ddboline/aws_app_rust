@@ -51,3 +51,9 @@ dev:
 
 get_version:
 	echo $(version)
+
+profile:
+	sudo su -c "echo -1 > /proc/sys/kernel/perf_event_paranoid"
+	perf record --call-graph dwarf ./target/debug/aws-app-rust list -r reserved spot ami volume snapshot ecr key
+	perf script | inferno-collapse-perf > stacks.folded
+	cat stacks.folded | inferno-flamegraph > flamegraph.svg
