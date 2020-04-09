@@ -28,7 +28,7 @@ use std::str::FromStr;
     Ord,
 )]
 #[sql_type = "Text"]
-#[serde(into = "String", from = "String")]
+#[serde(into = "String", from = "&str")]
 pub struct StackString(InlinableString);
 
 impl Into<String> for StackString {
