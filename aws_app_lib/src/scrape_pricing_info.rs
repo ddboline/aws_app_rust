@@ -9,15 +9,19 @@ use std::collections::HashMap;
 use crate::{
     models::{InstancePricingInsert, PricingType},
     pgpool::PgPool,
+    stack_string::StackString,
 };
 
-pub async fn scrape_pricing_info(ptype: PricingType, pool: &PgPool) -> Result<Vec<String>, Error> {
+pub async fn scrape_pricing_info(
+    ptype: PricingType,
+    pool: &PgPool,
+) -> Result<Vec<StackString>, Error> {
     let mut output = Vec::new();
     let url = extract_json_url(get_url(ptype)?).await?;
-    output.push(format!("url {}", url));
+    output.push(format!("url {}", url).into());
     let js: PricingJson = reqwest::get(url).await?.json().await?;
     let results = parse_json(js, ptype)?;
-    output.push(format!("{}", results.len()));
+    output.push(format!("{}", results.len()).into());
 
     let results = results.into_iter().map(|r| r.upsert_entry(pool));
     try_join_all(results).await?;
@@ -36,7 +40,7 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
 }
 
 async fn extract_json_url(url: Url) -> Result<Url, Error> {
-    let body: String = reqwest::get(url).await?.text().await?;
+    let body = reqwest::get(url).await?.text().await?;
     parse_json_url_body(&body)
 }
 
@@ -59,8 +63,8 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
 
 fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricingInsert>, Error> {
     fn preserved_filter(p: &PricingEntry) -> bool {
-        fn _cmp(os: Option<&String>, s: &str) -> bool {
-            os.map(String::as_str) == Some(s)
+        fn _cmp(os: Option<&StackString>, s: &str) -> bool {
+            os.map(|s| s.as_ref().as_ref()) == Some(s)
         }
         _cmp(p.attributes.get("aws:offerTermLeaseLength"), "1yr")
             && _cmp(
@@ -98,12 +102,13 @@ fn get_instance_pricing(
                 .price
                 .get("USD")
                 .ok_or_else(|| format_err!("No USD Price"))?
+                .as_ref()
                 .parse()?;
             let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
                 .ok_or_else(|| format_err!("No instance type"))?
-                .to_string();
+                .clone();
             let i = InstancePricingInsert {
                 instance_type,
                 price,
@@ -119,11 +124,11 @@ fn get_instance_pricing(
                 .and_then(|x| x.get("effectiveHourlyRate"))
                 .and_then(|x| x.get("USD"))
                 .ok_or_else(|| format_err!("No price"))?;
-            let instance_type: String = price_entry
+            let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
                 .ok_or_else(|| format_err!("No instance type"))?
-                .to_string();
+                .to_owned();
             let i = InstancePricingInsert {
                 instance_type,
                 price,
@@ -138,10 +143,10 @@ fn get_instance_pricing(
 
 #[derive(Deserialize)]
 struct PricingEntry {
-    price: HashMap<String, String>,
-    attributes: HashMap<String, String>,
+    price: HashMap<StackString, StackString>,
+    attributes: HashMap<StackString, StackString>,
     #[serde(rename = "calculatedPrice")]
-    calculated_price: Option<HashMap<String, HashMap<String, f64>>>,
+    calculated_price: Option<HashMap<StackString, HashMap<StackString, f64>>>,
 }
 
 #[derive(Deserialize)]

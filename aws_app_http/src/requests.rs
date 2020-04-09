@@ -6,6 +6,7 @@ use futures::future::try_join_all;
 use lazy_static::lazy_static;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use std::{collections::HashMap, path::Path, process::Stdio};
 use tokio::{
     process::{Child, Command},
@@ -97,7 +98,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             res.state,
                             res.availability_zone
                                 .as_ref()
-                                .map_or_else(|| "", String::as_str)
+                                .map_or_else(|| "", |s| s.as_ref())
                         )
                     })
                     .collect();
@@ -130,7 +131,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             req.instance_type,
                             req.spot_type,
                             req.status,
-                            if req.status == "pending" {
+                            if req.status.as_ref() == "pending" {
                                 format!(
                                     r#"<input type="button" name="cancel" value="Cancel"
                                         onclick="cancelSpotRequest('{}')">"#,
@@ -157,7 +158,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
-                ami_tags.sort_by(|x, y| x.name.cmp(&y.name));
+                ami_tags.sort_by(|x, y| x.name.as_ref().cmp(y.name.as_ref()));
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
@@ -234,7 +235,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             r#"<tr style="text-align: center;">
                                 <td>{}</td><td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
                                 <td>{}</td></tr>"#,
-                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(String::as_str) {
+                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(|s| s.as_ref().as_ref()) {
                                 "".to_string()
                             } else {
                                 format!(
@@ -261,8 +262,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 snapshots.sort_by(|x, y| {
-                    let x = x.tags.get("Name").map_or("", String::as_str);
-                    let y = y.tags.get("Name").map_or("", String::as_str);
+                    let x = x.tags.get("Name").map_or("", |s| s.as_ref());
+                    let y = y.tags.get("Name").map_or("", |s| s.as_ref());
                     x.cmp(&y)
                 });
                 output.push(
@@ -362,11 +363,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
         .await
         .iter()
         .map(|inst| {
-            let name = inst
-                .tags
-                .get("Name")
-                .cloned()
-                .unwrap_or_else(|| "".to_string());
+            let name = inst.tags.get("Name").cloned().unwrap_or_else(|| "".into());
             format!(
                 r#"
                     <tr style="text-align: center;">
@@ -381,7 +378,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
                 inst.instance_type,
                 inst.launch_time.with_timezone(&Local),
                 inst.availability_zone,
-                if inst.state == "running" {
+                if inst.state.as_ref() == "running" {
                     format!(
                         r#"<input type="button" name="Status" value="Status" {}>"#,
                         format!(r#"onclick="getStatus('{}')""#, inst.id)
@@ -389,7 +386,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
                 } else {
                     "".to_string()
                 },
-                if inst.state == "running" && name != "ddbolineinthecloud" {
+                if inst.state.as_ref() == "running" && name.as_ref() != "ddbolineinthecloud" {
                     format!(
                         r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
                         format!(r#"onclick="terminateInstance('{}')""#, inst.id)
@@ -418,7 +415,7 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>
                     repo, image.digest,
                 ),
                 repo,
-                image.tags.get(0).map_or_else(|| "None", String::as_str),
+                image.tags.get(0).map_or_else(|| "None", |s| s.as_ref()),
                 image.digest,
                 image.pushed_at,
                 image.image_size,
@@ -428,7 +425,7 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>
     Ok(lines)
 }
 
-fn print_tags(tags: &HashMap<String, String>) -> String {
+fn print_tags<T: Display>(tags: &HashMap<T, T>) -> String {
     let results: Vec<_> = tags.iter().map(|(k, v)| format!("{} = {}", k, v)).collect();
     results.join(", ")
 }

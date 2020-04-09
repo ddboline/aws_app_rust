@@ -16,6 +16,7 @@ use aws_app_lib::{
     ec2_instance::SpotRequest,
     models::{InstanceFamily, InstanceList},
     resource_type::ResourceType,
+    stack_string::StackString,
 };
 
 use super::{
@@ -214,8 +215,12 @@ pub async fn build_spot_request(
         .collect();
 
     let ami_opt = if let Some(ami_) = &query.ami {
-        let mut ami_opt: Vec<_> = amis.iter().filter(|ami| &ami.id == ami_).cloned().collect();
-        amis.retain(|ami| &ami.id != ami_);
+        let mut ami_opt: Vec<_> = amis
+            .iter()
+            .filter(|ami| ami.id.as_ref() == ami_)
+            .cloned()
+            .collect();
+        amis.retain(|ami| ami.id.as_ref() != ami_);
         ami_opt.extend_from_slice(&amis);
         ami_opt
     } else {
@@ -236,10 +241,10 @@ pub async fn build_spot_request(
     let inst_opt = if let Some(inst) = &query.ami {
         let mut inst_opt: Vec<_> = inst_fam
             .iter()
-            .filter(|fam| &fam.family_name == inst)
+            .filter(|fam| fam.family_name.as_ref() == inst)
             .cloned()
             .collect();
-        inst_fam.retain(|fam| &fam.family_name != inst);
+        inst_fam.retain(|fam| fam.family_name.as_ref() != inst);
         inst_opt.extend_from_slice(&inst_fam);
         inst_opt
     } else {
@@ -261,8 +266,12 @@ pub async fn build_spot_request(
     let mut files = data.aws.get_all_scripts()?;
 
     let file_opts = if let Some(script) = &query.script {
-        let mut file_opt: Vec<_> = files.iter().filter(|f| f == &script).cloned().collect();
-        files.retain(|f| f != script);
+        let mut file_opt: Vec<_> = files
+            .iter()
+            .filter(|f| f.as_ref() == script)
+            .cloned()
+            .collect();
+        files.retain(|f| f.as_ref() != script);
         file_opt.extend_from_slice(&files);
         file_opt
     } else {
@@ -312,13 +321,13 @@ pub async fn build_spot_request(
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct SpotRequestData {
-    pub ami: String,
-    pub instance_type: String,
-    pub security_group: String,
-    pub script: String,
-    pub key_name: String,
-    pub price: String,
-    pub name: String,
+    pub ami: StackString,
+    pub instance_type: StackString,
+    pub security_group: StackString,
+    pub script: StackString,
+    pub key_name: StackString,
+    pub price: StackString,
+    pub name: StackString,
 }
 
 impl Into<SpotRequest> for SpotRequestData {
@@ -329,8 +338,8 @@ impl Into<SpotRequest> for SpotRequestData {
             security_group: self.security_group,
             script: self.script,
             key_name: self.key_name,
-            price: self.price.parse().ok(),
-            tags: hashmap! { "Name".to_string() => self.name },
+            price: self.price.as_ref().parse().ok(),
+            tags: hashmap! { "Name".into() => self.name },
         }
     }
 }
@@ -347,7 +356,7 @@ pub async fn request_spot(
 
 #[derive(Serialize, Deserialize)]
 pub struct CancelSpotRequest {
-    pub spot_id: String,
+    pub spot_id: StackString,
 }
 
 pub async fn cancel_spot(

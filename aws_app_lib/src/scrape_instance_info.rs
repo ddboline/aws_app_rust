@@ -11,6 +11,7 @@ use select::{
 use crate::{
     models::{AwsGeneration, InstanceFamilyInsert, InstanceList},
     pgpool::PgPool,
+    stack_string::StackString,
 };
 
 pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
@@ -25,7 +26,7 @@ pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
 pub async fn scrape_instance_info(
     generation: AwsGeneration,
     pool: &PgPool,
-) -> Result<Vec<String>, Error> {
+) -> Result<Vec<StackString>, Error> {
     let url = get_url(generation)?;
     let body = reqwest::get(url).await?.text().await?;
     let (families, types) = parse_result(&body, generation)?;
@@ -43,20 +44,20 @@ fn parse_result(
     match generation {
         AwsGeneration::HVM => {
             for c in doc.find(Class("lb-grid")) {
-                let family_type = if let Some(d) = c.find(Class("lb-title")).last() {
-                    d.text().trim().to_string()
+                let family_type: StackString = if let Some(d) = c.find(Class("lb-title")).last() {
+                    d.text().trim().into()
                 } else {
                     continue;
                 };
 
                 for d in c.find(Class("lb-txt-none")) {
-                    let family_name = d.text().trim().to_lowercase();
-                    if family_name.contains(' ') {
+                    let family_name: StackString = d.text().trim().to_lowercase().into();
+                    if family_name.as_ref().contains(' ') {
                         continue;
                     }
                     let ifam = InstanceFamilyInsert {
                         family_name,
-                        family_type: family_type.to_string(),
+                        family_type: family_type.clone(),
                     };
                     instance_families.push(ifam);
                 }
@@ -81,10 +82,10 @@ async fn insert_result(
     instance_families: Vec<InstanceFamilyInsert>,
     instance_types: Vec<InstanceList>,
     pool: &PgPool,
-) -> Result<Vec<String>, Error> {
+) -> Result<Vec<StackString>, Error> {
     let fam = instance_families.into_iter().map(|t| async {
         if let (t, true) = t.insert_entry(&pool).await? {
-            Ok(Some(format!("{:?}", t)))
+            Ok(Some(format!("{:?}", t).into()))
         } else {
             Ok(None)
         }
@@ -92,7 +93,7 @@ async fn insert_result(
     let fam: Result<Vec<_>, Error> = try_join_all(fam).await;
     let typ = instance_types.into_iter().map(|t| async {
         if let (t, true) = t.insert_entry(&pool).await? {
-            Ok(Some(format!("{:?}", t)))
+            Ok(Some(format!("{:?}", t).into()))
         } else {
             Ok(None)
         }
@@ -160,16 +161,17 @@ fn extract_instance_types_pv(
     Ok((Vec::new(), Vec::new()))
 }
 
-fn extract_instance_family_object_pv(
-    row: &[String],
+fn extract_instance_family_object_pv<T: AsRef<str>>(
+    row: &[T],
     indicies: [usize; 4],
 ) -> Result<InstanceFamilyInsert, Error> {
-    let family_type = row[indicies[0]].to_string();
+    let family_type = row[indicies[0]].as_ref().into();
     let family_name = row[indicies[1]]
+        .as_ref()
         .split('.')
         .next()
         .ok_or_else(|| format_err!("No family type"))?
-        .to_string();
+        .into();
     Ok(InstanceFamilyInsert {
         family_name,
         family_type,
@@ -247,7 +249,7 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
             .map(
                 |row| match extract_instance_type_object_hvm(row, final_indicies) {
                     Ok(x) => {
-                        if x.instance_type == "1" || x.instance_type == "8" {
+                        if x.instance_type.as_ref() == "1" || x.instance_type.as_ref() == "8" {
                             debug!("{:?}", final_indicies);
                             debug!("{:?}", rows[0]);
                             debug!("row {:?}", row);
@@ -270,46 +272,51 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
     }
 }
 
-fn extract_instance_type_object_hvm(
-    row: &[String],
+fn extract_instance_type_object_hvm<T: AsRef<str>>(
+    row: &[T],
     indicies: [usize; 3],
 ) -> Result<InstanceList, Error> {
-    let idx = if row[indicies[0]].replace("*", "").parse::<i32>().is_ok() {
+    let idx = if row[indicies[0]]
+        .as_ref()
+        .replace("*", "")
+        .parse::<i32>()
+        .is_ok()
+    {
         1
     } else {
         0
     };
 
-    let instance_type: String = row[(indicies[0] - idx)].replace("*", "");
-    let n_cpu: i32 = row[(indicies[1] - idx)].replace("*", "").parse()?;
-    let memory_gib: f64 = row[(indicies[2] - idx)].replace(",", "").parse()?;
+    let instance_type = row[(indicies[0] - idx)].as_ref().replace("*", "").into();
+    let n_cpu: i32 = row[(indicies[1] - idx)].as_ref().replace("*", "").parse()?;
+    let memory_gib: f64 = row[(indicies[2] - idx)].as_ref().replace(",", "").parse()?;
 
     Ok(InstanceList {
         instance_type,
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::HVM.to_string(),
+        generation: AwsGeneration::HVM.to_string().into(),
     })
 }
 
-fn extract_instance_type_object_pv(
-    row: &[String],
+fn extract_instance_type_object_pv<T: AsRef<str>>(
+    row: &[T],
     indicies: [usize; 4],
 ) -> Result<InstanceList, Error> {
-    let idx = if row[indicies[1]].parse::<i32>().is_ok() {
+    let idx = if row[indicies[1]].as_ref().parse::<i32>().is_ok() {
         1
     } else {
         0
     };
 
-    let instance_type: String = row[(indicies[1] - idx)].replace("*", "");
-    let n_cpu: i32 = row[(indicies[2] - idx)].replace("*", "").parse()?;
-    let memory_gib: f64 = row[(indicies[3] - idx)].replace(",", "").parse()?;
+    let instance_type = row[(indicies[1] - idx)].as_ref().replace("*", "").into();
+    let n_cpu: i32 = row[(indicies[2] - idx)].as_ref().replace("*", "").parse()?;
+    let memory_gib: f64 = row[(indicies[3] - idx)].as_ref().replace(",", "").parse()?;
 
     Ok(InstanceList {
         instance_type,
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::PV.to_string(),
+        generation: AwsGeneration::PV.to_string().into(),
     })
 }

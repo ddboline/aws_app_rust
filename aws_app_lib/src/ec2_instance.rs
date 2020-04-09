@@ -18,6 +18,7 @@ use sts_profile_auth::get_client_sts;
 use tokio::time::delay_for;
 
 use crate::config::Config;
+use crate::stack_string::StackString;
 
 macro_rules! some {
     ($expr : expr) => {
@@ -103,12 +104,14 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|image| {
                         Some(AmiInfo {
-                            id: some!(image.image_id),
-                            name: some!(image.name),
-                            state: some!(image.state),
+                            id: some!(image.image_id).into(),
+                            name: some!(image.name).into(),
+                            state: some!(image.state).into(),
                             snapshot_ids: some!(image.block_device_mappings)
                                 .into_iter()
-                                .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id))
+                                .filter_map(|block| {
+                                    block.ebs.and_then(|b| b.snapshot_id.map(|s| s.into()))
+                                })
                                 .collect(),
                         })
                     })
@@ -144,21 +147,21 @@ impl Ec2Instance {
             .into_iter()
             .filter_map(|image| {
                 Some(AmiInfo {
-                    id: some!(image.image_id),
-                    name: some!(image.name),
-                    state: some!(image.state),
+                    id: some!(image.image_id).into(),
+                    name: some!(image.name).into(),
+                    state: some!(image.state).into(),
                     snapshot_ids: some!(image.block_device_mappings)
                         .into_iter()
-                        .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id))
+                        .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id.map(|s| s.into())))
                         .collect(),
                 })
             })
             .collect();
-        images.sort_by(|x, y| x.name.cmp(&y.name));
+        images.sort_by(|x, y| x.name.as_ref().cmp(y.name.as_ref()));
         Ok(images.into_iter().last())
     }
 
-    pub async fn get_ami_map(&self) -> Result<HashMap<String, String>, Error> {
+    pub async fn get_ami_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
         let req = self.get_ami_tags().await?;
         Ok(req.into_iter().map(|ami| (ami.name, ami.id)).collect())
     }
@@ -193,20 +196,23 @@ impl Ec2Instance {
                             instances
                                 .into_iter()
                                 .filter_map(|inst| {
-                                    let tags: HashMap<String, String> = inst
+                                    let tags: HashMap<_, _> = inst
                                         .tags
                                         .unwrap_or_else(Vec::new)
                                         .into_iter()
-                                        .filter_map(|tag| Some((some!(tag.key), some!(tag.value))))
+                                        .filter_map(|tag| {
+                                            Some((some!(tag.key).into(), some!(tag.value).into()))
+                                        })
                                         .collect();
                                     Some(Ec2InstanceInfo {
-                                        id: some!(inst.instance_id),
-                                        dns_name: some!(inst.public_dns_name),
-                                        state: some!(some!(inst.state).name),
-                                        instance_type: some!(inst.instance_type),
+                                        id: some!(inst.instance_id).into(),
+                                        dns_name: some!(inst.public_dns_name).into(),
+                                        state: some!(some!(inst.state).name).into(),
+                                        instance_type: some!(inst.instance_type).into(),
                                         availability_zone: some!(
                                             some!(inst.placement).availability_zone
-                                        ),
+                                        )
+                                        .into(),
                                         launch_time: some!(inst
                                             .launch_time
                                             .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
@@ -237,11 +243,11 @@ impl Ec2Instance {
                             return None;
                         }
                         Some(ReservedInstanceInfo {
-                            id: some!(inst.reserved_instances_id),
+                            id: some!(inst.reserved_instances_id).into(),
                             price: some!(inst.fixed_price),
-                            instance_type: some!(inst.instance_type),
-                            state: some!(inst.state),
-                            availability_zone: inst.availability_zone,
+                            instance_type: some!(inst.instance_type).into(),
+                            state: some!(inst.state).into(),
+                            availability_zone: inst.availability_zone.map(Into::into),
                         })
                     })
                     .collect()
@@ -315,16 +321,16 @@ impl Ec2Instance {
                     .filter_map(|inst| {
                         let launch_spec = some!(inst.launch_specification);
                         Some(SpotInstanceRequestInfo {
-                            id: some!(inst.spot_instance_request_id),
+                            id: some!(inst.spot_instance_request_id).into(),
                             price: inst
                                 .spot_price
                                 .and_then(|s| s.parse::<f32>().ok())
                                 .unwrap_or(0.0),
-                            instance_type: some!(launch_spec.instance_type),
-                            spot_type: some!(inst.type_),
-                            status: some!(some!(inst.status).code),
-                            imageid: some!(launch_spec.image_id),
-                            instance_id: inst.instance_id,
+                            instance_type: some!(launch_spec.instance_type).into(),
+                            spot_type: some!(inst.type_).into(),
+                            status: some!(some!(inst.status).code).into(),
+                            imageid: some!(launch_spec.image_id).into(),
+                            instance_id: inst.instance_id.map(Into::into),
                         })
                     })
                     .collect()
@@ -342,16 +348,16 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|v| {
                         Some(VolumeInfo {
-                            id: some!(v.volume_id),
-                            availability_zone: some!(v.availability_zone),
+                            id: some!(v.volume_id).into(),
+                            availability_zone: some!(v.availability_zone).into(),
                             size: some!(v.size),
                             iops: some!(v.iops),
-                            state: some!(v.state),
+                            state: some!(v.state).into(),
                             tags: v
                                 .tags
                                 .unwrap_or_else(Vec::new)
                                 .into_iter()
-                                .filter_map(|t| Some((some!(t.key), some!(t.value))))
+                                .filter_map(|t| Some((some!(t.key).into(), some!(t.value).into())))
                                 .collect(),
                         })
                     })
@@ -381,15 +387,15 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|snap| {
                         Some(SnapshotInfo {
-                            id: some!(snap.snapshot_id),
+                            id: some!(snap.snapshot_id).into(),
                             volume_size: some!(snap.volume_size),
-                            state: some!(snap.state),
-                            progress: some!(snap.progress),
+                            state: some!(snap.state).into(),
+                            progress: some!(snap.progress).into(),
                             tags: snap
                                 .tags
                                 .unwrap_or_else(Vec::new)
                                 .into_iter()
-                                .filter_map(|t| Some((some!(t.key), some!(t.value))))
+                                .filter_map(|t| Some((some!(t.key).into(), some!(t.value).into())))
                                 .collect(),
                         })
                     })
@@ -398,10 +404,14 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn terminate_instance(&self, instance_ids: &[String]) -> Result<(), Error> {
+    pub async fn terminate_instance<T: AsRef<str>>(&self, instance_ids: &[T]) -> Result<(), Error> {
+        let instance_ids: Vec<String> = instance_ids
+            .iter()
+            .map(|s| s.as_ref().to_string())
+            .collect();
         self.ec2_client
             .terminate_instances(TerminateInstancesRequest {
-                instance_ids: instance_ids.to_vec(),
+                instance_ids,
                 ..TerminateInstancesRequest::default()
             })
             .await
@@ -410,7 +420,7 @@ impl Ec2Instance {
     }
 
     pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<(), Error> {
-        let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
+        let user_data = get_user_data_from_script(&self.script_dir, spot.script.as_ref())?;
 
         let req = self
             .ec2_client
@@ -442,9 +452,10 @@ impl Ec2Instance {
                         .into_iter()
                         .map(|r| (r.id, r.instance_id))
                         .collect();
-                    if let Some(Some(instance_id)) = reqs.get(&spot_instance_request_id) {
+                    if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id.as_str()) {
                         debug!("tag {} with {:?}", instance_id, spot.tags);
-                        self.tag_ec2_instance(&instance_id, &spot.tags).await?;
+                        self.tag_ec2_instance(instance_id.as_ref(), &spot.tags)
+                            .await?;
                         break;
                     }
                     delay_for(time::Duration::from_secs(2)).await;
@@ -454,10 +465,14 @@ impl Ec2Instance {
         Ok(())
     }
 
-    pub async fn cancel_spot_instance_request(&self, inst_ids: &[String]) -> Result<(), Error> {
+    pub async fn cancel_spot_instance_request<T: AsRef<str>>(
+        &self,
+        inst_ids: &[T],
+    ) -> Result<(), Error> {
+        let inst_ids: Vec<String> = inst_ids.iter().map(|s| s.as_ref().to_string()).collect();
         self.ec2_client
             .cancel_spot_instance_requests(CancelSpotInstanceRequestsRequest {
-                spot_instance_request_ids: inst_ids.to_vec(),
+                spot_instance_request_ids: inst_ids,
                 ..CancelSpotInstanceRequestsRequest::default()
             })
             .await
@@ -468,7 +483,7 @@ impl Ec2Instance {
     pub async fn tag_ec2_instance(
         &self,
         inst_id: &str,
-        tags: &HashMap<String, String>,
+        tags: &HashMap<StackString, StackString>,
     ) -> Result<(), Error> {
         self.ec2_client
             .create_tags(CreateTagsRequest {
@@ -487,7 +502,7 @@ impl Ec2Instance {
     }
 
     pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
-        let user_data = get_user_data_from_script(&self.script_dir, &request.script)?;
+        let user_data = get_user_data_from_script(&self.script_dir, request.script.as_ref())?;
 
         let req = self
             .ec2_client
@@ -533,12 +548,13 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn create_ebs_volume(
+    pub async fn create_ebs_volume<T: AsRef<str>>(
         &self,
         zoneid: &str,
         size: Option<i64>,
-        snapid: Option<String>,
+        snapid: Option<T>,
     ) -> Result<Option<String>, Error> {
+        let snapid = snapid.as_ref().map(|s| s.as_ref().to_string());
         self.ec2_client
             .create_volume(CreateVolumeRequest {
                 availability_zone: zoneid.to_string(),
@@ -606,7 +622,7 @@ impl Ec2Instance {
     pub async fn create_ebs_snapshot(
         &self,
         volid: &str,
-        tags: &HashMap<String, String>,
+        tags: &HashMap<StackString, StackString>,
     ) -> Result<Option<String>, Error> {
         self.ec2_client
             .create_snapshot(CreateSnapshotRequest {
@@ -663,81 +679,81 @@ impl Ec2Instance {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct InstanceRequest {
-    pub ami: String,
-    pub instance_type: String,
-    pub key_name: String,
-    pub security_group: String,
-    pub script: String,
-    pub tags: HashMap<String, String>,
+    pub ami: StackString,
+    pub instance_type: StackString,
+    pub key_name: StackString,
+    pub security_group: StackString,
+    pub script: StackString,
+    pub tags: HashMap<StackString, StackString>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct SpotRequest {
-    pub ami: String,
-    pub instance_type: String,
-    pub security_group: String,
-    pub script: String,
-    pub key_name: String,
+    pub ami: StackString,
+    pub instance_type: StackString,
+    pub security_group: StackString,
+    pub script: StackString,
+    pub key_name: StackString,
     pub price: Option<f32>,
-    pub tags: HashMap<String, String>,
+    pub tags: HashMap<StackString, StackString>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct AmiInfo {
-    pub id: String,
-    pub name: String,
-    pub state: String,
-    pub snapshot_ids: Vec<String>,
+    pub id: StackString,
+    pub name: StackString,
+    pub state: StackString,
+    pub snapshot_ids: Vec<StackString>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Ec2InstanceInfo {
-    pub id: String,
-    pub dns_name: String,
-    pub state: String,
-    pub instance_type: String,
-    pub availability_zone: String,
+    pub id: StackString,
+    pub dns_name: StackString,
+    pub state: StackString,
+    pub instance_type: StackString,
+    pub availability_zone: StackString,
     pub launch_time: DateTime<Utc>,
-    pub tags: HashMap<String, String>,
+    pub tags: HashMap<StackString, StackString>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct ReservedInstanceInfo {
-    pub id: String,
+    pub id: StackString,
     pub price: f32,
-    pub instance_type: String,
-    pub state: String,
-    pub availability_zone: Option<String>,
+    pub instance_type: StackString,
+    pub state: StackString,
+    pub availability_zone: Option<StackString>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct SpotInstanceRequestInfo {
-    pub id: String,
+    pub id: StackString,
     pub price: f32,
-    pub instance_type: String,
-    pub spot_type: String,
-    pub status: String,
-    pub imageid: String,
-    pub instance_id: Option<String>,
+    pub instance_type: StackString,
+    pub spot_type: StackString,
+    pub status: StackString,
+    pub imageid: StackString,
+    pub instance_id: Option<StackString>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct VolumeInfo {
-    pub id: String,
-    pub availability_zone: String,
+    pub id: StackString,
+    pub availability_zone: StackString,
     pub size: i64,
     pub iops: i64,
-    pub state: String,
-    pub tags: HashMap<String, String>,
+    pub state: StackString,
+    pub tags: HashMap<StackString, StackString>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct SnapshotInfo {
-    pub id: String,
+    pub id: StackString,
     pub volume_size: i64,
-    pub state: String,
-    pub progress: String,
-    pub tags: HashMap<String, String>,
+    pub state: StackString,
+    pub progress: StackString,
+    pub tags: HashMap<StackString, StackString>,
 }
 
 pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<String, Error> {

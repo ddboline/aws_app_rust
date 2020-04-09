@@ -23,6 +23,7 @@ pub mod schema;
 pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
 pub mod ssh_instance;
+pub mod stack_string;
 pub mod stdout_channel;
 
 #[cfg(test)]

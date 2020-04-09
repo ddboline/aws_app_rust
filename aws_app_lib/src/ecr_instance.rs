@@ -10,6 +10,7 @@ use std::fmt;
 use sts_profile_auth::get_client_sts;
 
 use crate::config::Config;
+use crate::stack_string::StackString;
 
 macro_rules! some {
     ($expr : expr) => {
@@ -94,9 +95,15 @@ impl EcrInstance {
                             Utc.timestamp(s, ns as u32)
                         });
                         let image_size = image.image_size_in_bytes.map_or(0.0, |s| s as f64 / 1e6);
+                        let tags: Vec<_> = image
+                            .image_tags
+                            .unwrap_or_else(Vec::new)
+                            .into_iter()
+                            .map(|s| s.into())
+                            .collect();
                         Some(ImageInfo {
-                            digest: some!(image.image_digest),
-                            tags: image.image_tags.unwrap_or_else(Vec::new),
+                            digest: some!(image.image_digest).into(),
+                            tags,
                             pushed_at,
                             image_size,
                         })
@@ -105,10 +112,10 @@ impl EcrInstance {
             })
     }
 
-    pub async fn delete_ecr_images(
+    pub async fn delete_ecr_images<T: AsRef<str>>(
         &self,
         reponame: &str,
-        imageids: &[String],
+        imageids: &[T],
     ) -> Result<(), Error> {
         self.ecr_client
             .batch_delete_image(BatchDeleteImageRequest {
@@ -116,7 +123,7 @@ impl EcrInstance {
                 image_ids: imageids
                     .iter()
                     .map(|i| ImageIdentifier {
-                        image_digest: Some(i.to_string()),
+                        image_digest: Some(i.as_ref().into()),
                         ..ImageIdentifier::default()
                     })
                     .collect(),
@@ -139,7 +146,7 @@ impl EcrInstance {
                     .into_iter()
                     .filter_map(|i| {
                         if i.tags.is_empty() {
-                            Some(i.digest)
+                            Some(i.digest.to_string())
                         } else {
                             None
                         }
@@ -158,8 +165,8 @@ impl EcrInstance {
 
 #[derive(Debug)]
 pub struct ImageInfo {
-    pub digest: String,
-    pub tags: Vec<String>,
+    pub digest: StackString,
+    pub tags: Vec<StackString>,
     pub pushed_at: DateTime<Utc>,
     pub image_size: f64,
 }

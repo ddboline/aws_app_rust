@@ -10,20 +10,21 @@ use tokio::task::spawn_blocking;
 use crate::{
     pgpool::{PgPool, PgPoolConn},
     schema::{authorized_users, instance_family, instance_list, instance_pricing},
+    stack_string::StackString,
 };
 
 #[derive(Queryable, Clone, Debug)]
 pub struct InstanceFamily {
     pub id: i32,
-    pub family_name: String,
-    pub family_type: String,
+    pub family_name: StackString,
+    pub family_type: StackString,
 }
 
 #[derive(Insertable, Clone, Debug)]
 #[table_name = "instance_family"]
 pub struct InstanceFamilyInsert {
-    pub family_name: String,
-    pub family_type: String,
+    pub family_name: StackString,
+    pub family_type: StackString,
 }
 
 impl From<InstanceFamily> for InstanceFamilyInsert {
@@ -96,8 +97,11 @@ impl InstanceFamilyInsert {
         let conn = pool.get()?;
 
         conn.transaction(|| {
-            let existing_entries =
-                InstanceFamily::_existing_entries(&self.family_name, &self.family_type, &conn)?;
+            let existing_entries = InstanceFamily::_existing_entries(
+                self.family_name.as_ref(),
+                self.family_type.as_ref(),
+                &conn,
+            )?;
             if existing_entries.is_empty() {
                 self._insert_entry(&conn)?;
                 Ok(true)
@@ -125,10 +129,10 @@ impl fmt::Display for AwsGeneration {
 #[derive(Queryable, Insertable, Clone, Debug)]
 #[table_name = "instance_list"]
 pub struct InstanceList {
-    pub instance_type: String,
+    pub instance_type: StackString,
     pub n_cpu: i32,
     pub memory_gib: f64,
-    pub generation: String,
+    pub generation: StackString,
 }
 
 impl InstanceList {
@@ -200,7 +204,7 @@ impl InstanceList {
         let conn = pool.get()?;
 
         conn.transaction(|| {
-            let existing_entries = Self::_get_by_instance_type(&self.instance_type, &conn)?;
+            let existing_entries = Self::_get_by_instance_type(self.instance_type.as_ref(), &conn)?;
             if existing_entries.is_empty() {
                 self._insert_entry(&conn)?;
                 Ok(true)
@@ -219,18 +223,18 @@ impl InstanceList {
 #[derive(Queryable, Clone, Debug)]
 pub struct InstancePricing {
     pub id: i32,
-    pub instance_type: String,
+    pub instance_type: StackString,
     pub price: f64,
-    pub price_type: String,
+    pub price_type: StackString,
     pub price_timestamp: DateTime<Utc>,
 }
 
 #[derive(Insertable, Debug)]
 #[table_name = "instance_pricing"]
 pub struct InstancePricingInsert {
-    pub instance_type: String,
+    pub instance_type: StackString,
     pub price: f64,
-    pub price_type: String,
+    pub price_type: StackString,
     pub price_timestamp: DateTime<Utc>,
 }
 
@@ -324,8 +328,11 @@ impl InstancePricingInsert {
         let conn = pool.get()?;
 
         conn.transaction(|| {
-            let existing_entries =
-                InstancePricing::_existing_entries(&self.instance_type, &self.price_type, &conn)?;
+            let existing_entries = InstancePricing::_existing_entries(
+                self.instance_type.as_ref(),
+                self.price_type.as_ref(),
+                &conn,
+            )?;
             if existing_entries.is_empty() {
                 self._insert_entry(&conn)?;
                 Ok(true)
@@ -358,7 +365,7 @@ pub enum PricingType {
 #[derive(Queryable, Insertable, Clone, Debug)]
 #[table_name = "authorized_users"]
 pub struct AuthorizedUsers {
-    pub email: String,
+    pub email: StackString,
     pub telegram_userid: Option<i64>,
 }
 
