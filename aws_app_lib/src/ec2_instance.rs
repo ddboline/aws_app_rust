@@ -17,8 +17,7 @@ use std::{collections::HashMap, fmt, fs::File, io::Read, path::Path, time};
 use sts_profile_auth::get_client_sts;
 use tokio::time::delay_for;
 
-use crate::config::Config;
-use crate::stack_string::StackString;
+use crate::{config::Config, stack_string::StackString};
 
 macro_rules! some {
     ($expr : expr) => {

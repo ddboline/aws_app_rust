@@ -6,8 +6,7 @@ use futures::future::try_join_all;
 use lazy_static::lazy_static;
 use log::debug;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
-use std::{collections::HashMap, path::Path, process::Stdio};
+use std::{collections::HashMap, fmt::Display, path::Path, process::Stdio};
 use tokio::{
     process::{Child, Command},
     sync::{Mutex, RwLock},

@@ -9,8 +9,7 @@ use rusoto_ecr::{
 use std::fmt;
 use sts_profile_auth::get_client_sts;
 
-use crate::config::Config;
-use crate::stack_string::StackString;
+use crate::{config::Config, stack_string::StackString};
 
 macro_rules! some {
     ($expr : expr) => {

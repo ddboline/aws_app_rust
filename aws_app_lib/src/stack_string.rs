@@ -1,14 +1,14 @@
 use anyhow::Error;
 use derive_more::{Display, From, Into};
-use diesel::backend::Backend;
-use diesel::deserialize::{FromSql, Result as DeResult};
-use diesel::serialize::{Output, Result as SerResult, ToSql};
-use diesel::sql_types::Text;
+use diesel::{
+    backend::Backend,
+    deserialize::{FromSql, Result as DeResult},
+    serialize::{Output, Result as SerResult, ToSql},
+    sql_types::Text,
+};
 use inlinable_string::InlinableString;
 use serde::{Deserialize, Serialize};
-use std::borrow::Borrow;
-use std::io::Write;
-use std::str::FromStr;
+use std::{borrow::Borrow, io::Write, str::FromStr};
 
 #[derive(
     Serialize,
