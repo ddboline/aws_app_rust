@@ -100,7 +100,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             res.availability_zone
                                 .as_ref()
                                 .map_or_else(|| "", |s| s.as_str())
-                        ).into()
+                        )
+                        .into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
@@ -141,7 +142,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             } else {
                                 "".to_string()
                             }
-                        ).into()
+                        )
+                        .into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
@@ -150,7 +152,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
             ResourceType::Ami => {
                 let ubuntu_ami = async {
                     let hash: StackString = self.config.ubuntu_release.as_str().into();
-                    get_cached!(hash, CACHE_UBUNTU_AMI, self.ec2.get_latest_ubuntu_ami(hash.as_str()))
+                    get_cached!(
+                        hash,
+                        CACHE_UBUNTU_AMI,
+                        self.ec2.get_latest_ubuntu_ami(hash.as_str())
+                    )
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
@@ -192,7 +198,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             ami.name,
                             ami.state,
                             ami.snapshot_ids.join(" ")
-                        ).into()
+                        )
+                        .into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
@@ -212,7 +219,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         format!(
                             r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
                             key, fingerprint
-                        ).into()
+                        )
+                        .into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
@@ -236,7 +244,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             r#"<tr style="text-align: center;">
                                 <td>{}</td><td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
                                 <td>{}</td></tr>"#,
-                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(|s| s.as_str()) {
+                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 "".to_string()
                             } else {
                                 format!(
@@ -290,7 +298,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             snap.state,
                             snap.progress,
                             print_tags(&snap.tags)
-                        ).into()
+                        )
+                        .into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
@@ -311,7 +320,12 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 );
 
                 let futures = repos.iter().map(|repo| get_ecr_images(self, repo.as_str()));
-                let results: Vec<_> = try_join_all(futures).await?.into_iter().flatten().map(Into::into).collect();
+                let results: Vec<_> = try_join_all(futures)
+                    .await?
+                    .into_iter()
+                    .flatten()
+                    .map(Into::into)
+                    .collect();
                 output.extend_from_slice(&results);
                 output.push("</tbody></table>".into());
             }
@@ -346,7 +360,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                                 fname,
                             ),
                             fname
-                        ).into()
+                        )
+                        .into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
@@ -395,7 +410,8 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
                 } else {
                     "".to_string()
                 }
-            ).into()
+            )
+            .into()
         })
         .collect();
     Ok(result)

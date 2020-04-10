@@ -28,13 +28,17 @@ macro_rules! set_config_ok {
 
 macro_rules! set_config_parse {
     ($s:ident, $id:ident, $d:expr) => {
-        $s.$id = var(&stringify!($id).to_uppercase()).ok().and_then(|x| x.parse().ok()).unwrap_or_else(|| $d);
+        $s.$id = var(&stringify!($id).to_uppercase())
+            .ok()
+            .and_then(|x| x.parse().ok())
+            .unwrap_or_else(|| $d);
     };
 }
 
 macro_rules! set_config_must {
     ($s:ident, $id:ident) => {
-        $s.$id = var(&stringify!($id).to_uppercase()).map(Into::into)
+        $s.$id = var(&stringify!($id).to_uppercase())
+            .map(Into::into)
             .map_err(|e| format_err!("{} must be set: {}", stringify!($id).to_uppercase(), e))?;
     };
 }
@@ -100,7 +104,8 @@ impl Config {
             config_dir
                 .join("aws_app_rust")
                 .join("scripts")
-                .to_string_lossy().to_string()
+                .to_string_lossy()
+                .to_string()
                 .into()
         );
         set_config_default!(conf, ubuntu_release, "bionic-18.04".into());

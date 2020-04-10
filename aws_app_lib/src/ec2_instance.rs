@@ -61,7 +61,8 @@ impl Default for Ec2Instance {
 impl Ec2Instance {
     pub fn new(config: &Config) -> Self {
         let region: Region = config
-            .aws_region_name.as_str()
+            .aws_region_name
+            .as_str()
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);
@@ -502,7 +503,8 @@ impl Ec2Instance {
     }
 
     pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
-        let user_data = get_user_data_from_script(self.script_dir.as_str(), request.script.as_str())?;
+        let user_data =
+            get_user_data_from_script(self.script_dir.as_str(), request.script.as_str())?;
 
         let req = self
             .ec2_client

@@ -62,7 +62,8 @@ pub async fn list(
 ) -> Result<HttpResponse, Error> {
     let query: ResourceType = query
         .into_inner()
-        .resource.as_str()
+        .resource
+        .as_str()
         .parse()
         .unwrap_or(ResourceType::Instances);
     let results = data.aws.handle(query).await?;
@@ -215,11 +216,7 @@ pub async fn build_spot_request(
         .collect();
 
     let ami_opt = if let Some(ami_) = &query.ami {
-        let mut ami_opt: Vec<_> = amis
-            .iter()
-            .filter(|ami| &ami.id == ami_)
-            .cloned()
-            .collect();
+        let mut ami_opt: Vec<_> = amis.iter().filter(|ami| &ami.id == ami_).cloned().collect();
         amis.retain(|ami| &ami.id != ami_);
         ami_opt.extend_from_slice(&amis);
         ami_opt
@@ -266,11 +263,7 @@ pub async fn build_spot_request(
     let mut files = data.aws.get_all_scripts()?;
 
     let file_opts = if let Some(script) = &query.script {
-        let mut file_opt: Vec<_> = files
-            .iter()
-            .filter(|f| f == &script)
-            .cloned()
-            .collect();
+        let mut file_opt: Vec<_> = files.iter().filter(|f| f == &script).cloned().collect();
         files.retain(|f| f != script);
         file_opt.extend_from_slice(&files);
         file_opt
@@ -542,11 +535,12 @@ pub async fn get_instances(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let instances: Vec<_> = InstanceList::get_by_instance_family(query.inst.as_str(), &data.aws.pool)
-        .await?
-        .into_iter()
-        .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-        .collect();
+    let instances: Vec<_> =
+        InstanceList::get_by_instance_family(query.inst.as_str(), &data.aws.pool)
+            .await?
+            .into_iter()
+            .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+            .collect();
     form_http_response(instances.join("\n"))
 }
 

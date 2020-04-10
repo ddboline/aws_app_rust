@@ -173,7 +173,9 @@ impl AwsAppInterface {
                 )?;
             }
             ResourceType::Ami => {
-                let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(self.config.ubuntu_release.as_str());
+                let ubuntu_ami = self
+                    .ec2
+                    .get_latest_ubuntu_ami(self.config.ubuntu_release.as_str());
                 let ami_tags = self.ec2.get_ami_tags();
                 let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
 

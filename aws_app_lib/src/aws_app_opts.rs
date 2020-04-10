@@ -55,11 +55,11 @@ impl SpotRequestOpt {
             instance_type: self.instance_type,
             security_group: self
                 .security_group
-                .unwrap_or_else(|| config.spot_security_group.clone().into()),
+                .unwrap_or_else(|| config.spot_security_group.clone()),
             script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
             key_name: self
                 .key_name
-                .unwrap_or_else(|| config.default_key_name.clone().into()),
+                .unwrap_or_else(|| config.default_key_name.clone()),
             price: self.price,
             tags: get_tags(&self.tags),
         }
@@ -89,11 +89,11 @@ impl InstanceOpt {
             instance_type: self.instance_type,
             security_group: self
                 .security_group
-                .unwrap_or_else(|| config.default_security_group.clone().into()),
+                .unwrap_or_else(|| config.default_security_group.clone()),
             script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
             key_name: self
                 .key_name
-                .unwrap_or_else(|| config.default_key_name.clone().into()),
+                .unwrap_or_else(|| config.default_key_name.clone()),
             tags: get_tags(&self.tags),
         }
     }
@@ -323,7 +323,10 @@ impl AwsAppOpts {
                 Ok(())
             }
             Self::CreateImage { instance_id, name } => {
-                if let Some(id) = app.create_image(instance_id.as_ref(), name.as_ref()).await? {
+                if let Some(id) = app
+                    .create_image(instance_id.as_ref(), name.as_ref())
+                    .await?
+                {
                     app.stdout.send(format!("New id {}", id).into())?;
                 }
                 Ok(())
@@ -353,15 +356,24 @@ impl AwsAppOpts {
             Self::DetachVolume { volid } => app.detach_ebs_volume(volid.as_ref()).await,
             Self::ModifyVolume { volid, size } => app.modify_ebs_volume(volid.as_ref(), size).await,
             Self::CreateSnapshot { volid, tags } => {
-                if let Some(id) = app.create_ebs_snapshot(volid.as_ref(), &get_tags(&tags)).await? {
+                if let Some(id) = app
+                    .create_ebs_snapshot(volid.as_ref(), &get_tags(&tags))
+                    .await?
+                {
                     app.stdout.send(format!("Created snapshot {}", id).into())?;
                 }
                 Ok(())
             }
             Self::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(snapid.as_ref()).await,
-            Self::Tag { id, tags } => app.ec2.tag_ec2_instance(id.as_ref(), &get_tags(&tags)).await,
+            Self::Tag { id, tags } => {
+                app.ec2
+                    .tag_ec2_instance(id.as_ref(), &get_tags(&tags))
+                    .await
+            }
             Self::DeleteEcrImages { reponame, imageids } => {
-                app.ecr.delete_ecr_images(reponame.as_ref(), &imageids).await
+                app.ecr
+                    .delete_ecr_images(reponame.as_ref(), &imageids)
+                    .await
             }
             Self::CleanupEcrImages => app.ecr.cleanup_ecr_images().await,
             Self::Connect { instance_id } => app.connect(instance_id.as_ref()).await,
