@@ -355,6 +355,15 @@ pub enum AwsGeneration {
     PV,
 }
 
+impl From<AwsGeneration> for StackString {
+    fn from(item: AwsGeneration) -> StackString {
+        match item {
+            AwsGeneration::HVM => "hvm".into(),
+            AwsGeneration::PV => "pv".into(),
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum PricingType {
     Reserved,

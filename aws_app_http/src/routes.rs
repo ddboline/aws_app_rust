@@ -52,7 +52,7 @@ pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
 
 #[derive(Serialize, Deserialize)]
 pub struct ResourceRequest {
-    resource: String,
+    resource: StackString,
 }
 
 pub async fn list(
@@ -62,7 +62,7 @@ pub async fn list(
 ) -> Result<HttpResponse, Error> {
     let query: ResourceType = query
         .into_inner()
-        .resource
+        .resource.as_str()
         .parse()
         .unwrap_or(ResourceType::Instances);
     let results = data.aws.handle(query).await?;
@@ -129,7 +129,7 @@ pub async fn cleanup_ecr_images(
 
 #[derive(Serialize, Deserialize)]
 pub struct EditData {
-    pub filename: String,
+    pub filename: StackString,
 }
 
 pub async fn edit_script(
@@ -162,8 +162,8 @@ pub async fn edit_script(
 
 #[derive(Serialize, Deserialize)]
 pub struct ReplaceData {
-    pub filename: String,
-    pub text: String,
+    pub filename: StackString,
+    pub text: StackString,
 }
 
 pub async fn replace_script(
@@ -194,9 +194,9 @@ pub async fn delete_script(
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SpotBuilder {
-    pub ami: Option<String>,
-    pub inst: Option<String>,
-    pub script: Option<String>,
+    pub ami: Option<StackString>,
+    pub inst: Option<StackString>,
+    pub script: Option<StackString>,
 }
 
 pub async fn build_spot_request(
@@ -217,10 +217,10 @@ pub async fn build_spot_request(
     let ami_opt = if let Some(ami_) = &query.ami {
         let mut ami_opt: Vec<_> = amis
             .iter()
-            .filter(|ami| ami.id.as_ref() == ami_)
+            .filter(|ami| &ami.id == ami_)
             .cloned()
             .collect();
-        amis.retain(|ami| ami.id.as_ref() != ami_);
+        amis.retain(|ami| &ami.id != ami_);
         ami_opt.extend_from_slice(&amis);
         ami_opt
     } else {
@@ -241,10 +241,10 @@ pub async fn build_spot_request(
     let inst_opt = if let Some(inst) = &query.ami {
         let mut inst_opt: Vec<_> = inst_fam
             .iter()
-            .filter(|fam| fam.family_name.as_ref() == inst)
+            .filter(|fam| &fam.family_name == inst)
             .cloned()
             .collect();
-        inst_fam.retain(|fam| fam.family_name.as_ref() != inst);
+        inst_fam.retain(|fam| &fam.family_name != inst);
         inst_opt.extend_from_slice(&inst_fam);
         inst_opt
     } else {
@@ -256,8 +256,8 @@ pub async fn build_spot_request(
         .map(|fam| format!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
         .collect();
 
-    let inst = query.inst.unwrap_or_else(|| "t3".to_string());
-    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
+    let inst = query.inst.unwrap_or_else(|| "t3".into());
+    let instances: Vec<_> = InstanceList::get_by_instance_family(inst.as_str(), &data.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
@@ -268,10 +268,10 @@ pub async fn build_spot_request(
     let file_opts = if let Some(script) = &query.script {
         let mut file_opt: Vec<_> = files
             .iter()
-            .filter(|f| f.as_ref() == script)
+            .filter(|f| f == &script)
             .cloned()
             .collect();
-        files.retain(|f| f.as_ref() != script);
+        files.retain(|f| f != script);
         file_opt.extend_from_slice(&files);
         file_opt
     } else {
@@ -330,16 +330,16 @@ pub struct SpotRequestData {
     pub name: StackString,
 }
 
-impl Into<SpotRequest> for SpotRequestData {
-    fn into(self) -> SpotRequest {
-        SpotRequest {
-            ami: self.ami,
-            instance_type: self.instance_type,
-            security_group: self.security_group,
-            script: self.script,
-            key_name: self.key_name,
-            price: self.price.as_ref().parse().ok(),
-            tags: hashmap! { "Name".into() => self.name },
+impl From<SpotRequestData> for SpotRequest {
+    fn from(item: SpotRequestData) -> Self {
+        Self {
+            ami: item.ami,
+            instance_type: item.instance_type,
+            security_group: item.security_group,
+            script: item.script,
+            key_name: item.key_name,
+            price: item.price.as_ref().parse().ok(),
+            tags: hashmap! { "Name".into() => item.name },
         }
     }
 }
@@ -374,7 +374,7 @@ pub async fn cancel_spot(
 
 #[derive(Serialize, Deserialize)]
 pub struct PriceRequest {
-    pub search: Option<String>,
+    pub search: Option<StackString>,
 }
 
 pub async fn get_prices(
@@ -483,7 +483,7 @@ pub async fn status(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let entries = data.aws.get_status(&query.instance).await?;
+    let entries = data.aws.get_status(query.instance.as_str()).await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -511,7 +511,7 @@ pub async fn command(
     let payload = payload.into_inner();
     let entries = data
         .aws
-        .run_command(&payload.instance, &payload.command)
+        .run_command(payload.instance.as_str(), payload.command.as_str())
         .await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
@@ -534,7 +534,7 @@ pub async fn command(
 
 #[derive(Serialize, Deserialize)]
 pub struct InstancesRequest {
-    pub inst: String,
+    pub inst: StackString,
 }
 
 pub async fn get_instances(
@@ -542,7 +542,7 @@ pub async fn get_instances(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let instances: Vec<_> = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
+    let instances: Vec<_> = InstanceList::get_by_instance_family(query.inst.as_str(), &data.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
@@ -570,7 +570,7 @@ pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
     data.aws.handle(NoVncStartRequest {}).await?;
 
     let number = data.aws.handle(NoVncStatusRequest {}).await;
-    let body = novnc_status_response(number, &data.aws.config.domain).await?;
+    let body = novnc_status_response(number, data.aws.config.domain.as_str()).await?;
     form_http_response(body)
 }
 
@@ -596,7 +596,7 @@ pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpRes
             <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
         "#.to_string()
     } else {
-        novnc_status_response(number, &data.aws.config.domain).await?
+        novnc_status_response(number, data.aws.config.domain.as_str()).await?
     };
     form_http_response(body)
 }

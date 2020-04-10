@@ -46,7 +46,7 @@ impl Default for EcrInstance {
 impl EcrInstance {
     pub fn new(config: &Config) -> Self {
         let region: Region = config
-            .aws_region_name
+            .aws_region_name.as_str()
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);
@@ -62,7 +62,7 @@ impl EcrInstance {
         Ok(())
     }
 
-    pub async fn get_all_repositories(&self) -> Result<Vec<String>, Error> {
+    pub async fn get_all_repositories(&self) -> Result<Vec<StackString>, Error> {
         self.ecr_client
             .describe_repositories(DescribeRepositoriesRequest::default())
             .await
@@ -71,7 +71,7 @@ impl EcrInstance {
                 r.repositories
                     .unwrap_or_else(Vec::new)
                     .into_iter()
-                    .filter_map(|repo| repo.repository_name)
+                    .filter_map(|repo| repo.repository_name.map(Into::into))
                     .collect()
             })
     }
@@ -141,7 +141,7 @@ impl EcrInstance {
             .into_iter()
             .map(|repo| async move {
                 let imageids: Vec<_> = self
-                    .get_all_images(&repo)
+                    .get_all_images(repo.as_ref())
                     .await?
                     .into_iter()
                     .filter_map(|i| {
@@ -153,7 +153,7 @@ impl EcrInstance {
                     })
                     .collect();
                 if !imageids.is_empty() {
-                    self.delete_ecr_images(&repo, &imageids).await?;
+                    self.delete_ecr_images(repo.as_ref(), &imageids).await?;
                 }
                 Ok(())
             });

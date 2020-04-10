@@ -231,7 +231,7 @@ impl AwsAppOpts {
     pub async fn process_args() -> Result<(), Error> {
         let opts = Self::from_args();
         let config = Config::init_config()?;
-        let pool = PgPool::new(&config.database_url);
+        let pool = PgPool::new(config.database_url.as_str());
         let app = AwsAppInterface::new(config, pool);
 
         let task = app.stdout.spawn_stdout_task();

@@ -1,48 +1,47 @@
 use anyhow::{format_err, Error};
 use std::{env::var, ops::Deref, path::Path, sync::Arc};
 
+use crate::stack_string::StackString;
+
 #[derive(Default, Debug)]
 pub struct ConfigInner {
-    pub database_url: String,
-    pub aws_region_name: String,
-    pub my_owner_id: Option<String>,
+    pub database_url: StackString,
+    pub aws_region_name: StackString,
+    pub my_owner_id: Option<StackString>,
     pub max_spot_price: f32,
-    pub default_security_group: String,
-    pub spot_security_group: String,
-    pub default_key_name: String,
-    pub script_directory: String,
-    pub ubuntu_release: String,
+    pub default_security_group: StackString,
+    pub spot_security_group: StackString,
+    pub default_key_name: StackString,
+    pub script_directory: StackString,
+    pub ubuntu_release: StackString,
     pub port: u32,
-    pub secret_key: String,
-    pub domain: String,
-    pub novnc_path: Option<String>,
+    pub secret_key: StackString,
+    pub domain: StackString,
+    pub novnc_path: Option<StackString>,
 }
 
 macro_rules! set_config_ok {
     ($s:ident, $id:ident) => {
-        $s.$id = var(&stringify!($id).to_uppercase()).ok();
+        $s.$id = var(&stringify!($id).to_uppercase()).ok().map(Into::into);
     };
 }
 
 macro_rules! set_config_parse {
     ($s:ident, $id:ident, $d:expr) => {
-        $s.$id = var(&stringify!($id).to_uppercase())
-            .ok()
-            .and_then(|x| x.parse().ok())
-            .unwrap_or_else(|| $d);
+        $s.$id = var(&stringify!($id).to_uppercase()).ok().and_then(|x| x.parse().ok()).unwrap_or_else(|| $d);
     };
 }
 
 macro_rules! set_config_must {
     ($s:ident, $id:ident) => {
-        $s.$id = var(&stringify!($id).to_uppercase())
+        $s.$id = var(&stringify!($id).to_uppercase()).map(Into::into)
             .map_err(|e| format_err!("{} must be set: {}", stringify!($id).to_uppercase(), e))?;
     };
 }
 
 macro_rules! set_config_default {
     ($s:ident, $id:ident, $d:expr) => {
-        $s.$id = var(&stringify!($id).to_uppercase()).unwrap_or_else(|_| $d);
+        $s.$id = var(&stringify!($id).to_uppercase()).map_or_else(|_| $d, Into::into);
     };
 }
 
@@ -89,7 +88,7 @@ impl Config {
         set_config_must!(conf, default_security_group);
         set_config_must!(conf, default_key_name);
 
-        set_config_default!(conf, aws_region_name, "us-east-1".to_string());
+        set_config_default!(conf, aws_region_name, "us-east-1".into());
         set_config_default!(
             conf,
             spot_security_group,
@@ -101,12 +100,12 @@ impl Config {
             config_dir
                 .join("aws_app_rust")
                 .join("scripts")
-                .to_string_lossy()
+                .to_string_lossy().to_string()
                 .into()
         );
-        set_config_default!(conf, ubuntu_release, "bionic-18.04".to_string());
-        set_config_default!(conf, secret_key, "0123".repeat(8));
-        set_config_default!(conf, domain, "localhost".to_string());
+        set_config_default!(conf, ubuntu_release, "bionic-18.04".into());
+        set_config_default!(conf, secret_key, "0123".repeat(8).into());
+        set_config_default!(conf, domain, "localhost".into());
 
         set_config_ok!(conf, my_owner_id);
         set_config_parse!(conf, max_spot_price, 0.20);

@@ -46,7 +46,7 @@ impl StdoutChannel {
     async fn stdout_task(&self) -> Result<(), Error> {
         while let Some(Some(line)) = self.recv().await {
             stdout()
-                .write_all(&[line.as_ref().as_bytes(), b"\n"].concat())
+                .write_all(&[line.as_bytes(), b"\n"].concat())
                 .await?;
         }
         Ok(())

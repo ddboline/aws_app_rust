@@ -35,9 +35,9 @@ static UBUNTU_OWNER: &str = "099720109477";
 #[derive(Clone)]
 pub struct Ec2Instance {
     ec2_client: Ec2Client,
-    my_owner_id: Option<String>,
+    my_owner_id: Option<StackString>,
     region: Region,
-    script_dir: String,
+    script_dir: StackString,
 }
 
 impl fmt::Debug for Ec2Instance {
@@ -61,7 +61,7 @@ impl Default for Ec2Instance {
 impl Ec2Instance {
     pub fn new(config: &Config) -> Self {
         let region: Region = config
-            .aws_region_name
+            .aws_region_name.as_str()
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);
@@ -79,8 +79,8 @@ impl Ec2Instance {
         Ok(())
     }
 
-    pub fn set_owner_id(&mut self, owner_id: &str) -> Option<String> {
-        self.my_owner_id.replace(owner_id.to_string())
+    pub fn set_owner_id(&mut self, owner_id: &str) -> Option<StackString> {
+        self.my_owner_id.replace(owner_id.into())
     }
 
     pub async fn get_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
@@ -420,7 +420,7 @@ impl Ec2Instance {
     }
 
     pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<(), Error> {
-        let user_data = get_user_data_from_script(&self.script_dir, spot.script.as_ref())?;
+        let user_data = get_user_data_from_script(self.script_dir.as_str(), spot.script.as_str())?;
 
         let req = self
             .ec2_client
@@ -502,7 +502,7 @@ impl Ec2Instance {
     }
 
     pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
-        let user_data = get_user_data_from_script(&self.script_dir, request.script.as_ref())?;
+        let user_data = get_user_data_from_script(self.script_dir.as_str(), request.script.as_str())?;
 
         let req = self
             .ec2_client

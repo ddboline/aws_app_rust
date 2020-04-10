@@ -31,9 +31,22 @@ use std::str::FromStr;
 #[serde(into = "String", from = "&str")]
 pub struct StackString(InlinableString);
 
-impl Into<String> for StackString {
-    fn into(self) -> String {
-        self.0.to_string()
+impl StackString {
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+}
+
+impl From<StackString> for String {
+    fn from(item: StackString) -> Self {
+        match item.0 {
+            InlinableString::Heap(s) => s,
+            InlinableString::Inline(s) => s.to_string(),
+        }
     }
 }
 
@@ -67,7 +80,7 @@ where
     str: ToSql<Text, DB>,
 {
     fn to_sql<W: Write>(&self, out: &mut Output<W, DB>) -> SerResult {
-        (self.0.as_ref() as &str).to_sql(out)
+        self.as_str().to_sql(out)
     }
 }
 
@@ -85,7 +98,7 @@ where
 
 impl AsRef<str> for StackString {
     fn as_ref(&self) -> &str {
-        self.0.as_ref()
+        self.as_str()
     }
 }
 

@@ -64,7 +64,7 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
 fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricingInsert>, Error> {
     fn preserved_filter(p: &PricingEntry) -> bool {
         fn _cmp(os: Option<&StackString>, s: &str) -> bool {
-            os.map(|s| s.as_ref().as_ref()) == Some(s)
+            os.map(|s| s.as_str()) == Some(s)
         }
         _cmp(p.attributes.get("aws:offerTermLeaseLength"), "1yr")
             && _cmp(
@@ -102,7 +102,7 @@ fn get_instance_pricing(
                 .price
                 .get("USD")
                 .ok_or_else(|| format_err!("No USD Price"))?
-                .as_ref()
+                .as_str()
                 .parse()?;
             let instance_type = price_entry
                 .attributes

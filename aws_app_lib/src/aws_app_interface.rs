@@ -173,7 +173,7 @@ impl AwsAppInterface {
                 )?;
             }
             ResourceType::Ami => {
-                let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
+                let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(self.config.ubuntu_release.as_str());
                 let ami_tags = self.ec2.get_ami_tags();
                 let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
 
@@ -265,7 +265,7 @@ impl AwsAppInterface {
                 let futures = repos.into_iter().map(|repo| async move {
                     let lines: Vec<_> = self
                         .ecr
-                        .get_all_images(&repo)
+                        .get_all_images(repo.as_ref())
                         .await?
                         .into_iter()
                         .map(|image| {
@@ -296,7 +296,7 @@ impl AwsAppInterface {
     }
 
     pub fn get_all_scripts(&self) -> Result<Vec<StackString>, Error> {
-        let mut files: Vec<_> = WalkDir::new(&self.config.script_directory)
+        let mut files: Vec<_> = WalkDir::new(self.config.script_directory.as_str())
             .same_file_system(true)
             .into_iter()
             .filter_map(|entry| {
@@ -610,7 +610,7 @@ impl AwsAppInterface {
         }
         let ubuntu_ami = self
             .ec2
-            .get_latest_ubuntu_ami(&self.config.ubuntu_release)
+            .get_latest_ubuntu_ami(self.config.ubuntu_release.as_str())
             .await?;
         if let Some(ami) = ubuntu_ami {
             ami_tags.push(ami);

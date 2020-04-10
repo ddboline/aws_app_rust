@@ -18,10 +18,11 @@ use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
     ec2_instance::AmiInfo,
     resource_type::ResourceType,
+    stack_string::StackString,
 };
 
 lazy_static! {
-    static ref CACHE_UBUNTU_AMI: Mutex<TimedCache<String, Option<AmiInfo>>> =
+    static ref CACHE_UBUNTU_AMI: Mutex<TimedCache<StackString, Option<AmiInfo>>> =
         Mutex::new(TimedCache::with_lifespan(3600));
     static ref NOVNC_CHILDREN: RwLock<Vec<Child>> = RwLock::new(Vec::new());
 }
@@ -52,9 +53,9 @@ pub trait HandleRequest<T> {
 
 #[async_trait]
 impl HandleRequest<ResourceType> for AwsAppInterface {
-    type Result = Result<Vec<String>, Error>;
+    type Result = Result<Vec<StackString>, Error>;
     async fn handle(&self, req: ResourceType) -> Self::Result {
-        let mut output = Vec::new();
+        let mut output: Vec<StackString> = Vec::new();
         match req {
             ResourceType::Instances => {
                 let result = list_instance(self).await?;
@@ -68,10 +69,10 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     <th>Instance Type</th><th>Created At</th><th>Availability Zone</th>
                     </tr>
                     </thead><tbody>"#
-                        .to_string(),
+                        .into(),
                 );
                 output.extend_from_slice(&result);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Reserved => {
                 let reserved = self.ec2.get_reserved_instances().await?;
@@ -83,7 +84,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     <tr><th>Reserved Instance Id</th><th>Price</th><th>Instance Type</th>
                     <th>State</th><th>Availability Zone</th></tr>
                     </thead><tbody>"#
-                        .to_string(),
+                        .into(),
                 );
                 let result: Vec<_> = reserved
                     .iter()
@@ -98,12 +99,12 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             res.state,
                             res.availability_zone
                                 .as_ref()
-                                .map_or_else(|| "", |s| s.as_ref())
-                        )
+                                .map_or_else(|| "", |s| s.as_str())
+                        ).into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Spot => {
                 let requests = self.ec2.get_spot_instance_requests().await?;
@@ -115,7 +116,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     <tr><th>Spot Request Id</th><th>Price</th><th>AMI</th><th>Instance Type</th>
                     <th>Spot Type</th><th>Status</th></tr>
                     </thead><tbody>"#
-                        .to_string(),
+                        .into(),
                 );
                 let result: Vec<_> = requests
                     .iter()
@@ -131,7 +132,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             req.instance_type,
                             req.spot_type,
                             req.status,
-                            if req.status.as_ref() == "pending" {
+                            if req.status.as_str() == "pending" {
                                 format!(
                                     r#"<input type="button" name="cancel" value="Cancel"
                                         onclick="cancelSpotRequest('{}')">"#,
@@ -140,16 +141,16 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             } else {
                                 "".to_string()
                             }
-                        )
+                        ).into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Ami => {
                 let ubuntu_ami = async {
-                    let hash = &self.config.ubuntu_release;
-                    get_cached!(hash, CACHE_UBUNTU_AMI, self.ec2.get_latest_ubuntu_ami(hash))
+                    let hash: StackString = self.config.ubuntu_release.as_str().into();
+                    get_cached!(hash, CACHE_UBUNTU_AMI, self.ec2.get_latest_ubuntu_ami(hash.as_str()))
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
@@ -158,7 +159,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
-                ami_tags.sort_by(|x, y| x.name.as_ref().cmp(y.name.as_ref()));
+                ami_tags.sort_by(|x, y| x.name.as_str().cmp(y.name.as_str()));
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
@@ -168,7 +169,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     <th>Snapshot ID</th>
                     </tr>
                     </thead><tbody>"#
-                        .to_string(),
+                        .into(),
                 );
                 let result: Vec<_> = ami_tags
                     .iter()
@@ -191,11 +192,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             ami.name,
                             ami.state,
                             ami.snapshot_ids.join(" ")
-                        )
+                        ).into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Key => {
                 let keys = self.ec2.get_all_key_pairs().await?;
@@ -203,7 +204,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     r#"<table border="1" class="dataframe">
                         <thead><tr><th>Key Name</th><th>Key Fingerprint</th></tr></thead>
                         <tbody>"#
-                        .to_string(),
+                        .into(),
                 );
                 let result: Vec<_> = keys
                     .into_iter()
@@ -211,11 +212,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         format!(
                             r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
                             key, fingerprint
-                        )
+                        ).into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Volume => {
                 let volumes = self.ec2.get_all_volumes().await?;
@@ -226,7 +227,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     r#"<table border="1" class="dataframe"><thead><tr><th></th><th>Volume ID</th>
                     <th>Availability Zone</th><th>Size</th><th>IOPS</th><th>State</th><th>Tags</th>
                     </tr></thead><tbody>"#
-                        .to_string(),
+                        .into(),
                 );
                 let result: Vec<_> = volumes
                     .iter()
@@ -235,7 +236,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             r#"<tr style="text-align: center;">
                                 <td>{}</td><td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
                                 <td>{}</td></tr>"#,
-                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(|s| s.as_ref().as_ref()) {
+                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(|s| s.as_str()) {
                                 "".to_string()
                             } else {
                                 format!(
@@ -250,11 +251,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             vol.iops,
                             vol.state,
                             print_tags(&vol.tags)
-                        )
+                        ).into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Snapshot => {
                 let mut snapshots = self.ec2.get_all_snapshots().await?;
@@ -262,15 +263,15 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 snapshots.sort_by(|x, y| {
-                    let x = x.tags.get("Name").map_or("", |s| s.as_ref());
-                    let y = y.tags.get("Name").map_or("", |s| s.as_ref());
+                    let x = x.tags.get("Name").map_or("", |s| s.as_str());
+                    let y = y.tags.get("Name").map_or("", |s| s.as_str());
                     x.cmp(&y)
                 });
                 output.push(
                     r#"<table border="1" class="dataframe"><thead><tr>
                         <th></th><th>Snapshot ID</th><th>Size</th><th>State</th><th>Progress</th>
                         <th>Tags</th></tr></thead><tbody>"#
-                        .to_string(),
+                        .into(),
                 );
                 let result: Vec<_> = snapshots
                     .iter()
@@ -289,11 +290,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             snap.state,
                             snap.progress,
                             print_tags(&snap.tags)
-                        )
+                        ).into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Ecr => {
                 let repos = self.ecr.get_all_repositories().await?;
@@ -306,13 +307,13 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             onclick="cleanupEcrImages()"></th>
                             <th>ECR Repo</th><th>Tag</th><th>Digest</th><th>Pushed At</th>
                             <th>Image Size</th></tr></thead><tbody>"#
-                        .to_string(),
+                        .into(),
                 );
 
-                let futures = repos.iter().map(|repo| get_ecr_images(self, repo));
-                let results: Vec<_> = try_join_all(futures).await?.into_iter().flatten().collect();
+                let futures = repos.iter().map(|repo| get_ecr_images(self, repo.as_str()));
+                let results: Vec<_> = try_join_all(futures).await?.into_iter().flatten().map(Into::into).collect();
                 output.extend_from_slice(&results);
-                output.push("</tbody></table>".to_string());
+                output.push("</tbody></table>".into());
             }
             ResourceType::Script => {
                 output.push(
@@ -321,7 +322,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         <input type="text" name="script_filename" id="script_filename"/>
                         <input type="button" name="create_script" value="New"
                             onclick="createScript();"/></form>"#
-                        .to_string(),
+                        .into(),
                 );
                 let result: Vec<_> = self
                     .get_all_scripts()?
@@ -345,7 +346,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                                 fname,
                             ),
                             fname
-                        )
+                        ).into()
                     })
                     .collect();
                 output.extend_from_slice(&result);
@@ -355,7 +356,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
     }
 }
 
-async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
+async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error> {
     app.fill_instance_list().await?;
 
     let result: Vec<_> = INSTANCE_LIST
@@ -378,7 +379,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
                 inst.instance_type,
                 inst.launch_time.with_timezone(&Local),
                 inst.availability_zone,
-                if inst.state.as_ref() == "running" {
+                if inst.state.as_str() == "running" {
                     format!(
                         r#"<input type="button" name="Status" value="Status" {}>"#,
                         format!(r#"onclick="getStatus('{}')""#, inst.id)
@@ -386,7 +387,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
                 } else {
                     "".to_string()
                 },
-                if inst.state.as_ref() == "running" && name.as_ref() != "ddbolineinthecloud" {
+                if inst.state.as_str() == "running" && name.as_str() != "ddbolineinthecloud" {
                     format!(
                         r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
                         format!(r#"onclick="terminateInstance('{}')""#, inst.id)
@@ -394,7 +395,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<String>, Error> {
                 } else {
                     "".to_string()
                 }
-            )
+            ).into()
         })
         .collect();
     Ok(result)
@@ -415,7 +416,7 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>
                     repo, image.digest,
                 ),
                 repo,
-                image.tags.get(0).map_or_else(|| "None", |s| s.as_ref()),
+                image.tags.get(0).map_or_else(|| "None", |s| s.as_str()),
                 image.digest,
                 image.pushed_at,
                 image.image_size,
@@ -432,7 +433,7 @@ fn print_tags<T: Display>(tags: &HashMap<T, T>) -> String {
 
 #[derive(Serialize, Deserialize)]
 pub struct TerminateRequest {
-    pub instance: String,
+    pub instance: StackString,
 }
 
 #[async_trait]
@@ -445,47 +446,47 @@ impl HandleRequest<TerminateRequest> for AwsAppInterface {
 
 #[derive(Serialize, Deserialize)]
 pub struct DeleteImageRequest {
-    pub ami: String,
+    pub ami: StackString,
 }
 
 #[async_trait]
 impl HandleRequest<DeleteImageRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteImageRequest) -> Self::Result {
-        self.delete_image(&req.ami).await
+        self.delete_image(req.ami.as_str()).await
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct DeleteVolumeRequest {
-    pub volid: String,
+    pub volid: StackString,
 }
 
 #[async_trait]
 impl HandleRequest<DeleteVolumeRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteVolumeRequest) -> Self::Result {
-        self.delete_ebs_volume(&req.volid).await
+        self.delete_ebs_volume(req.volid.as_str()).await
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct DeleteSnapshotRequest {
-    pub snapid: String,
+    pub snapid: StackString,
 }
 
 #[async_trait]
 impl HandleRequest<DeleteSnapshotRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteSnapshotRequest) -> Self::Result {
-        self.delete_ebs_snapshot(&req.snapid).await
+        self.delete_ebs_snapshot(req.snapid.as_str()).await
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct DeleteEcrImageRequest {
-    pub reponame: String,
-    pub imageid: String,
+    pub reponame: StackString,
+    pub imageid: StackString,
 }
 
 #[async_trait]
@@ -493,7 +494,7 @@ impl HandleRequest<DeleteEcrImageRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteEcrImageRequest) -> Self::Result {
         self.ecr
-            .delete_ecr_images(&req.reponame, &[req.imageid])
+            .delete_ecr_images(req.reponame.as_str(), &[req.imageid])
             .await
     }
 }
@@ -510,13 +511,13 @@ impl HandleRequest<CleanupEcrImagesRequest> for AwsAppInterface {
 
 #[derive(Serialize, Deserialize)]
 pub struct StatusRequest {
-    pub instance: String,
+    pub instance: StackString,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CommandRequest {
-    pub instance: String,
-    pub command: String,
+    pub instance: StackString,
+    pub command: StackString,
 }
 
 pub struct NoVncStartRequest {}
@@ -530,7 +531,7 @@ impl HandleRequest<NoVncStartRequest> for AwsAppInterface {
         // let vncserver = Path::new("/usr/bin/vncserver");
         let vncpwd = home_dir.join(".vnc/passwd");
         let websockify = Path::new("/usr/bin/websockify");
-        let certdir = Path::new("/etc/letsencrypt/live/").join(&self.config.domain);
+        let certdir = Path::new("/etc/letsencrypt/live/").join(self.config.domain.as_str());
         let cert = certdir.join("fullchain.pem");
         let key = certdir.join("privkey.pem");
 
@@ -555,7 +556,7 @@ impl HandleRequest<NoVncStartRequest> for AwsAppInterface {
                         "8787",
                         "--ssl-only",
                         "--web",
-                        novnc_path,
+                        novnc_path.as_str(),
                         "--cert",
                         &cert.to_string_lossy(),
                         "--key",
