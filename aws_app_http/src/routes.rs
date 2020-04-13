@@ -5,12 +5,11 @@ use actix_web::{
 };
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
-use std::{
-    path::Path,
-    sync::Arc,
+use std::{path::Path, sync::Arc};
+use tokio::{
+    fs::{remove_file, File},
+    io::{AsyncReadExt, AsyncWriteExt},
 };
-use tokio::fs::{remove_file, File};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use aws_app_lib::{
     ec2_instance::SpotRequest,
@@ -142,7 +141,10 @@ pub async fn edit_script(
     let filename = format!("{}/{}", data.aws.config.script_directory, query.filename);
     let mut text = String::new();
     if Path::new(&filename).exists() {
-        File::open(&filename).await?.read_to_string(&mut text).await?;
+        File::open(&filename)
+            .await?
+            .read_to_string(&mut text)
+            .await?;
     }
     let rows = text.split('\n').count() + 5;
     let body = format!(
