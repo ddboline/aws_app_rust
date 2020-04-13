@@ -6,11 +6,11 @@ use actix_web::{
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use std::{
-    fs::{remove_file, File},
-    io::{Read, Write},
     path::Path,
     sync::Arc,
 };
+use tokio::fs::{remove_file, File};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use aws_app_lib::{
     ec2_instance::SpotRequest,
@@ -142,7 +142,7 @@ pub async fn edit_script(
     let filename = format!("{}/{}", data.aws.config.script_directory, query.filename);
     let mut text = String::new();
     if Path::new(&filename).exists() {
-        File::open(&filename)?.read_to_string(&mut text)?;
+        File::open(&filename).await?.read_to_string(&mut text).await?;
     }
     let rows = text.split('\n').count() + 5;
     let body = format!(
@@ -163,8 +163,8 @@ pub async fn edit_script(
 
 #[derive(Serialize, Deserialize)]
 pub struct ReplaceData {
-    pub filename: StackString,
-    pub text: StackString,
+    pub filename: String,
+    pub text: String,
 }
 
 pub async fn replace_script(
@@ -174,8 +174,8 @@ pub async fn replace_script(
 ) -> Result<HttpResponse, Error> {
     let req = req.into_inner();
     let filename = format!("{}/{}", data.aws.config.script_directory, req.filename);
-    let mut f = File::create(&filename)?;
-    write!(f, "{}", req.text)?;
+    let mut f = File::create(&filename).await?;
+    f.write_all(req.text.as_bytes()).await?;
     form_http_response("done".to_string())
 }
 
@@ -188,7 +188,7 @@ pub async fn delete_script(
     let filename = format!("{}/{}", data.aws.config.script_directory, query.filename);
     let p = Path::new(&filename);
     if p.exists() {
-        remove_file(p)?;
+        remove_file(p).await?;
     }
     form_http_response("done".to_string())
 }
