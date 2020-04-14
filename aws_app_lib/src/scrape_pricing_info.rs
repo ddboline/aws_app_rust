@@ -102,7 +102,6 @@ fn get_instance_pricing(
                 .price
                 .get("USD")
                 .ok_or_else(|| format_err!("No USD Price"))?
-                .as_str()
                 .parse()?;
             let instance_type = price_entry
                 .attributes

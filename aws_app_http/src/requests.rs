@@ -132,7 +132,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             req.instance_type,
                             req.spot_type,
                             req.status,
-                            if req.status.as_str() == "pending" {
+                            if &req.status == "pending" {
                                 format!(
                                     r#"<input type="button" name="cancel" value="Cancel"
                                         onclick="cancelSpotRequest('{}')">"#,
@@ -150,11 +150,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
             }
             ResourceType::Ami => {
                 let ubuntu_ami = async {
-                    let hash: StackString = self.config.ubuntu_release.as_str().into();
+                    let hash = self.config.ubuntu_release.clone();
                     get_cached!(
                         hash,
                         CACHE_UBUNTU_AMI,
-                        self.ec2.get_latest_ubuntu_ami(hash.as_str())
+                        self.ec2.get_latest_ubuntu_ami(&hash)
                     )
                 };
 
@@ -164,7 +164,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());
                 }
-                ami_tags.sort_by(|x, y| x.name.as_str().cmp(y.name.as_str()));
+                ami_tags.sort_by(|x, y| x.name.cmp(&y.name));
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
@@ -318,7 +318,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .into(),
                 );
 
-                let futures = repos.iter().map(|repo| get_ecr_images(self, repo.as_str()));
+                let futures = repos.iter().map(|repo| get_ecr_images(self, &repo));
                 let results: Vec<_> = try_join_all(futures)
                     .await?
                     .into_iter()
@@ -393,7 +393,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
                 inst.instance_type,
                 inst.launch_time.with_timezone(&Local),
                 inst.availability_zone,
-                if inst.state.as_str() == "running" {
+                if &inst.state == "running" {
                     format!(
                         r#"<input type="button" name="Status" value="Status" {}>"#,
                         format!(r#"onclick="getStatus('{}')""#, inst.id)
@@ -401,7 +401,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
                 } else {
                     "".to_string()
                 },
-                if inst.state.as_str() == "running" && name.as_str() != "ddbolineinthecloud" {
+                if &inst.state == "running" && &name != "ddbolineinthecloud" {
                     format!(
                         r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
                         format!(r#"onclick="terminateInstance('{}')""#, inst.id)
@@ -468,7 +468,7 @@ pub struct DeleteImageRequest {
 impl HandleRequest<DeleteImageRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteImageRequest) -> Self::Result {
-        self.delete_image(req.ami.as_str()).await
+        self.delete_image(&req.ami).await
     }
 }
 
@@ -481,7 +481,7 @@ pub struct DeleteVolumeRequest {
 impl HandleRequest<DeleteVolumeRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteVolumeRequest) -> Self::Result {
-        self.delete_ebs_volume(req.volid.as_str()).await
+        self.delete_ebs_volume(&req.volid).await
     }
 }
 
@@ -494,7 +494,7 @@ pub struct DeleteSnapshotRequest {
 impl HandleRequest<DeleteSnapshotRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteSnapshotRequest) -> Self::Result {
-        self.delete_ebs_snapshot(req.snapid.as_str()).await
+        self.delete_ebs_snapshot(&req.snapid).await
     }
 }
 
@@ -509,7 +509,7 @@ impl HandleRequest<DeleteEcrImageRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteEcrImageRequest) -> Self::Result {
         self.ecr
-            .delete_ecr_images(req.reponame.as_str(), &[req.imageid])
+            .delete_ecr_images(&req.reponame, &[req.imageid])
             .await
     }
 }
@@ -546,7 +546,7 @@ impl HandleRequest<NoVncStartRequest> for AwsAppInterface {
         // let vncserver = Path::new("/usr/bin/vncserver");
         let vncpwd = home_dir.join(".vnc/passwd");
         let websockify = Path::new("/usr/bin/websockify");
-        let certdir = Path::new("/etc/letsencrypt/live/").join(self.config.domain.as_str());
+        let certdir = Path::new("/etc/letsencrypt/live/").join(&self.config.domain);
         let cert = certdir.join("fullchain.pem");
         let key = certdir.join("privkey.pem");
 

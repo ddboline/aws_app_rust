@@ -231,7 +231,7 @@ impl AwsAppOpts {
     pub async fn process_args() -> Result<(), Error> {
         let opts = Self::from_args();
         let config = Config::init_config()?;
-        let pool = PgPool::new(config.database_url.as_str());
+        let pool = PgPool::new(&config.database_url);
         let app = AwsAppInterface::new(config, pool);
 
         let task = app.stdout.spawn_stdout_task();
@@ -301,14 +301,14 @@ impl AwsAppOpts {
                         } else {
                             search
                                 .iter()
-                                .any(|s| inst.instance_type.as_ref().contains(s.as_ref()))
+                                .any(|s| inst.instance_type.contains(s.as_str()))
                         }
                     })
                     .collect();
                 instances.sort_by_key(|i| i.n_cpu);
                 instances.sort_by(|x, y| {
-                    let x = x.instance_type.as_ref().split('.').next().unwrap_or("");
-                    let y = y.instance_type.as_ref().split('.').next().unwrap_or("");
+                    let x = x.instance_type.split('.').next().unwrap_or("");
+                    let y = y.instance_type.split('.').next().unwrap_or("");
                     x.cmp(&y)
                 });
                 for inst in instances {

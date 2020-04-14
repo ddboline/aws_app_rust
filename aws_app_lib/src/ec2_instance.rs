@@ -61,7 +61,6 @@ impl Ec2Instance {
     pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
-            .as_str()
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);
@@ -157,7 +156,7 @@ impl Ec2Instance {
                 })
             })
             .collect();
-        images.sort_by(|x, y| x.name.as_ref().cmp(y.name.as_ref()));
+        images.sort_by(|x, y| x.name.cmp(&y.name));
         Ok(images.into_iter().last())
     }
 
@@ -420,7 +419,7 @@ impl Ec2Instance {
     }
 
     pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<(), Error> {
-        let user_data = get_user_data_from_script(self.script_dir.as_str(), spot.script.as_str())?;
+        let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
 
         let req = self
             .ec2_client
@@ -502,8 +501,7 @@ impl Ec2Instance {
     }
 
     pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
-        let user_data =
-            get_user_data_from_script(self.script_dir.as_str(), request.script.as_str())?;
+        let user_data = get_user_data_from_script(&self.script_dir, &request.script)?;
 
         let req = self
             .ec2_client

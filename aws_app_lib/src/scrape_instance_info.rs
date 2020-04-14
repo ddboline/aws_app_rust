@@ -52,7 +52,7 @@ fn parse_result(
 
                 for d in c.find(Class("lb-txt-none")) {
                     let family_name: StackString = d.text().trim().to_lowercase().into();
-                    if family_name.as_str().contains(' ') {
+                    if family_name.contains(' ') {
                         continue;
                     }
                     let ifam = InstanceFamilyInsert {
@@ -249,7 +249,7 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
             .map(
                 |row| match extract_instance_type_object_hvm(row, final_indicies) {
                     Ok(x) => {
-                        if x.instance_type.as_str() == "1" || x.instance_type.as_str() == "8" {
+                        if &x.instance_type == "1" || &x.instance_type == "8" {
                             debug!("{:?}", final_indicies);
                             debug!("{:?}", rows[0]);
                             debug!("row {:?}", row);

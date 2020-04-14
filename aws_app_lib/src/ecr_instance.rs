@@ -46,7 +46,6 @@ impl EcrInstance {
     pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
-            .as_str()
             .parse()
             .ok()
             .unwrap_or(Region::UsEast1);

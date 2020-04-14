@@ -85,7 +85,7 @@ impl AwsAppInterface {
         let mut instances = self.ec2.get_all_instances().await?;
         if !instances.is_empty() {
             instances.sort_by_key(|inst| inst.launch_time);
-            instances.sort_by_key(|inst| inst.state.as_ref() != "running");
+            instances.sort_by_key(|inst| &inst.state != "running");
         }
         *INSTANCE_LIST.write().await = instances;
         Ok(())
@@ -173,9 +173,7 @@ impl AwsAppInterface {
                 )?;
             }
             ResourceType::Ami => {
-                let ubuntu_ami = self
-                    .ec2
-                    .get_latest_ubuntu_ami(self.config.ubuntu_release.as_str());
+                let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
                 let ami_tags = self.ec2.get_ami_tags();
                 let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
 
@@ -298,7 +296,7 @@ impl AwsAppInterface {
     }
 
     pub fn get_all_scripts(&self) -> Result<Vec<StackString>, Error> {
-        let mut files: Vec<_> = WalkDir::new(self.config.script_directory.as_str())
+        let mut files: Vec<_> = WalkDir::new(&self.config.script_directory)
             .same_file_system(true)
             .into_iter()
             .filter_map(|entry| {
@@ -437,7 +435,6 @@ impl AwsAppInterface {
                     .get(inst_fam)
                     .ok_or_else(|| format_err!("inst_fam {} does not exist", inst_fam))?
                     .family_type
-                    .as_ref()
                     .parse()?;
 
                 Ok(AwsInstancePrice {
@@ -612,7 +609,7 @@ impl AwsAppInterface {
         }
         let ubuntu_ami = self
             .ec2
-            .get_latest_ubuntu_ami(self.config.ubuntu_release.as_str())
+            .get_latest_ubuntu_ami(&self.config.ubuntu_release)
             .await?;
         if let Some(ami) = ubuntu_ami {
             ami_tags.push(ami);
@@ -640,7 +637,7 @@ async fn get_name_map() -> Result<HashMap<StackString, StackString>, Error> {
         .await
         .iter()
         .filter_map(|inst| {
-            if inst.state.as_ref() != "running" {
+            if &inst.state != "running" {
                 return None;
             }
             inst.tags
@@ -657,7 +654,7 @@ async fn get_id_host_map() -> Result<HashMap<StackString, StackString>, Error> {
         .await
         .iter()
         .filter_map(|inst| {
-            if inst.state.as_ref() != "running" {
+            if &inst.state != "running" {
                 return None;
             }
             Some((inst.id.clone(), inst.dns_name.clone()))

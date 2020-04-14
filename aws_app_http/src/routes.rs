@@ -62,7 +62,6 @@ pub async fn list(
     let query: ResourceType = query
         .into_inner()
         .resource
-        .as_str()
         .parse()
         .unwrap_or(ResourceType::Instances);
     let results = data.aws.handle(query).await?;
@@ -256,7 +255,7 @@ pub async fn build_spot_request(
         .collect();
 
     let inst = query.inst.unwrap_or_else(|| "t3".into());
-    let instances: Vec<_> = InstanceList::get_by_instance_family(inst.as_str(), &data.aws.pool)
+    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
@@ -333,7 +332,7 @@ impl From<SpotRequestData> for SpotRequest {
             security_group: item.security_group,
             script: item.script,
             key_name: item.key_name,
-            price: item.price.as_ref().parse().ok(),
+            price: item.price.parse().ok(),
             tags: hashmap! { "Name".into() => item.name },
         }
     }
@@ -478,7 +477,7 @@ pub async fn status(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let entries = data.aws.get_status(query.instance.as_str()).await?;
+    let entries = data.aws.get_status(&query.instance).await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -506,7 +505,7 @@ pub async fn command(
     let payload = payload.into_inner();
     let entries = data
         .aws
-        .run_command(payload.instance.as_str(), payload.command.as_str())
+        .run_command(&payload.instance, &payload.command)
         .await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
@@ -537,12 +536,11 @@ pub async fn get_instances(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let instances: Vec<_> =
-        InstanceList::get_by_instance_family(query.inst.as_str(), &data.aws.pool)
-            .await?
-            .into_iter()
-            .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-            .collect();
+    let instances: Vec<_> = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
+        .await?
+        .into_iter()
+        .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+        .collect();
     form_http_response(instances.join("\n"))
 }
 
@@ -566,7 +564,7 @@ pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
     data.aws.handle(NoVncStartRequest {}).await?;
 
     let number = data.aws.handle(NoVncStatusRequest {}).await;
-    let body = novnc_status_response(number, data.aws.config.domain.as_str()).await?;
+    let body = novnc_status_response(number, &data.aws.config.domain).await?;
     form_http_response(body)
 }
 
@@ -592,7 +590,7 @@ pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpRes
             <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
         "#.to_string()
     } else {
-        novnc_status_response(number, data.aws.config.domain.as_str()).await?
+        novnc_status_response(number, &data.aws.config.domain).await?
     };
     form_http_response(body)
 }
