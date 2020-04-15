@@ -60,7 +60,6 @@ pub async fn list(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query: ResourceType = query
-        .into_inner()
         .resource
         .parse()
         .unwrap_or(ResourceType::Instances);
@@ -164,7 +163,7 @@ pub async fn edit_script(
 
 #[derive(Serialize, Deserialize)]
 pub struct ReplaceData {
-    pub filename: String,
+    pub filename: StackString,
     pub text: String,
 }
 
