@@ -59,10 +59,7 @@ pub async fn list(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let query: ResourceType = query
-        .resource
-        .parse()
-        .unwrap_or(ResourceType::Instances);
+    let query: ResourceType = query.resource.parse().unwrap_or(ResourceType::Instances);
     let results = data.aws.handle(query).await?;
     form_http_response(results.join("\n"))
 }
