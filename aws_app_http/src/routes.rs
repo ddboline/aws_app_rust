@@ -545,7 +545,7 @@ async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Er
     Ok(format!(
         r#"{} processes currenty running {:?}
             <br>
-            <a href="https://{}:8787/vnc.html">Connect to NoVNC</a>
+            <a href="https://{}:8787/vnc.html" target="_blank">Connect to NoVNC</a>
             <br>
             <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
         "#,
