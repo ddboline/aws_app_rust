@@ -1,6 +1,7 @@
 use crate::logged_user::TRIGGER_DB_UPDATE;
 use actix_web::{error::ResponseError, HttpResponse};
 use anyhow::Error as AnyhowError;
+use log::error;
 use rust_auth_server::static_files;
 use std::fmt::Debug;
 use thiserror::Error;
@@ -30,6 +31,7 @@ impl ResponseError for ServiceError {
                 static_files::login_html()
             }
             _ => {
+                error!("Internal server error {:?}", self);
                 HttpResponse::InternalServerError().json("Internal Server Error, Please try later")
             }
         }
