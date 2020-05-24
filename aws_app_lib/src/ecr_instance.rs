@@ -11,16 +11,6 @@ use sts_profile_auth::get_client_sts;
 
 use crate::{config::Config, stack_string::StackString};
 
-macro_rules! some {
-    ($expr : expr) => {
-        if let Some(v) = $expr {
-            v
-        } else {
-            return None;
-        }
-    };
-}
-
 #[derive(Clone)]
 pub struct EcrInstance {
     ecr_client: EcrClient,
@@ -101,7 +91,7 @@ impl EcrInstance {
                             .map(|s| s.into())
                             .collect();
                         Some(ImageInfo {
-                            digest: some!(image.image_digest).into(),
+                            digest: image.image_digest?.into(),
                             tags,
                             pushed_at,
                             image_size,
