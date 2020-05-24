@@ -18,5 +18,4 @@ do
 done
 
 psql $DB -c "select setval('instance_family_id_seq', (select max(id) from instance_family), TRUE)"
-psql $DB -c "select setval('instance_list_id_seq', (select max(id) from instance_list), TRUE)"
 psql $DB -c "select setval('instance_pricing_id_seq', (select max(id) from instance_pricing), TRUE)"
