@@ -122,6 +122,29 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function createSnapshot( volid ) {
+        let url = "/aws/create_snapshot?volid=" + volid;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('volume');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function modifyVolume( volid ) {
+        let vol_size = document.getElementById("vol_size").value;
+        let url = "/aws/modify_volume?volid=" + volid + "&size=" + vol_size;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('volume');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
     function deleteSnapshot( snapid ) {
         let url = "/aws/delete_snapshot?snapid=" + snapid;
         let xmlhttp = new XMLHttpRequest();
@@ -352,6 +375,30 @@ DISPLAY_TEXT
             document.getElementById("sub_article").innerHTML = "&nbsp;";
             document.getElementById("main_article").innerHTML = xmlhttp.responseText;
             document.getElementById("garminconnectoutput").innerHTML = "done";
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function tagVolume(id) {
+        let tag = document.getElementById("tag_volume").value;
+        let url = "/aws/tag_item?id=" + id + "&tag=" + tag;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('volume');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function tagSnapshot(id) {
+        let tag = document.getElementById("tag_snapshot").value;
+        let url = "/aws/tag_item?id=" + id + "&tag=" + tag;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('snapshot');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);

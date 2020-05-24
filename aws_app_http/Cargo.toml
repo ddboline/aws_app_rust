@@ -30,3 +30,4 @@ rust_auth_server = { git = "https://github.com/ddboline/rust-auth-server.git", t
 async-trait = "0.1"
 cached = "0.12"
 dirs = "2.0"
+itertools = "0.9"

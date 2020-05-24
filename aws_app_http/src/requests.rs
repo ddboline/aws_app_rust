@@ -3,8 +3,10 @@ use async_trait::async_trait;
 use cached::{Cached, TimedCache};
 use chrono::Local;
 use futures::future::try_join_all;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::debug;
+use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, path::Path, process::Stdio};
 use tokio::{
@@ -239,10 +241,13 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 let result: Vec<_> = volumes
                     .iter()
                     .map(|vol| {
+                        let vol_sizes: Vec<_> = get_volumes(vol.size).into_iter().map(|s| {
+                            format!(r#"<option value="{s}">{s} GB</option>"#, s = s)
+                        }).collect();
                         format!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
-                                <td>{}</td></tr>"#,
+                                <td>{}</td><td>{}</td><td>{}</td><td><select id="vol_size">{}</select></td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td></tr>"#,
                             if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 "".to_string()
                             } else {
@@ -254,10 +259,32 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             },
                             vol.id,
                             vol.availability_zone,
-                            vol.size,
+                            vol_sizes.join("\n"),
                             vol.iops,
                             vol.state,
-                            print_tags(&vol.tags)
+                            if vol.tags.is_empty() {
+                                format!(
+                                    r#"
+                                        <input type="text" name="tag_volume" id="tag_volume">
+                                        <input type="button" name="tag_volume" value="Tag" onclick="tagVolume('{}');">
+                                    "#, vol.id
+                                )
+                            } else {
+                                print_tags(&vol.tags)
+                            },
+                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
+                                format!(
+                                    r#"<input type="button" name="CreateSnapshot" value="CreateSnapshot"
+                                        onclick="createSnapshot('{}')">"#,
+                                    vol.id
+                                )
+                            } else {
+                                format!(
+                                    r#"<input type="button" name="ModifyVolume" value="ModifyVolume"
+                                        onclick="modifyVolume('{}')">"#,
+                                    vol.id
+                                )
+                            },
                         ).into()
                     })
                     .collect();
@@ -296,7 +323,16 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             snap.volume_size,
                             snap.state,
                             snap.progress,
-                            print_tags(&snap.tags)
+                            if snap.tags.is_empty() {
+                                format!(
+                                    r#"
+                                        <input type="text" name="tag_snapshot" id="tag_snapshot">
+                                        <input type="button" name="tag_snapshot" value="Tag" onclick="tagSnapshot('{}');">
+                                    "#, snap.id
+                                )
+                            } else {
+                                print_tags(&snap.tags)
+                            }
                         )
                         .into()
                     })
@@ -486,6 +522,21 @@ impl HandleRequest<DeleteVolumeRequest> for AwsAppInterface {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ModifyVolumeRequest {
+    volid: String,
+    size: i64,
+}
+
+#[async_trait]
+impl HandleRequest<ModifyVolumeRequest> for AwsAppInterface {
+    type Result = Result<(), Error>;
+    async fn handle(&self, req: ModifyVolumeRequest) -> Self::Result {
+        self.modify_ebs_volume(&req.volid, req.size).await?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct DeleteSnapshotRequest {
     pub snapid: StackString,
 }
@@ -495,6 +546,42 @@ impl HandleRequest<DeleteSnapshotRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: DeleteSnapshotRequest) -> Self::Result {
         self.delete_ebs_snapshot(&req.snapid).await
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateSnapshotRequest {
+    pub volid: StackString,
+}
+
+#[async_trait]
+impl HandleRequest<CreateSnapshotRequest> for AwsAppInterface {
+    type Result = Result<(), Error>;
+    async fn handle(&self, req: CreateSnapshotRequest) -> Self::Result {
+        self.create_ebs_snapshot(req.volid.as_str(), &HashMap::new())
+            .await
+            .map(|_| ())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TagItemRequest {
+    pub id: StackString,
+    pub tag: StackString,
+}
+
+#[async_trait]
+impl HandleRequest<TagItemRequest> for AwsAppInterface {
+    type Result = Result<(), Error>;
+    async fn handle(&self, req: TagItemRequest) -> Self::Result {
+        self.ec2
+            .tag_ec2_instance(
+                req.id.as_str(),
+                &hashmap! {
+                    "Name".into() => req.tag,
+                },
+            )
+            .await
     }
 }
 
@@ -654,4 +741,18 @@ impl HandleRequest<NoVncStatusRequest> for AwsAppInterface {
     async fn handle(&self, _: NoVncStatusRequest) -> Self::Result {
         NOVNC_CHILDREN.read().await.len()
     }
+}
+
+fn get_volumes(current_vol: i64) -> Vec<i64> {
+    [8, 16, 32, 64, 100, 200, 400, 500]
+        .iter()
+        .filter_map(|x| {
+            if *x < current_vol {
+                Some(current_vol)
+            } else {
+                Some(*x)
+            }
+        })
+        .dedup()
+        .collect()
 }

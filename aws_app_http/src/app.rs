@@ -9,10 +9,11 @@ use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::Pg
 use super::{
     logged_user::{fill_from_db, TRIGGER_DB_UPDATE},
     routes::{
-        build_spot_request, cancel_spot, cleanup_ecr_images, command, delete_ecr_image,
-        delete_image, delete_script, delete_snapshot, delete_volume, edit_script, get_instances,
-        get_prices, list, novnc_launcher, novnc_shutdown, novnc_status, replace_script,
-        request_spot, status, sync_frontpage, terminate, update, user,
+        build_spot_request, cancel_spot, cleanup_ecr_images, command, create_snapshot,
+        delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_volume, edit_script,
+        get_instances, get_prices, list, modify_volume, novnc_launcher, novnc_shutdown,
+        novnc_status, replace_script, request_spot, status, sync_frontpage, tag_item, terminate,
+        update, user,
     },
 };
 
@@ -54,7 +55,10 @@ pub async fn start_app() {
             .service(web::resource("/aws/terminate").route(web::get().to(terminate)))
             .service(web::resource("/aws/delete_image").route(web::get().to(delete_image)))
             .service(web::resource("/aws/delete_volume").route(web::get().to(delete_volume)))
+            .service(web::resource("/aws/modify_volume").route(web::get().to(modify_volume)))
             .service(web::resource("/aws/delete_snapshot").route(web::get().to(delete_snapshot)))
+            .service(web::resource("/aws/create_snapshot").route(web::get().to(create_snapshot)))
+            .service(web::resource("/aws/tag_item").route(web::get().to(tag_item)))
             .service(web::resource("/aws/delete_ecr_image").route(web::get().to(delete_ecr_image)))
             .service(
                 web::resource("/aws/cleanup_ecr_images").route(web::get().to(cleanup_ecr_images)),

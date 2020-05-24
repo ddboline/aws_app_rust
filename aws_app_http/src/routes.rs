@@ -23,9 +23,10 @@ use super::{
     errors::ServiceError as Error,
     logged_user::LoggedUser,
     requests::{
-        get_websock_pids, CleanupEcrImagesRequest, CommandRequest, DeleteEcrImageRequest,
-        DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest, HandleRequest,
-        NoVncStartRequest, NoVncStatusRequest, NoVncStopRequest, StatusRequest, TerminateRequest,
+        get_websock_pids, CleanupEcrImagesRequest, CommandRequest, CreateSnapshotRequest,
+        DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest,
+        HandleRequest, ModifyVolumeRequest, NoVncStartRequest, NoVncStatusRequest,
+        NoVncStopRequest, StatusRequest, TagItemRequest, TerminateRequest,
     },
 };
 
@@ -94,8 +95,38 @@ pub async fn delete_volume(
     form_http_response("finished".to_string())
 }
 
+pub async fn modify_volume(
+    query: Query<ModifyVolumeRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let query = query.into_inner();
+    data.aws.handle(query).await?;
+    form_http_response("finished".to_string())
+}
+
 pub async fn delete_snapshot(
     query: Query<DeleteSnapshotRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let query = query.into_inner();
+    data.aws.handle(query).await?;
+    form_http_response("finished".to_string())
+}
+
+pub async fn create_snapshot(
+    query: Query<CreateSnapshotRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    let query = query.into_inner();
+    data.aws.handle(query).await?;
+    form_http_response("finished".to_string())
+}
+
+pub async fn tag_item(
+    query: Query<TagItemRequest>,
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
