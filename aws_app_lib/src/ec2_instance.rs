@@ -19,16 +19,6 @@ use tokio::time::delay_for;
 
 use crate::{config::Config, stack_string::StackString};
 
-macro_rules! some {
-    ($expr : expr) => {
-        if let Some(v) = $expr {
-            v
-        } else {
-            return None;
-        }
-    };
-}
-
 static UBUNTU_OWNER: &str = "099720109477";
 
 #[derive(Clone)]
@@ -103,10 +93,11 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|image| {
                         Some(AmiInfo {
-                            id: some!(image.image_id).into(),
-                            name: some!(image.name).into(),
-                            state: some!(image.state).into(),
-                            snapshot_ids: some!(image.block_device_mappings)
+                            id: image.image_id?.into(),
+                            name: image.name?.into(),
+                            state: image.state?.into(),
+                            snapshot_ids: image
+                                .block_device_mappings?
                                 .into_iter()
                                 .filter_map(|block| {
                                     block.ebs.and_then(|b| b.snapshot_id.map(|s| s.into()))
@@ -146,10 +137,11 @@ impl Ec2Instance {
             .into_iter()
             .filter_map(|image| {
                 Some(AmiInfo {
-                    id: some!(image.image_id).into(),
-                    name: some!(image.name).into(),
-                    state: some!(image.state).into(),
-                    snapshot_ids: some!(image.block_device_mappings)
+                    id: image.image_id?.into(),
+                    name: image.name?.into(),
+                    state: image.state?.into(),
+                    snapshot_ids: image
+                        .block_device_mappings?
                         .into_iter()
                         .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id.map(|s| s.into())))
                         .collect(),
@@ -173,9 +165,7 @@ impl Ec2Instance {
                 r.regions
                     .unwrap_or_else(Vec::new)
                     .into_iter()
-                    .filter_map(|region| {
-                        Some((some!(region.region_name), some!(region.opt_in_status)))
-                    })
+                    .filter_map(|region| Some((region.region_name?, region.opt_in_status?)))
                     .collect()
             })
             .map_err(Into::into)
@@ -200,22 +190,22 @@ impl Ec2Instance {
                                         .unwrap_or_else(Vec::new)
                                         .into_iter()
                                         .filter_map(|tag| {
-                                            Some((some!(tag.key).into(), some!(tag.value).into()))
+                                            Some((tag.key?.into(), tag.value?.into()))
                                         })
                                         .collect();
                                     Some(Ec2InstanceInfo {
-                                        id: some!(inst.instance_id).into(),
-                                        dns_name: some!(inst.public_dns_name).into(),
-                                        state: some!(some!(inst.state).name).into(),
-                                        instance_type: some!(inst.instance_type).into(),
-                                        availability_zone: some!(
-                                            some!(inst.placement).availability_zone
-                                        )
-                                        .into(),
-                                        launch_time: some!(inst
+                                        id: inst.instance_id?.into(),
+                                        dns_name: inst.public_dns_name?.into(),
+                                        state: inst.state?.name?.into(),
+                                        instance_type: inst.instance_type?.into(),
+                                        availability_zone: inst
+                                            .placement?
+                                            .availability_zone?
+                                            .into(),
+                                        launch_time: inst
                                             .launch_time
                                             .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
-                                            .map(|t| t.with_timezone(&Utc))),
+                                            .map(|t| t.with_timezone(&Utc))?,
                                         tags,
                                     })
                                 })
@@ -237,15 +227,15 @@ impl Ec2Instance {
                     .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|inst| {
-                        let state = some!(inst.state.as_ref());
+                        let state = inst.state.as_ref()?;
                         if state == "retired" {
                             return None;
                         }
                         Some(ReservedInstanceInfo {
-                            id: some!(inst.reserved_instances_id).into(),
-                            price: some!(inst.fixed_price),
-                            instance_type: some!(inst.instance_type).into(),
-                            state: some!(inst.state).into(),
+                            id: inst.reserved_instances_id?.into(),
+                            price: inst.fixed_price?,
+                            instance_type: inst.instance_type?.into(),
+                            state: inst.state?.into(),
                             availability_zone: inst.availability_zone.map(Into::into),
                         })
                     })
@@ -300,8 +290,8 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|spot_price| {
                         Some((
-                            some!(spot_price.instance_type),
-                            some!(spot_price.spot_price.and_then(|s| { s.parse().ok() })),
+                            spot_price.instance_type?,
+                            spot_price.spot_price.and_then(|s| s.parse().ok())?,
                         ))
                     })
                     .collect()
@@ -318,17 +308,17 @@ impl Ec2Instance {
                     .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|inst| {
-                        let launch_spec = some!(inst.launch_specification);
+                        let launch_spec = inst.launch_specification?;
                         Some(SpotInstanceRequestInfo {
-                            id: some!(inst.spot_instance_request_id).into(),
+                            id: inst.spot_instance_request_id?.into(),
                             price: inst
                                 .spot_price
                                 .and_then(|s| s.parse::<f32>().ok())
                                 .unwrap_or(0.0),
-                            instance_type: some!(launch_spec.instance_type).into(),
-                            spot_type: some!(inst.type_).into(),
-                            status: some!(some!(inst.status).code).into(),
-                            imageid: some!(launch_spec.image_id).into(),
+                            instance_type: launch_spec.instance_type?.into(),
+                            spot_type: inst.type_?.into(),
+                            status: inst.status?.code?.into(),
+                            imageid: launch_spec.image_id?.into(),
                             instance_id: inst.instance_id.map(Into::into),
                         })
                     })
@@ -347,16 +337,16 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|v| {
                         Some(VolumeInfo {
-                            id: some!(v.volume_id).into(),
-                            availability_zone: some!(v.availability_zone).into(),
-                            size: some!(v.size),
-                            iops: some!(v.iops),
-                            state: some!(v.state).into(),
+                            id: v.volume_id?.into(),
+                            availability_zone: v.availability_zone?.into(),
+                            size: v.size?,
+                            iops: v.iops?,
+                            state: v.state?.into(),
                             tags: v
                                 .tags
                                 .unwrap_or_else(Vec::new)
                                 .into_iter()
-                                .filter_map(|t| Some((some!(t.key).into(), some!(t.value).into())))
+                                .filter_map(|t| Some((t.key?.into(), t.value?.into())))
                                 .collect(),
                         })
                     })
@@ -386,15 +376,15 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|snap| {
                         Some(SnapshotInfo {
-                            id: some!(snap.snapshot_id).into(),
-                            volume_size: some!(snap.volume_size),
-                            state: some!(snap.state).into(),
-                            progress: some!(snap.progress).into(),
+                            id: snap.snapshot_id?.into(),
+                            volume_size: snap.volume_size?,
+                            state: snap.state?.into(),
+                            progress: snap.progress?.into(),
                             tags: snap
                                 .tags
                                 .unwrap_or_else(Vec::new)
                                 .into_iter()
-                                .filter_map(|t| Some((some!(t.key).into(), some!(t.value).into())))
+                                .filter_map(|t| Some((t.key?.into(), t.value?.into())))
                                 .collect(),
                         })
                     })
