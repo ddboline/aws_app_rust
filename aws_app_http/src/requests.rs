@@ -746,13 +746,7 @@ impl HandleRequest<NoVncStatusRequest> for AwsAppInterface {
 fn get_volumes(current_vol: i64) -> Vec<i64> {
     [8, 16, 32, 64, 100, 200, 400, 500]
         .iter()
-        .map(|x| {
-            if *x < current_vol {
-                current_vol
-            } else {
-                *x
-            }
-        })
+        .map(|x| if *x < current_vol { current_vol } else { *x })
         .dedup()
         .collect()
 }
