@@ -51,8 +51,8 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
         .and_then(|line| {
             line.split_whitespace().find(condition).and_then(|entry| {
                 entry.split('=').nth(1).and_then(|s| {
-                    s.replace('"', "")
-                        .replace(r#"{{region}}"#, "us-east-1")
+                    s.replace(r#"{{region}}"#, "us-east-1")
+                        .trim_matches('"')
                         .parse()
                         .ok()
                 })
@@ -151,4 +151,27 @@ struct PricingEntry {
 #[derive(Deserialize)]
 struct PricingJson {
     prices: Vec<PricingEntry>,
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Error;
+    use log::debug;
+
+    use crate::scrape_pricing_info::parse_json_url_body;
+
+    #[test]
+    fn test_parse_json_url_body() -> Result<(), Error> {
+        let reserved = include_str!("../../tests/data/reserved_pricing.html");
+        let result = parse_json_url_body(reserved)?;
+        assert_eq!(result.as_str(), "https://a0.p.awsstatic.com/pricing/1.0/ec2/region/us-east-1/reserved-instance/linux/index.json");
+
+        let on_demand = include_str!("../../tests/data/on_demand.html");
+        let result = parse_json_url_body(on_demand)?;
+        assert_eq!(
+            result.as_str(),
+            "https://a0.p.awsstatic.com/pricing/1.0/ec2/region/us-east-1/ondemand/linux/index.json"
+        );
+        Ok(())
+    }
 }
