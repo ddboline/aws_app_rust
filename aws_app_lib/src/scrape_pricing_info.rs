@@ -156,7 +156,6 @@ struct PricingJson {
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
-    use log::debug;
 
     use crate::scrape_pricing_info::parse_json_url_body;
 
