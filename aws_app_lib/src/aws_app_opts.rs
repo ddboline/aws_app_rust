@@ -34,16 +34,20 @@ pub struct SpotRequestOpt {
 fn get_tags<T: AsRef<str>>(tags: &[T]) -> HashMap<StackString, StackString> {
     tags.iter()
         .map(|tag| {
-            if tag.as_ref().contains(':') {
-                let t: Vec<_> = tag.as_ref().split(':').collect();
-                if t.len() > 1 {
-                    (t[0].into(), t[1].into())
+            let mut key = "Name";
+            let mut val = tag.as_ref();
+
+            if let Some(idx) = tag.as_ref().find(':') {
+                let (k, v) = tag.as_ref().split_at(idx);
+                if val.len() > 1 {
+                    key = k;
+                    val = &v[1..];
                 } else {
-                    (t[0].into(), "".into())
+                    val = k;
                 }
-            } else {
-                ("Name".into(), tag.as_ref().into())
             }
+
+            (key.into(), val.into())
         })
         .collect()
 }
@@ -387,5 +391,27 @@ impl AwsAppOpts {
         result?;
         app.stdout.close().await?;
         task.await?
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Error;
+
+    use crate::aws_app_opts::get_tags;
+    use crate::stack_string::StackString;
+
+    #[test]
+    fn test_get_tags() -> Result<(), Error> {
+        let tags0 = &["spartacus", "Types:Nothing", "LastName:NoWhere"];
+        let tags = get_tags(tags0);
+        println!("{:?}", tags);
+        assert_eq!(tags.get("Name").map(StackString::as_str), Some("spartacus"));
+        assert_eq!(tags.get("Types").map(StackString::as_str), Some("Nothing"));
+        assert_eq!(
+            tags.get("LastName").map(StackString::as_str),
+            Some("NoWhere")
+        );
+        Ok(())
     }
 }
