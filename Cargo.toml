@@ -13,7 +13,7 @@ description = "CLI and Web app frontend for aws, something simpler than aws-cli 
 [dependencies]
 aws_app_lib = {path="aws_app_lib"}
 aws_app_http = {path="aws_app_http"}
-actix-rt = "1.0"
+actix-rt = "1.1"
 log = "0.4"
 env_logger = "0.7"
 anyhow = "1.0"
