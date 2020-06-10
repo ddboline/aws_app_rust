@@ -398,8 +398,7 @@ impl AwsAppOpts {
 mod tests {
     use anyhow::Error;
 
-    use crate::aws_app_opts::get_tags;
-    use crate::stack_string::StackString;
+    use crate::{aws_app_opts::get_tags, stack_string::StackString};
 
     #[test]
     fn test_get_tags() -> Result<(), Error> {

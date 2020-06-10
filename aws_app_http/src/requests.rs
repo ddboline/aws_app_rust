@@ -1,7 +1,7 @@
 use anyhow::Error;
 use async_trait::async_trait;
-use cached::{Cached, TimedCache};
-use chrono::Local;
+use cached::{Cached, SizedCache};
+use chrono::{DateTime, Duration, Local, Utc};
 use futures::future::try_join_all;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -23,8 +23,8 @@ use aws_app_lib::{
 };
 
 lazy_static! {
-    static ref CACHE_UBUNTU_AMI: Mutex<TimedCache<StackString, Option<AmiInfo>>> =
-        Mutex::new(TimedCache::with_lifespan(3600));
+    static ref CACHE_UBUNTU_AMI: Mutex<SizedCache<StackString, (DateTime<Utc>, Option<AmiInfo>)>> =
+        Mutex::new(SizedCache::with_size(10));
     static ref NOVNC_CHILDREN: RwLock<Vec<Child>> = RwLock::new(Vec::new());
 }
 
@@ -33,14 +33,21 @@ macro_rules! get_cached {
         let mut has_cache = false;
 
         let d = match $mutex.lock().await.cache_get(&$hash) {
-            Some(d) => {
-                has_cache = true;
-                d.clone()
+            Some((t, d)) => {
+                if *t < Utc::now() - Duration::hours(1) {
+                    $call.await?
+                } else {
+                    has_cache = true;
+                    d.clone()
+                }
             }
             None => $call.await?,
         };
         if !has_cache {
-            $mutex.lock().await.cache_set($hash.clone(), d.clone());
+            $mutex
+                .lock()
+                .await
+                .cache_set($hash.clone(), (Utc::now(), d.clone()));
         }
         Ok(d)
     }};
