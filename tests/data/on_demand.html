@@ -1,0 +1,2407 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html class="aws-v1-page no-js aws-lng-en_US" lang="en-US" xmlns="http://www.w3.org/1999/xhtml" data-aws-assets="https://a0.awsstatic.com" data-js-version="1.0.516" data-css-version="1.0.483">
+ <head> 
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" /> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+  <link rel="dns-prefetch" href="https://a0.awsstatic.com" /> 
+  <link rel="dns-prefetch" href="//d0.awsstatic.com" /> 
+  <link rel="dns-prefetch" href="//d1.awsstatic.com" /> 
+  <title> EC2 Instance Pricing – Amazon Web Services (AWS)</title> 
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /> 
+  <meta name="description" content="Amazon EC2 pricing  is based on  instance types and the region in which your instances are running. There is no minimum fee and you only pay for what you use." /> 
+  <meta name="robots" content="index, follow" /> 
+  <link rel="canonical" href="https://aws.amazon.com/ec2/pricing/on-demand/" /> 
+  <link rel="icon" type="image/ico" href="https://a0.awsstatic.com/main/images/site/fav/favicon.ico" /> 
+  <link rel="shortcut icon" type="image/ico" href="https://a0.awsstatic.com/main/images/site/fav/favicon.ico" /> 
+  <link rel="apple-touch-icon" sizes="57x57" href="https://a0.awsstatic.com/main/images/site/touch-icon-iphone-114-smile.png" /> 
+  <link rel="apple-touch-icon" sizes="72x72" href="https://a0.awsstatic.com/main/images/site/touch-icon-ipad-144-smile.png" /> 
+  <link rel="apple-touch-icon" sizes="114x114" href="https://a0.awsstatic.com/main/images/site/touch-icon-iphone-114-smile.png" /> 
+  <link rel="apple-touch-icon" sizes="144x144" href="https://a0.awsstatic.com/main/images/site/touch-icon-ipad-144-smile.png" /> 
+  <meta property="twitter:card" content="summary" /> 
+  <meta property="twitter:title" content=" EC2 Instance Pricing – Amazon Web Services (AWS)" /> 
+  <meta property="twitter:description" content="Amazon EC2 pricing  is based on  instance types and the region in which your instances are running. There is no minimum fee and you only pay for what you use." /> 
+  <meta property="twitter:image" content="https://a0.awsstatic.com/main/images/logos/aws_logo_smile_179x109.png" /> 
+  <meta property="twitter:site" content="@awscloud" /> 
+  <meta property="og:title" content=" EC2 Instance Pricing – Amazon Web Services (AWS)" /> 
+  <meta property="og:type" content="company" /> 
+  <meta property="og:url" content="https://aws.amazon.com/ec2/pricing/on-demand/" /> 
+  <meta property="og:image" content="https://a0.awsstatic.com/main/images/logos/aws_logo_smile_1200x630.png" /> 
+  <meta property="og:site_name" content="Amazon Web Services, Inc." /> 
+  <meta property="fb:pages" content="153063591397681" /> 
+  <meta name="google-site-verification" content="XHghG81ulgiW-3EylGcF48sG28tBW5EH0bNUhgo_DrU" /> 
+  <meta name="msvalidate.01" content="6F92E52A288E266E30C2797ECB5FCCF3" /> 
+  <meta name="baidu-site-verification" content="pjxJUyWxae" /> 
+  <link rel="alternate" href="//aws.amazon.com/ar/ec2/pricing/on-demand/" hreflang="ar-sa" /> 
+  <link rel="alternate" href="//aws.amazon.com/de/ec2/pricing/on-demand/" hreflang="de-de" /> 
+  <link rel="alternate" href="//aws.amazon.com/ec2/pricing/on-demand/" hreflang="en-us" /> 
+  <link rel="alternate" href="//aws.amazon.com/es/ec2/pricing/on-demand/" hreflang="es-es" /> 
+  <link rel="alternate" href="//aws.amazon.com/fr/ec2/pricing/on-demand/" hreflang="fr-fr" /> 
+  <link rel="alternate" href="//aws.amazon.com/id/ec2/pricing/on-demand/" hreflang="id-id" /> 
+  <link rel="alternate" href="//aws.amazon.com/it/ec2/pricing/on-demand/" hreflang="it-it" /> 
+  <link rel="alternate" href="//aws.amazon.com/jp/ec2/pricing/on-demand/" hreflang="ja-jp" /> 
+  <link rel="alternate" href="//aws.amazon.com/ko/ec2/pricing/on-demand/" hreflang="ko-kr" /> 
+  <link rel="alternate" href="//aws.amazon.com/pt/ec2/pricing/on-demand/" hreflang="pt-br" /> 
+  <link rel="alternate" href="//aws.amazon.com/ru/ec2/pricing/on-demand/" hreflang="ru-ru" /> 
+  <link rel="alternate" href="//aws.amazon.com/th/ec2/pricing/on-demand/" hreflang="th-th" /> 
+  <link rel="alternate" href="//aws.amazon.com/tr/ec2/pricing/on-demand/" hreflang="tr-tr" /> 
+  <link rel="alternate" href="//aws.amazon.com/vi/ec2/pricing/on-demand/" hreflang="vi-vn" /> 
+  <link rel="alternate" href="//aws.amazon.com/cn/ec2/pricing/on-demand/" hreflang="zh-cn" /> 
+  <link rel="alternate" href="//aws.amazon.com/tw/ec2/pricing/on-demand/" hreflang="zh-tw" /> 
+  <link rel="stylesheet" href="https://a0.awsstatic.com/main/css/1.0.483/style.css" /> 
+  <script>
+    var AWS = {
+      PageSettings: {
+        supportedLanguages: ['ar', 'en', 'es', 'de', 'fr', 'id', 'it', 'jp', 'ko', 'pt', 'ru', 'th', 'tr', 'vi', 'cn', 'tw'],
+        defaultLanguage: 'en',
+        logDataSet: 'LIVE:PROD',
+        logInstance: 'PUB',
+        csdsEndpoint: 'https://aws.amazon.com/',
+        framework: 'v1',
+        g11nLibPath: 'https://a0.awsstatic.com/g11n-lib/2.0.56',
+        i18nStringPath: 'https://i18n-string.us-west-2.prod.pricing.aws.a2z.com',
+        libraCSSPath: 'https://a0.awsstatic.com/libra-css/css/1.0.346',
+        isLoggingEnabled: true,
+        currentLanguage: 'en-US',
+        isRTL: false
+      },
+    };
+
+    var require = {
+      baseUrl: "https://a0.awsstatic.com/chrome/js/1.0.516/",
+      paths: {
+        "jquery": "jquery-amd",
+        "psf": "https://a0.awsstatic.com/psf/1.1.9",
+        "plc": "https://a0.awsstatic.com/plc/js/1.0.97/plc",
+        "directories": "https://a0.awsstatic.com/libra/1.0.332/directories",
+        "libra": "https://a0.awsstatic.com/libra/1.0.332",
+        "libra-cardsui": "https://a0.awsstatic.com/libra/1.0.332/libra-cardsui",
+        "librastandardlib": "https://a0.awsstatic.com/libra/1.0.332/librastandardlib"
+      },
+      deps: ["scripts"],
+      shim: {
+        "scripts": ["jquery"],
+        "forms": ["jquery"],
+        "pricing-table": ["jquery", "scripts"],
+        "plugins/bootstrap.button": ["jquery"],
+        "plugins/bootstrap.collapse": ["jquery"],
+        "plugins/bootstrap.dropdown": ["jquery"],
+        "plugins/bootstrap.popover": ["jquery"],
+        "plugins/bootstrap.tab": ["jquery"],
+        "plugins/bootstrap.tooltip": ["jquery"],
+        "plugins/free-tier": ["jquery", "scripts"],
+        "plugins/jquery.caroufredsel": ["jquery"],
+        "plugins/jquery.fancybox": ["jquery"],
+        "plugins/jwplayer.html5": ["jquery"],
+        "plugins/jwplayer": ["jquery"],
+        "plugins/pbSize": ["jquery"],
+        "plugins/pushstate": ["jquery", "scripts"],
+        "plugins/search-controller": ["jquery"],
+        "plugins/jquery.touchSwipe": ["jquery"]
+      },
+      waitSeconds: 15
+    };
+
+    </script> 
+  <script src="https://a0.awsstatic.com/chrome/js/1.0.516/head.2.0.js"></script> 
+  <script src="https://a0.awsstatic.com/s_code/js/1.0/awshome_s_code.js"></script> 
+  <script>
+      AWS.TargetMediator = {
+        supportedLanguages: AWS.PageSettings.supportedLanguages,holdJqueryReady: true,offerOrigin: 'https://s0.awsstatic.com',pageLanguage: 'en'
+      };
+    </script> 
+  <script data-js-script="target-mediator" src="https://a0.awsstatic.com/target/1.0.102/aws-target-mediator.js"></script> 
+ </head> 
+ <body> 
+  <header id="aws-page-header" class="awsm m-page-header" role="banner"> 
+   <div id="m-nav" class="m-nav" role="navigation"> 
+    <div class="m-nav-header lb-clearfix" data-menu-url="https://s0.awsstatic.com/en_US/nav/v3/panel-content/desktop/index.html"> 
+     <div class="m-nav-logo"> 
+      <div class="lb-bg-logo aws-amazon_web_services_smile-header-desktop-en"> 
+       <a href="https://aws.amazon.com/?nc2=h_lg"><span>Click here to return to Amazon Web Services homepage</span></a> 
+      </div> 
+     </div> 
+     <div class="m-nav-secondary-links" style="min-width: 620px"> 
+      <a href="/contact-us/?nc2=h_header">Contact Sales</a> 
+      <a class="lb-txt-none lb-tiny-iblock lb-txt-13 lb-txt lb-has-trigger-indicator" href="#" data-mbox-ignore="true" data-lb-popover-trigger="popover-support-selector"> Support&nbsp; <i class="icon-caret-down lb-trigger-mount"></i></a> 
+      <a id="m-nav-language-selector" class="lb-tiny-iblock lb-txt lb-has-trigger-indicator" href="#" data-lb-popover-trigger="popover-language-selector" data-language="en">English&nbsp;<i class="icon-caret-down lb-trigger-mount"></i></a> 
+      <a class="lb-tiny-iblock lb-txt lb-has-trigger-indicator" href="#" data-lb-popover-trigger="popover-my-account">My Account&nbsp;<i class="icon-caret-down lb-trigger-mount"></i></a> 
+      <div class="m-nav-cta-btn"> 
+       <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_header_nav_cta" data-lb-comp-ignore="true"> 
+        <div class="lb-btn"> 
+         <a id="aws-nav-cta-button" class="lb-btn-p-primary" href="https://portal.aws.amazon.com/gp/aws/developer/registration/index.html?nc2=h_ct&amp;src=default" style="min-width:171px;"><span>Create an AWS Account</span></a> 
+        </div> 
+       </div> 
+      </div> 
+     </div> 
+     <div class="m-nav-primary-group"> 
+      <div class="m-nav-primary-links"> 
+       <i class="m-nav-angle-left-icon" aria-hidden="true"></i> 
+       <ul> 
+        <li><a href="/products/?nc2=h_ql_prod" data-panel="m-nav-panel-products">Products</a></li> 
+        <li><a href="/solutions/?nc2=h_ql_sol" data-panel="m-nav-panel-solutions">Solutions</a></li> 
+        <li><a href="/pricing/?nc2=h_ql_pr" data-panel="m-nav-panel-pricing">Pricing</a></li> 
+        <li><a href="https://docs.aws.amazon.com/index.html?nc2=h_ql_doc" data-panel="m-nav-panel-documentation">Documentation</a></li> 
+        <li><a href="/getting-started/?nc2=h_ql_le" data-panel="m-nav-panel-learn">Learn</a></li> 
+        <li><a href="/partners/?nc2=h_ql_pn" data-panel="m-nav-panel-partner">Partner Network</a></li> 
+        <li><a href="https://aws.amazon.com/marketplace/?nc2=h_ql_mp" data-panel="m-nav-panel-marketplace">AWS Marketplace</a></li> 
+        <li><a href="/customer-enablement/?nc2=h_ql_ce" data-panel="m-nav-panel-customer">Customer Enablement</a></li> 
+        <li><a href="/events/?nc2=h_ql_ev" data-panel="m-nav-panel-events">Events</a></li> 
+        <li><a href="/contact-us/?nc2=h_ql_exm" data-panel="m-nav-panel-more">Explore More </a></li> 
+       </ul> 
+       <div class="m-nav-icon-group"> 
+        <i class="m-nav-angle-right-icon" aria-hidden="true"></i> 
+        <i class="m-nav-search-icon"></i> 
+       </div> 
+      </div> 
+      <div class="m-nav-search"> 
+       <form action="https://aws.amazon.com/search" role="search"> 
+        <div class="m-typeahead" data-directory-id="typeahead-suggestions" data-lb-comp="typeahead"> 
+         <input class="m-nav-search-field" placeholder="Search" autocomplete="off" spellcheck="false" dir="auto" type="text" name="searchQuery" /> 
+        </div> 
+       </form> 
+       <i class="m-nav-close-icon"></i> 
+      </div> 
+     </div> 
+    </div> 
+    <div class="lb-popover lb-popover-aui lb-popover-tiny" data-lb-comp="popover" data-id="popover-language-selector" data-action="hover" data-position="top"> 
+     <div class="lb-grid lb-row lb-row-max-large lb-snap"> 
+      <div class="lb-col lb-tiny-24 lb-mid-12"> 
+       <ul class="lb-txt-none lb-ul lb-list-style-none lb-tiny-ul-block"> 
+        <li data-language="ar"> <a href="https://aws.amazon.com/ar/?nc1=h_ls">عربي</a> </li> 
+        <li data-language="id"> <a href="https://aws.amazon.com/id/?nc1=h_ls">Bahasa Indonesia</a> </li> 
+        <li data-language="de"> <a href="https://aws.amazon.com/de/?nc1=h_ls">Deutsch</a> </li> 
+        <li data-language="en"> <a href="https://aws.amazon.com/?nc1=h_ls">English</a> </li> 
+        <li data-language="es"> <a href="https://aws.amazon.com/es/?nc1=h_ls">Espa&ntilde;ol</a> </li> 
+        <li data-language="fr"> <a href="https://aws.amazon.com/fr/?nc1=h_ls">Fran&ccedil;ais</a> </li> 
+        <li data-language="it"> <a href="https://aws.amazon.com/it/?nc1=h_ls">Italiano</a> </li> 
+        <li data-language="pt"> <a href="https://aws.amazon.com/pt/?nc1=h_ls">Portugu&ecirc;s</a> </li> 
+       </ul> 
+      </div> 
+      <div class="lb-col lb-tiny-24 lb-mid-12"> 
+       <ul class="lb-txt-none lb-ul lb-list-style-none lb-tiny-ul-block"> 
+        <li data-language="vi"> <a href="https://aws.amazon.com/vi/?nc1=f_ls">Tiếng Việt</a> </li> 
+        <li data-language="tr"> <a href="https://aws.amazon.com/tr/?nc1=h_ls">T&uuml;rk&ccedil;e</a> </li> 
+        <li data-language="ru"> <a href="https://aws.amazon.com/ru/?nc1=h_ls">Ρусский</a> </li> 
+        <li data-language="th"> <a href="https://aws.amazon.com/th/?nc1=f_ls">ไทย</a> </li> 
+        <li data-language="jp"> <a href="https://aws.amazon.com/jp/?nc1=h_ls">日本語</a> </li> 
+        <li data-language="ko"> <a href="https://aws.amazon.com/ko/?nc1=h_ls">한국어</a> </li> 
+        <li data-language="cn"> <a href="https://aws.amazon.com/cn/?nc1=h_ls">中文 (简体)</a> </li> 
+        <li data-language="tw"> <a href="https://aws.amazon.com/tw/?nc1=h_ls">中文 (繁體)</a> </li> 
+       </ul> 
+      </div> 
+     </div> 
+    </div> 
+    <div class="lb-popover lb-popover-aui lb-popover-tiny" data-lb-comp="popover" data-id="popover-my-account" data-action="hover" data-position="top"> 
+     <ul class="lb-txt-none lb-ul lb-list-style-none lb-tiny-ul-block"> 
+      <li> <a href="https://console.aws.amazon.com/?nc2=h_m_mc">AWS Management Console</a> </li> 
+      <li> <a href="https://portal.aws.amazon.com/gp/aws/manageYourAccount?nc2=h_m_ma">Account Settings</a> </li> 
+      <li> <a href="https://console.aws.amazon.com/billing/home?nc2=h_m_bc">Billing &amp; Cost Management</a> </li> 
+      <li> <a href="https://console.aws.amazon.com/iam/home?nc2=h_m_sc#security_credential">Security Credentials</a> </li> 
+      <li> <a href="https://phd.aws.amazon.com/?nc2=h_m_sc">AWS Personal Health Dashboard</a> </li> 
+     </ul> 
+    </div> 
+    <div class="lb-popover lb-popover-aui lb-popover-tiny" data-lb-comp="popover" data-id="popover-support-selector" data-action="hover" data-position="top"> 
+     <ul class="lb-txt-none lb-ul lb-list-style-none lb-tiny-ul-block"> 
+      <li> <a href="https://console.aws.amazon.com/support/home/?nc2=h_ql_cu">Support Center</a> </li> 
+      <li> <a href="/premiumsupport/knowledge-center/?nc2=h_m_ma">Knowledge Center</a> </li> 
+      <li> <a href="/premiumsupport/?nc2=h_m_bc">AWS Support Overview</a> </li> 
+     </ul> 
+    </div> 
+    <script class="tt-suggestion-tpl" type="text/x-handlebars-template">
+    <div>
+      <a href="{{primaryUrl}}">
+        <div class="tt-title">
+          {{cleanHTMLEntity title}}
+        </div>
+        {{#if desc}}
+          <div class="tt-desc">
+            {{cleanHTMLEntity desc}}
+          </div>
+        {{/if}}
+      </a>
+      <div class="tt-btn-group">
+        {{#if pricingUrl}}
+          <a href="{{pricingUrl}}">
+            <div class="tt-btn">Pricing</div>
+          </a>
+        {{/if}}
+        {{#if docsUrl}}
+          <a href="{{docsUrl}}">
+            <div class="tt-btn">Documentation</div>
+          </a>
+        {{/if}}
+      </div>
+    </div>
+  </script> 
+    <script class="tt-products-head-tpl" type="text/x-handlebars-template">
+    <div class="tt-header lb-txt-bold">
+      <p>Products</p>
+    </div>
+  </script> 
+    <script class="tt-keypages-head-tpl" type="text/x-handlebars-template">
+    <div class="tt-header lb-txt-bold">
+      <p>Related Pages</p>
+    </div>
+  </script> 
+    <script class="tt-tutorials-head-tpl" type="text/x-handlebars-template">
+    <div class="tt-header lb-txt-bold">
+      <p>Tutorials</p>
+    </div>
+  </script> 
+    <script class="tt-blogs-head-tpl" type="text/x-handlebars-template">
+    <div class="tt-header lb-txt-bold">
+      <p>Blogs</p>
+    </div>
+  </script> 
+    <script class="tt-see-all-tpl" type="text/x-handlebars-template">
+    <div class="tt-see-all">
+      <a href="https://aws.amazon.com/search/?searchQuery={{ query }}">See more results for "{{ query }}"&lrm;</a>
+    </div>
+  </script> 
+   </div> 
+   <div id="m-nav-mobile" class="m-nav-mobile"> 
+    <div id="m-nav-mobile-header" class="m-nav-mobile-header" data-menu-url="https://s0.awsstatic.com/en_US/nav/v3/panel-content/mobile/index.html"> 
+     <div class="lb-bg-logo aws-amazon_web_services_smile-header-mobile-en"> 
+      <a href="https://aws.amazon.com/?nc2=h_lg"><span>Click here to return to Amazon Web Services homepage</span></a> 
+     </div> 
+     <div class="m-nav-mobile-button-group"> 
+      <i class="m-nav-mobile-button icon-search"></i> 
+      <i class="m-nav-mobile-button icon-reorder"></i> 
+     </div> 
+    </div> 
+    <div id="m-nav-mobile-search" class="m-nav-mobile-search"> 
+     <form action="https://aws.amazon.com/search" role="search"> 
+      <div class="m-typeahead"> 
+       <input class="m-nav-search-field" placeholder="Search" autocomplete="off" spellcheck="false" dir="auto" type="text" name="searchQuery" /> 
+      </div> 
+     </form> 
+    </div> 
+    <nav id="m-nav-trimdown" role="navigation"> 
+     <ul class="m-nav-mobile-menu-group"> 
+      <li> <a href="/products/?nc2=h_mo">Products</a> </li> 
+      <li> <a href="/solutions/?nc2=h_mo">Solutions</a> </li> 
+      <li> <a href="/pricing/?nc2=h_mo">Pricing</a> </li> 
+      <li> <a href="/what-is-aws/?nc2=h_mo">Introduction to AWS</a> </li> 
+      <li> <a href="/getting-started/?nc2=h_mo">Getting Started</a> </li> 
+      <li> <a href="/documentation/?nc2=h_mo">Documentation</a> </li> 
+      <li> <a href="/training/?nc2=h_mo">Training and Certification</a> </li> 
+      <li> <a href="/developer/?nc2=h_mo">Developer Center</a> </li> 
+      <li> <a href="/solutions/case-studies/?nc2=h_mo">Customer Success</a> </li> 
+      <li> <a href="/partners/?nc2=h_mo">Partner Network</a> </li> 
+      <li> <a href="https://aws.amazon.com/marketplace/?nc2=h_mo">AWS Marketplace</a> </li> 
+      <li> <a href="https://console.aws.amazon.com/support/home?nc2=h_ql_cu">Support</a> </li> 
+      <li> <a href="https://console.aws.amazon.com/console/home">Log into Console</a> </li> 
+      <li> <a href="/console/mobile/">Download the Mobile App</a> </li> 
+     </ul> 
+    </nav> 
+   </div> 
+  </header> 
+  <div id="aws-page-content" class="page-content"> 
+   <div class="wrapper row"> 
+    <aside class="three columns leftnavcontainer" role="complementary"> 
+     <div class="leftnav"> 
+      <div class="sidebar parsys iparsys"> 
+       <div class="section"> 
+        <div class="new"></div> 
+       </div> 
+       <div class="iparys_inherited"> 
+        <div class="sidebar parsys iparsys"></div> 
+       </div> 
+      </div> 
+     </div> 
+    </aside> 
+    <div class="nine columns content-with-nav"> 
+     <main role="main"> 
+      <section data-page-alert-target="true"> 
+       <div class="title-wrapper"> 
+        <div class="row title"> 
+         <div class="twelve columns"> 
+          <h1 id="Amazon_EC2_Pricing"> <a name="Amazon_EC2_Pricing"> Amazon EC2 Pricing</a> </h1> 
+         </div> 
+        </div> 
+       </div> 
+       <div class="parsys content"> 
+        <div class="tracking-pixel parbase section"> 
+         <div data-url="https://s.amazon-adsystem.com/iui3?d=3p-hbg&amp;ex-src=amazon.com&amp;ex-hargs=v%3D1.0%3Bc%3DAWS%3Bp%3DEC2_PR" data-lb-comp="tracking-pixel"></div> 
+        </div> 
+        <div class="tracking-pixel parbase section"> 
+         <div data-url="https://fls-na.amazon.com/1/4167132/1/OP/?id=96624fe8-bb83-4aaa-91b9-ad9b00802f3b&amp;type=43" data-lb-comp="tracking-pixel"></div> 
+        </div> 
+        <div class="columnbuilder parbase section"> 
+         <div class="row column-builder"> 
+          <div class="eight columns "> 
+           <div class="parsys col1"> 
+            <div class="lead-copy section"> 
+             <div class="lead   "> 
+              <p>With On-Demand instances you only pay for EC2 instances you use. The use of On-Demand instances frees you from the costs and complexities of planning, purchasing, and maintaining hardware and transforms what are commonly large fixed costs into much smaller variable costs.&nbsp;</p> 
+             </div> 
+            </div> 
+            <div class="title-wrapper section"> 
+             <div class="row title"> 
+              <div class="twelve columns"> 
+               <h3 id="On-Demand_Pricing"> <a name="On-Demand_Pricing"> On-Demand Pricing</a> </h3> 
+              </div> 
+             </div> 
+            </div> 
+            <div class="aws-text-box section"> 
+             <div class="  "> 
+              <p>On-Demand instances let you pay for compute capacity by the hour or second (minimum of 60 seconds) with no long-term commitments. This frees you from the costs and complexities of planning, purchasing, and maintaining hardware and transforms what are commonly large fixed costs into much smaller variable costs.</p> 
+              <p>The pricing below includes the cost to run private and public AMIs on the specified operating system (“Windows Usage” prices apply to <a href="/windows/server2003/">Windows Server 2003 R2</a>, 2008, 2008 R2, 2012, <a href="/windows/products/ec2/server2012r2/">2012 R2</a>, <a href="/windows/products/ec2/windows-server-2016/">2016</a>, and <a href="https://aws.amazon.com/windows/products/ec2/windows-server-2019/">2019</a>). Amazon also provides you with additional instances for <a href="/windows/" adhocenable="false">Amazon EC2 running Microsoft Windows with SQL Server</a>, <a href="http://aws.amazon.com/partners/suse/" adhocenable="false">Amazon EC2 running SUSE Linux Enterprise Server</a>, <a href="http://aws.amazon.com/partners/redhat/" adhocenable="false">Amazon EC2 running Red Hat Enterprise Linux</a> and <a href="https://aws.amazon.com/partners/find/partnerdetails/?n=IBM&amp;id=001E000001IlLnmIAF" target="_blank">Amazon EC2 running IBM</a> that are priced differently.</p> 
+             </div> 
+            </div> 
+           </div> 
+          </div> 
+          <div class="four columns "> 
+           <div class="parsys col2"> 
+            <div class="parbase section mbox"> 
+             <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_ctabox_vertical" data-lb-comp-ignore="true"> 
+              <div class="parsys mbox"> 
+               <div class="aws-comp section"> 
+                <div class="vbb"> 
+                 <h4>Get Started with AWS for Free</h4> 
+                 <a href="https://portal.aws.amazon.com/gp/aws/developer/registration/index.html" class="button btn-block btn-gold" data-da="vertical-buybox-cta-button">Create a Free Account</a> 
+                 <hr /> 
+                 <div class="content"> 
+                  <p>AWS Free Tier includes&nbsp;750 hours&nbsp;of Linux and Windows t2.micro instances each month for one year. To stay within the Free Tier, use only EC2 Micro instances.<br /> </p> 
+                  <p><a href="/free/" adhocenable="false">View AWS Free Tier Details &raquo;</a><br /> <br /> </p> 
+                 </div> 
+                </div> 
+               </div> 
+              </div> 
+             </div> 
+            </div> 
+            <div class="parbase section mbox"> 
+             <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_merch_product_cta" data-lb-comp-ignore="true"> 
+              <div class="parsys mbox"> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="section tab-wrapper"> 
+         <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a27833" class="tabs tab-default "> 
+          <ul class="a-tabs"> 
+           <li class="active"> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278331" data-toggle="tab">Linux</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278332" data-toggle="tab">RHEL</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278333" data-toggle="tab">SLES</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278334" data-toggle="tab">Windows</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278335" data-toggle="tab">Windows with SQL Standard</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278336" data-toggle="tab">Windows with SQL Web</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278337" data-toggle="tab">Windows with SQL Enterprise</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278338" data-toggle="tab">Linux with SQL Standard</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278339" data-toggle="tab">Linux with SQL Web</a> </li> 
+           <li> <a href="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a2783310" data-toggle="tab">Linux with SQL Enterprise</a> </li> 
+          </ul> 
+          <div class="tab-content"> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278331" class="tab-pane a-box a-box-tab active"> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278331" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-df4d27db-cb3e-47d6-9f02-51131ed13f2c-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Linux/UNIX Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-df4d27db-cb3e-47d6-9f02-51131ed13f2c" class="aws-table aws-plc-main" data-item-template="#element-df4d27db-cb3e-47d6-9f02-51131ed13f2c-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-pricing-path="ondemand/linux" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/linux/index.json" data-controls-template="#element-df4d27db-cb3e-47d6-9f02-51131ed13f2c-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-df4d27db-cb3e-47d6-9f02-51131ed13f2c-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278332" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278332" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-165cded7-be0a-4450-bb65-72ffca64e01e-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Red Hat Enterprise Linux Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-165cded7-be0a-4450-bb65-72ffca64e01e" class="aws-table aws-plc-main" data-item-template="#element-165cded7-be0a-4450-bb65-72ffca64e01e-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-pricing-path="ondemand/rhel" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/rhel/index.json" data-controls-template="#element-165cded7-be0a-4450-bb65-72ffca64e01e-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-165cded7-be0a-4450-bb65-72ffca64e01e-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278333" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278333" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-39d01504-8b57-4f25-8f40-27a0535d80fd-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>SUSE Linux Enterprise Server Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-39d01504-8b57-4f25-8f40-27a0535d80fd" class="aws-table aws-plc-main" data-item-template="#element-39d01504-8b57-4f25-8f40-27a0535d80fd-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-pricing-path="ondemand/suse" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/suse/index.json" data-controls-template="#element-39d01504-8b57-4f25-8f40-27a0535d80fd-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-39d01504-8b57-4f25-8f40-27a0535d80fd-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278334" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278334" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-a4b6af43-7a0e-4728-abf1-9df0a05ac3d1-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Windows Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-a4b6af43-7a0e-4728-abf1-9df0a05ac3d1" class="aws-table aws-plc-main" data-item-template="#element-a4b6af43-7a0e-4728-abf1-9df0a05ac3d1-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-pricing-path="ondemand/windows" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/windows/index.json" data-controls-template="#element-a4b6af43-7a0e-4728-abf1-9df0a05ac3d1-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-a4b6af43-7a0e-4728-abf1-9df0a05ac3d1-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278335" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278335" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-6816443e-63d2-4fb4-b338-1b67f32505fb-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Windows with SQL Standard Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-6816443e-63d2-4fb4-b338-1b67f32505fb" class="aws-table aws-plc-main" data-item-template="#element-6816443e-63d2-4fb4-b338-1b67f32505fb-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-pricing-path="ondemand/windows-std" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/windows-std/index.json" data-controls-template="#element-6816443e-63d2-4fb4-b338-1b67f32505fb-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-6816443e-63d2-4fb4-b338-1b67f32505fb-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+               <p>* This is the default and maximum number of vCPUs available for this instance type. You can specify a custom number of vCPUs when launching this instance type. For more details on valid vCPU counts and how to start using this feature, visit the Optimize CPUs documentation page here. &nbsp;</p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278336" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278336" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-84e98b31-c209-488b-9fa1-24cd12169c5d-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Windows with SQL Web Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-84e98b31-c209-488b-9fa1-24cd12169c5d" class="aws-table aws-plc-main" data-item-template="#element-84e98b31-c209-488b-9fa1-24cd12169c5d-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-pricing-path="ondemand/windows-web" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/windows-web/index.json" data-controls-template="#element-84e98b31-c209-488b-9fa1-24cd12169c5d-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-84e98b31-c209-488b-9fa1-24cd12169c5d-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278337" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278337" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-5739f82c-2631-47d1-b1b3-9837f22775df-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Windows with SQL Enterprise Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-5739f82c-2631-47d1-b1b3-9837f22775df" class="aws-table aws-plc-main" data-item-template="#element-5739f82c-2631-47d1-b1b3-9837f22775df-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-pricing-path="ondemand/windows-enterprise" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/windows-enterprise/index.json" data-controls-template="#element-5739f82c-2631-47d1-b1b3-9837f22775df-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-5739f82c-2631-47d1-b1b3-9837f22775df-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278338" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278338" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-113ac31d-c57e-4aaf-ab79-dcae6a638675-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Linux with SQL Standard Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-113ac31d-c57e-4aaf-ab79-dcae6a638675" class="aws-table aws-plc-main" data-item-template="#element-113ac31d-c57e-4aaf-ab79-dcae6a638675-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot;, &quot;us-gov-west-1&quot; ] }" data-pricing-path="ondemand/linux-std" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/linux-std/index.json" data-controls-template="#element-113ac31d-c57e-4aaf-ab79-dcae6a638675-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-113ac31d-c57e-4aaf-ab79-dcae6a638675-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a278339" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a278339" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-41ef920f-9cde-46e1-a79a-137fc3015d15-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Linux with SQL Web Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-41ef920f-9cde-46e1-a79a-137fc3015d15" class="aws-table aws-plc-main" data-item-template="#element-41ef920f-9cde-46e1-a79a-137fc3015d15-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot;, &quot;us-gov-west-1&quot; ] }" data-pricing-path="ondemand/linux-web" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/linux-web/index.json" data-controls-template="#element-41ef920f-9cde-46e1-a79a-137fc3015d15-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-41ef920f-9cde-46e1-a79a-137fc3015d15-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+             <div class="aws-text-box section"> 
+              <div class="  "> 
+               <p><span class="box">Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more.</a></span></p> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+           <div id="aws-element-edf5c400-c1bf-49a6-b8ff-282551a2783310" class="tab-pane a-box a-box-tab "> 
+            <h4 class="tab-title" data-target="#aws-element-edf5c400-c1bf-49a6-b8ff-282551a2783310" data-toggle="tab"></h4> 
+            <div class="par parsys"> 
+             <div class="grid parbase section base"> 
+              <div class="aws-plc"> 
+               <script id="element-c9fd04f5-ba47-4a41-a5ea-c1992095d668-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>vCPU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>ECU</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Memory (GiB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Instance Storage (GB)</th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Linux with SQL Enterprise Usage</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="6">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/if}}{{else}}{{#unless @last}}{{attributes.aws:ec2:instanceType}}{{else}}{{attributes.aws:ec2:instanceType}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:vcpu}}{{else}}{{loc-number attributes.aws:ec2:vcpu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/if}}{{else}}{{#unless @last}}{{loc-number attributes.aws:ec2:ecu}}{{else}}{{loc-number attributes.aws:ec2:ecu}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/if}}{{else}}{{#unless @last}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{else}}{{loc-number-unit attributes.aws:ec2:memory form="short"}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/if}}{{else}}{{#unless @last}}{{loc-message attributes.aws:ec2:storage}}{{else}}{{loc-message attributes.aws:ec2:storage}}{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Hour{{else}}{{loc-currency price.USD}} per Hour{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+               <div id="element-c9fd04f5-ba47-4a41-a5ea-c1992095d668" class="aws-table aws-plc-main" data-item-template="#element-c9fd04f5-ba47-4a41-a5ea-c1992095d668-content" data-group-by-prop="attributes.aws:ec2:instanceFamily" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;General Purpose - Current Generation&quot;,&quot;groupName&quot;:&quot;General purpose&quot;}, {&quot;customGroupTitle&quot;:&quot;Compute Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Compute optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;GPU Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;GPU instance&quot;}, {&quot;customGroupTitle&quot;:&quot;Memory Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Memory optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;Storage Optimized - Current Generation&quot;,&quot;groupName&quot;:&quot;Storage optimized&quot;}, {&quot;customGroupTitle&quot;:&quot;FPGA Instances - Current Generation&quot;,&quot;groupName&quot;:&quot;FPGA Instances&quot;}]" data-unit="Hrs" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot;, &quot;us-gov-west-1&quot;, &quot;me-south-1&quot; ] }" data-pricing-path="ondemand/linux-enterprise" data-sort-order="instance-capacity" data-sort-by="attributes.aws:ec2:instanceType" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/ondemand/linux-enterprise/index.json" data-controls-template="#element-c9fd04f5-ba47-4a41-a5ea-c1992095d668-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+                <div class="aws-controls aws-clearfix"></div> 
+                <div class="aws-plc-content"></div> 
+               </div> 
+               <script id="element-c9fd04f5-ba47-4a41-a5ea-c1992095d668-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+          </div> 
+         </div> 
+         <script>
+        require(["scripts"], function() {
+          $.awsComponent.tabs();
+        });
+      </script> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>Pricing is per instance-hour consumed for each instance, from the time an instance is launched until it is terminated or stopped. Each partial instance-hour consumed will be billed per-second for Linux Instances and as a full hour for all other instance types.</p> 
+          <p>The vCPU number is the default and maximum number of vCPUs available for the specified EC2 instance type. You can specify a custom number of vCPUs when launching this instance type. Instance pricing will remain same as displayed above. For more details on valid vCPU counts and how to start using this feature, visit the Optimize CPUs documentation page <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-optimize-cpu.html" target="_blank">here</a>.<br /> </p> 
+          <p>Looking for T1, M1, C1, CC2, M2, CR1, CG1, I2, HS1, M3, C3, or R3 instances? See the <a href="/ec2/previous-generation/" adhocenable="false">Previous Generation Instances</a> page.<br /> </p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="Data_Transfer"> <a name="Data_Transfer"> Data Transfer</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>The pricing below is based on data transferred &quot;in&quot; to and &quot;out&quot; of Amazon EC2.</p> 
+          <p>&nbsp;</p> 
+         </div> 
+        </div> 
+        <div class="grid parbase section base"> 
+         <div class="aws-plc"> 
+          <script id="element-89b26bf1-cb46-487b-83a4-fb2948887ce6-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th>Pricing</th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="2">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}All data transfer in{{else}}Up to {{bytes (math attributes.aws:datatransfer:endRange "minus" attributes.aws:datatransfer:startRange)}}
+ / Month{{/if}}{{else}}{{#unless @last}}Next {{bytes (math attributes.aws:datatransfer:endRange "minus" attributes.aws:datatransfer:startRange)}}
+ / Month{{else}}Greater than {{bytes attributes.aws:datatransfer:startRange}} / Month{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}All data transfer in{{else}}Up to {{bytes (math attributes.aws:datatransfer:endRange "minus" attributes.aws:datatransfer:startRange)}}
+ / Month{{/if}}{{else}}{{#unless @last}}Next {{bytes (math attributes.aws:datatransfer:endRange "minus" attributes.aws:datatransfer:startRange)}}
+ / Month{{else}}Greater than {{bytes attributes.aws:datatransfer:startRange}} / Month{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+          <div id="element-89b26bf1-cb46-487b-83a4-fb2948887ce6" class="aws-table aws-plc-main" data-item-template="#element-89b26bf1-cb46-487b-83a4-fb2948887ce6-content" data-group-by-prop="attributes.aws:datatransfer:transferType" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;Data Transfer IN To Amazon EC2 From Internet&quot;,&quot;groupName&quot;:&quot;AWS Inbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer OUT From Amazon EC2 To Internet&quot;,&quot;groupName&quot;:&quot;AWS Outbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer IN To Amazon EC2 From&quot;,&quot;groupName&quot;:&quot;InterRegion Inbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer OUT From Amazon EC2 To&quot;,&quot;groupName&quot;:&quot;InterRegion Outbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer Within this Region&quot;,&quot;groupName&quot;:&quot;IntraRegion&quot;}]" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-sort-order="a-z" data-sort-by="attributes.aws:datatransfer:transferType attributes.aws:datatransfer:startRange price.USD" data-filters="{ &quot;filters&quot;: [{ &quot;name&quot;: &quot;unit&quot;, &quot;values&quot;: [ &quot;GB&quot; ] }, { &quot;name&quot;: &quot;attributes.aws:datatransfer:transferType&quot;, &quot;values&quot;: [ &quot;AWS Inbound&quot;, &quot;AWS Outbound&quot; ] }] }" data-service-name="datatransfer" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/datatransfer/index.json" data-controls-template="#element-89b26bf1-cb46-487b-83a4-fb2948887ce6-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+           <div class="aws-controls aws-clearfix"></div> 
+           <div class="aws-plc-content"></div> 
+          </div> 
+          <script id="element-89b26bf1-cb46-487b-83a4-fb2948887ce6-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h4 id="Data_Transfer_OUT_From_Amazon_EC2_To"> <a name="Data_Transfer_OUT_From_Amazon_EC2_To"> Data Transfer OUT From Amazon EC2 To</a> </h4> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="grid parbase section base"> 
+         <div class="aws-plc"> 
+          <script id="element-a70f00f0-583c-40be-a99c-4507b400c242-content" type="text/x-handlebars-template">
+  <table>
+      <thead>
+        <tr>
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          
+            {{#if true}}
+              <th></th>
+            {{/if}}
+          </tr>
+      </thead>
+        {{#if groups}}
+          {{#each groups}}
+            <tbody>
+              <tr class="aws-subhead">
+                <th colspan="2">{{loc-message name}}</th>
+              </tr>
+              {{#each prices}}
+                <tr data-plc-offer-id="{{this.id}}">
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{else}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{/if}}{{else}}{{#unless @last}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{else}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  
+                    {{#if true}}
+                      <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/unless}}{{/if}}</td>
+                    {{/if}}
+                  </tr>
+              {{/each}}
+            </tbody>
+          {{/each}}
+        {{else}}
+          <tbody>
+            {{#each prices}}
+              <tr data-plc-offer-id="{{this.id}}">
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{else}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{/if}}{{else}}{{#unless @last}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{else}}{{#ifCond (trim-regions attributes.aws:datatransfer:usagetype) "AWS-Out-Bytes"}}
+  {{loc-message (get-region attributes.aws:datatransfer:usagetype match=1)}}
+{{else}}
+  {{loc-message "CloudFront"}}
+{{/ifCond}}
+
+{{/unless}}{{/if}}</td>
+                  {{/if}}
+                
+                  {{#if true}}
+                    <td>{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per GB{{else}}{{loc-currency price.USD}} per GB{{/unless}}{{/if}}</td>
+                  {{/if}}
+                </tr>
+            {{/each}}
+          </tbody>
+        {{/if}}
+    </table>
+  </script> 
+          <div id="element-a70f00f0-583c-40be-a99c-4507b400c242" class="aws-table aws-plc-main" data-item-template="#element-a70f00f0-583c-40be-a99c-4507b400c242-content" data-group-by-config="[{&quot;customGroupTitle&quot;:&quot;Data Transfer IN To Amazon EC2 From Internet&quot;,&quot;groupName&quot;:&quot;AWS Inbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer OUT From Amazon EC2 To Internet&quot;,&quot;groupName&quot;:&quot;AWS Outbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer IN To Amazon EC2 From&quot;,&quot;groupName&quot;:&quot;InterRegion Inbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer OUT From Amazon EC2 To&quot;,&quot;groupName&quot;:&quot;InterRegion Outbound&quot;}, {&quot;customGroupTitle&quot;:&quot;Data Transfer Within this Region&quot;,&quot;groupName&quot;:&quot;IntraRegion&quot;}]" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot; ] }" data-sort-order="a-z" data-sort-by="price.USD attributes.aws:datatransfer:transferType" data-filters="{
+    &quot;filters&quot;: [
+        {
+            &quot;name&quot;: &quot;unit&quot;,
+            &quot;values&quot;: [
+                &quot;GB&quot;
+            ]
+        },
+        {
+            &quot;name&quot;: &quot;attributes.aws:datatransfer:transferType&quot;,
+            &quot;values&quot;: [
+                &quot;InterRegion Outbound&quot;
+            ]
+        }
+    ]
+}" data-service-name="datatransfer" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/datatransfer/index.json" data-controls-template="#element-a70f00f0-583c-40be-a99c-4507b400c242-controls" data-region-selector-visibility="hidden" data-lb-comp="plc:plc-setup"> 
+           <div class="aws-plc-content"></div> 
+          </div> 
+          <script id="element-a70f00f0-583c-40be-a99c-4507b400c242-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>If the Data Transfer per month is greater than 500 TB / month, please <a href="https://aws.amazon.com/contact-us/aws-sales/">contact us</a>.</p> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>Rate tiers take into account your aggregate usage for Data Transfer Out to the Internet across Amazon EC2, Amazon S3, Amazon Glacier, Amazon RDS, Amazon Redshift, Amazon SES, Amazon SimpleDB, Amazon SQS, Amazon SNS, Amazon DynamoDB, AWS Storage Gateway, and Amazon CloudWatch Logs.</p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h4 id="Data_Transfer_within_the_same_AWS_Region"> <a name="Data_Transfer_within_the_same_AWS_Region"> Data Transfer within the same AWS Region</a> </h4> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>Data transferred &quot;in&quot; to and &quot;out&quot; from Amazon EC2, Amazon RDS, Amazon Redshift , Amazon DynamoDB Accelerator (DAX), and Amazon ElastiCache instances or Elastic Network Interfaces across Availability Zones or VPC Peering connections in the same AWS Region is charged at $0.01/GB in each direction.</p> 
+          <p>IPv4: Data transferred “in” to and “out” from public or Elastic IPv4 address is charged at $0.01/GB in each direction.<br /> IPv6: Data transferred “in” to and “out” from an IPv6 address in a different VPC is charged at $0.01/GB in each direction.</p> 
+          <p>Data transferred between Amazon EC2, Amazon RDS, Amazon Redshift, Amazon ElastiCache instances and Elastic Network Interfaces in the same Availability Zone is free. See above when transferring data using VPC peering.</p> 
+          <p>Data transferred between Amazon S3, Amazon Glacier, Amazon DynamoDB, Amazon SES, Amazon SQS, Amazon Kinesis, Amazon ECR, Amazon SNS or Amazon SimpleDB and Amazon EC2 instances in the same AWS Region is free. AWS Services accessed via PrivateLink endpoints will incur standard PrivateLink charges as explained <a href="https://aws.amazon.com/vpc/pricing/">here</a>.</p> 
+          <p>Data transferred &quot;in&quot; to and &quot;out&quot; from Amazon Classic and Application Elastic Load Balancers using private IP addresses, between EC2 instances and the load balancer in the same AWS Region is free.</p> 
+         </div> 
+        </div> 
+        <div class="divider section"> 
+         <hr /> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p><span class="box"></span>Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. Learn <a href="https://aws.amazon.com/c-tax-faqs/">more</a>.<br /> </p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="EBS-Optimized_Instances"> <a name="EBS-Optimized_Instances"> EBS-Optimized Instances</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>EBS-optimized instances enable EC2 instances to fully use the IOPS provisioned on an EBS volume. EBS-optimized instances deliver dedicated throughput between Amazon EC2 and Amazon EBS, with options between 500 and 4,000 Megabits per second (Mbps) depending on the instance type used. The dedicated throughput minimizes contention between Amazon EBS I/O and other traffic from your EC2 instance, providing the best performance for your EBS volumes. EBS-optimized instances are designed for use with both Standard and Provisioned IOPS Amazon EBS volumes. When attached to EBS-optimized instances, Provisioned IOPS volumes can achieve single digit millisecond latencies and are designed to deliver within 10% of the provisioned IOPS performance 99.9% of the time.</p> 
+          <p>For Current Generation Instance types, EBS-optimization is enabled by default at no additional cost. For Previous Generation Instances types, EBS-optimization prices are on the Previous Generation Pricing Page.</p> 
+          <p>The hourly price for EBS-optimized instances is in addition to the hourly usage fee for supported instance types.<br /> </p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="Amazon_Elastic_Block_Store"> <a name="Amazon_Elastic_Block_Store"> Amazon Elastic Block Store</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>To learn more, visit the <a href="/ebs/pricing/">EBS Pricing Page</a>.<br /> </p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="Elastic_IP_Addresses"> <a name="Elastic_IP_Addresses"> Elastic IP Addresses</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>You can have one Elastic IP (EIP) address associated with a running instance at no charge. If you associate additional EIPs with that instance, you will be charged for each additional EIP associated with that instance per hour on a pro rata basis. Additional EIPs are only available in Amazon VPC.</p> 
+          <p>To ensure efficient use of Elastic IP addresses, we impose a small hourly charge when these IP addresses are not associated with a running instance or when they are associated with a stopped instance or unattached network interface. There is no charge for Elastic IP addresses you create from an IP address prefix you brought into AWS using <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html">Bring Your Own IP</a>.<br /> </p> 
+         </div> 
+        </div> 
+        <div class="parbase section list base"> 
+         <div class="aws-plc"> 
+          <script id="element-c6a2f95d-bde2-484b-ad12-f2e913f32da5-content" type="text/x-handlebars-template">
+  <ul>
+      {{#each prices}}
+        <li data-plc-offer-id="{{this.id}}">{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per additional IP address associated with a running instance per hour on a pro rata basis{{else}}{{loc-currency price.USD}} per additional IP address associated with a running instance per hour on a pro rata basis{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per additional IP address associated with a running instance per hour on a pro rata basis{{else}}{{loc-currency price.USD}} per Elastic IP address not associated with a running instance per hour on a pro rata basis{{/unless}}{{/if}}</li>
+      {{/each}}
+    </ul>
+  </script> 
+          <div id="element-c6a2f95d-bde2-484b-ad12-f2e913f32da5" class="aws-plc-main" data-item-template="#element-c6a2f95d-bde2-484b-ad12-f2e913f32da5-content" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot;, &quot;us-west-2-lax-1&quot;, &quot;eu-south-1&quot;, &quot;af-south-1&quot; ] }" data-pricing-path="elastic-ips" data-sort-order="a-z" data-sort-by="attributes.aws:ec2:group price.USD" data-filters="{ &quot;filters&quot;: [{ &quot;name&quot;: &quot;unit&quot;, &quot;values&quot;: [ &quot;Hrs&quot; ] }, { &quot;name&quot;: &quot;attributes.aws:productFamily&quot;, &quot;values&quot;: [ &quot;IP Address&quot; ] }, { &quot;name&quot;: &quot;price.USD&quot;, &quot;values&quot;: [ &quot;0.0000000000&quot; ], &quot;exclude&quot;: true }] }" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/elastic-ips/index.json" data-controls-template="#element-c6a2f95d-bde2-484b-ad12-f2e913f32da5-controls" data-region-selector-visibility="visible" data-lb-comp="plc:plc-setup"> 
+           <div class="aws-controls aws-clearfix"></div> 
+           <div class="aws-plc-content"></div> 
+          </div> 
+          <script id="element-c6a2f95d-bde2-484b-ad12-f2e913f32da5-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+         </div> 
+        </div> 
+        <div class="parbase section list base"> 
+         <div class="aws-plc"> 
+          <script id="element-dd5188b8-de6c-4af8-a6db-a4bd1f955ab9-content" type="text/x-handlebars-template">
+  <ul>
+      {{#each prices}}
+        <li data-plc-offer-id="{{this.id}}">{{#if @first}}{{#if @last}}{{loc-currency price.USD}} per Elastic IP address remap for the first 100 remaps per month{{else}}{{loc-currency price.USD}} per Elastic IP address remap for the first 100 remaps per month{{/if}}{{else}}{{#unless @last}}{{loc-currency price.USD}} per Elastic IP address remap for the first 100 remaps per month{{else}}{{loc-currency price.USD}} per Elastic IP address remap for additional remaps over 100 per month{{/unless}}{{/if}}</li>
+      {{/each}}
+    </ul>
+  </script> 
+          <div id="element-dd5188b8-de6c-4af8-a6db-a4bd1f955ab9" class="aws-plc-main" data-item-template="#element-dd5188b8-de6c-4af8-a6db-a4bd1f955ab9-content" data-advanced="{ &quot;excludedRegions&quot;: [ &quot;ap-northeast-3&quot;, &quot;me-south-1&quot;, &quot;us-west-2-lax-1&quot;, &quot;eu-south-1&quot;, &quot;af-south-1&quot; ] }" data-pricing-path="elastic-ips" data-sort-order="a-z" data-sort-by="price.USD" data-filters="{ &quot;filters&quot;: [{ &quot;name&quot;: &quot;unit&quot;, &quot;values&quot;: [ &quot;Count&quot; ] }, { &quot;name&quot;: &quot;attributes.aws:productFamily&quot;, &quot;values&quot;: [ &quot;IP Address&quot; ] }] }" data-service-name="ec2" data-manifest-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/manifest.json" data-service-url="https://a0.p.awsstatic.com/pricing/1.0/ec2/region/{{region}}/elastic-ips/index.json" data-controls-template="#element-dd5188b8-de6c-4af8-a6db-a4bd1f955ab9-controls" data-region-selector-visibility="hidden" data-lb-comp="plc:plc-setup"> 
+           <div class="aws-plc-content"></div> 
+          </div> 
+          <script id="element-dd5188b8-de6c-4af8-a6db-a4bd1f955ab9-controls" type="text/x-handlebars-template">
+  <div class="aws-dropdown-wrapper lb-dropdown">
+    <label>{{loc-message "Region:"}}</label>
+    <ul class="button lb-dropdown-label" role="listbox" tabindex="0">
+      {{#each regions}}
+        <li data-region="{{this}}" role="option" tabindex="0">{{loc-message this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+</script> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>Except as otherwise noted, our prices are exclusive of applicable taxes and duties, including VAT and applicable sales tax. For customers with a Japanese billing address, use of AWS is subject to Japanese Consumption Tax. <a href="/c-tax-faqs/">Learn more</a>.</p> 
+         </div> 
+        </div> 
+        <div class="divider section"> 
+         <hr /> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="CapacityReservations"> <a name="CapacityReservations"> On-Demand Capacity Reservations</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>On-Demand Capacity Reservations are priced exactly the same as their equivalent (On-Demand) instance usage. If a Capacity Reservation is fully utilized, you only pay for instance usage and nothing towards the Capacity Reservation. If a Capacity Reservation is partially utilized, you pay for the instance usage and for the unused portion of the Capacity Reservation. Learn more about On-Demand Capacity Reservations <a href="https://aws.amazon.com/ec2/faqs/#On-Demand_Capacity_Reservation">here</a>.<br /> </p> 
+         </div> 
+        </div> 
+        <div class="divider section"> 
+         <hr /> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="T2/T3_Unlimited_Mode_Pricing"> <a name="T2/T3_Unlimited_Mode_Pricing"> T2/T3 Unlimited Mode Pricing</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>For T2 and T3 instances in Unlimited mode, CPU Credits are charged at:</p> 
+          <ul> 
+           <li>$0.05 per vCPU-Hour for Linux, RHEL and SLES, and</li> 
+           <li>$0.096 per vCPU-Hour for Windows and Windows with SQL Web</li> 
+          </ul> 
+          <p>The CPU Credit pricing is the same for all instance sizes, for On-Demand, Spot, and Reserved Instances, and across all regions.</p> 
+          <p>See <a href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/t2-unlimited.html" target="_blank">Unlimited Mode documentation</a> for details on when CPU Credits are charged.</p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="Amazon_CloudWatch"> <a name="Amazon_CloudWatch"> Amazon CloudWatch</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>To see prices, visit the&nbsp;<a href="/cloudwatch/pricing/">Amazon Cloudwatch&nbsp;Pricing</a> page.</p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="Auto_Scaling"> <a name="Auto_Scaling"> Auto Scaling</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>Auto Scaling is enabled by Amazon CloudWatch and carries no additional fees. Each instance launched by Auto Scaling is automatically enabled for monitoring and the applicable <a adhocenable="false" href="/cloudwatch/">Amazon Cloudwatch</a> charges will be applied. <br /> </p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="Elastic_Load_Balancing"> <a name="Elastic_Load_Balancing"> Elastic Load Balancing</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p>To see prices, visit the&nbsp;<a href="/elasticloadbalancing/">Elastic Load Balancing</a> page.</p> 
+         </div> 
+        </div> 
+        <div class="title-wrapper section"> 
+         <div class="row title"> 
+          <div class="twelve columns"> 
+           <h2 id="AWS_GovCloud_Region"> <a name="AWS_GovCloud_Region"> AWS GovCloud Region</a> </h2> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="aws-text-box section"> 
+         <div class="  "> 
+          <p><a adhocenable="false" href="/govcloud-us/">AWS GovCloud</a> is an AWS region designed to allow U.S. government agencies and contractors to move more sensitive workloads into <a adhocenable="false" href="/what-is-cloud-computing/">the cloud</a> by addressing their specific regulatory and compliance requirements. For pricing and more information on the new AWS GovCloud region, please visit the <a adhocenable="false" href="/govcloud-us/">AWS GovCloud Web Page</a>.<i></i></p> 
+          <p><i>* Your usage for the Free Tier is calculated each month across all regions except the AWS GovCloud region, and automatically applied to your bill – unused monthly usage will not roll over. Does not include Amazon EC2 running IBM, or the AWS GovCloud region. See <a adhocenable="false" href="/free/terms/">offer terms</a> for more details and other restrictions.<br /> ** As part of AWS’s Free Usage tier, new AWS customers will receive free 15 GB of data transfer out each month aggregated across all AWS services for one year except in the AWS GovCloud region.<br /> *** Rate tiers take into account your aggregate Data Transfer Out usage across Amazon EC2, Amazon EBS, Amazon S3, Amazon Glacier, Amazon RDS, Amazon SimpleDB, Amazon SQS, Amazon SNS, AWS Storage Gateway, Amazon DynamoDB, and Amazon VPC.</i></p> 
+          <p><i>(Amazon EC2 is sold by Amazon Web Services, Inc.)</i></p> 
+          <div style="display: inline;"> 
+           <img height="1" width="1" style="border-style: none;" src="https://fls-na.amazon.com/1/4167132/1/OP/?id=96624fe8-bb83-4aaa-91b9-ad9b00802f3b&amp;type=43" /> 
+           <img src="https://s.amazon-adsystem.com/iui3?d=3p-hbg&amp;ex-src=amazon.com&amp;ex-hargs=v%3D1.0%3Bc%3DAWS%3Bp%3DEC2_PR" width="1" height="1" border="0" /> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="columnbuilder parbase section"> 
+         <div class="row column-builder js-equal-column-height offset-small"> 
+          <div class="six columns "> 
+           <div class="parsys col1"> 
+            <div class="parbase section mbox"> 
+             <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_house_content_2up_left" data-lb-comp-ignore="true"> 
+              <div class="parsys mbox"> 
+               <div class="parbase data-attr-wrapper section"> 
+                <div class="lb-data-attr-wrapper data-attr-wrapper" data-da-channel="ha" data-da-campaign="gettingstarted" data-da-language="en" data-da-placement="2up" data-da-type="ha" data-da-content="215"> 
+                 <div class="data-attr-wrapper parsys"> 
+                  <div class="section adbuilder"> 
+                   <a href="/start-now/?sc_ichannel=ha&amp;sc_icampaign=start-now&amp;sc_icontent=2235"> 
+                    <div class="ad-builder equal-column-height
+    
+     
+    offset-nopad"> 
+                     <div class="call-to-action"> 
+                      <div class="cta-tag">
+                        GET STARTED WITH AWS 
+                      </div> 
+                      <div class="caption">
+                        Learn how to start using AWS in minutes 
+                      </div> 
+                     </div> 
+                     <div class="bug"> 
+                      <div class="img-wrapper"> 
+                       <img alt="ha_2up-gettingstarted" title="ha_2up-gettingstarted" src="//d1.awsstatic.com/Digital%20Marketing/House/2up/general/ha_2up-gettingstarted.8b7ab66fa7e32d13ea03e109816b879da1f99a22.png" /> 
+                      </div> 
+                     </div> 
+                    </div> </a> 
+                  </div> 
+                 </div> 
+                </div> 
+               </div> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+          </div> 
+          <div class="six columns "> 
+           <div class="parsys col2"> 
+            <div class="parbase section mbox"> 
+             <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_house_content_2up_right" data-lb-comp-ignore="true"> 
+              <div class="parsys mbox"> 
+               <div class="parbase data-attr-wrapper section"> 
+                <div class="lb-data-attr-wrapper data-attr-wrapper" data-da-channel="ha" data-da-campaign="freetier" data-da-language="en" data-da-placement="2up" data-da-type="ha" data-da-content="214"> 
+                 <div class="data-attr-wrapper parsys"> 
+                  <div class="section adbuilder"> 
+                   <a href="/free/?sc_ichannel=ha&amp;sc_icampaign=free-tier&amp;sc_icontent=2234"> 
+                    <div class="ad-builder equal-column-height
+    
+     
+    offset-nopad"> 
+                     <div class="call-to-action"> 
+                      <div class="cta-tag">
+                        AWS FREE TIER 
+                      </div> 
+                      <div class="caption">
+                        Gain free, hands-on experience with AWS for 12 months 
+                      </div> 
+                     </div> 
+                     <div class="bug"> 
+                      <div class="img-wrapper"> 
+                       <img alt="2up_FreeTier" title="2up_FreeTier" src="//d1.awsstatic.com/Digital%20Marketing/House/2up/campaign/free-tier/2up_FreeTier.b7a51720ee3b74cc3209cbe269d5edc2561ce1df.png" /> 
+                      </div> 
+                     </div> 
+                    </div> </a> 
+                  </div> 
+                 </div> 
+                </div> 
+               </div> 
+              </div> 
+             </div> 
+            </div> 
+           </div> 
+          </div> 
+         </div> 
+         <script>
+    require(["scripts"], function() {
+      $.awsComponent.columnBuilder();
+    });
+  </script> 
+        </div> 
+        <div class="parbase section mbox"> 
+         <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_house_content_1up" data-lb-comp-ignore="true"> 
+          <div class="parsys mbox"> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="tracking-pixel parbase section"></div> 
+        <div class="tracking-pixel parbase section"></div> 
+       </div> 
+      </section> 
+     </main> 
+    </div> 
+   </div> 
+  </div> 
+  <footer id="aws-page-footer" class="m-page-footer" role="contentinfo"> 
+   <div data-url="https://dc.ads.linkedin.com/collect/?pid=3038&amp;fmt=gif" data-lb-comp="tracking-pixel"></div> 
+   <div data-lb-comp="google-rlsa-pixel"></div> 
+   <div class="data-attr-wrapper lb-none-v-margin lb-xb-grid-wrap" style="background-color:#242F3E;" data-da-type="so" data-da-so-type="viewport" data-da-so-language="en" data-da-so-category="monitoring" data-da-so-name="footer" data-da-so-version="a"> 
+    <div class="lb-xb-grid lb-row-max-large lb-snap lb-tiny-xb-1 lb-small-xb-3 lb-large-xb-5"> 
+     <div class="lb-xbcol"> 
+      <div class="data-attr-wrapper lb-small-hide lb-btn" data-da-type="so" data-da-so-type="viewport" data-da-so-language="en" data-da-so-category="monitoring" data-da-so-name="footer_buttons" data-da-so-url="all" data-da-so-version="footer_signin-mobile-default"> 
+       <a class="lb-btn-p-primary" href="https://console.aws.amazon.com/console/home?nc1=f_ct&amp;src=footer-signin-mobile" role="button"> <span> Sign In to the Console</span> </a> 
+      </div> 
+      <h3 id="Learn_About_AWS" class="lb-txt-none lb-txt-p-chromium lb-tiny-v-margin lb-h3 lb-title"> Learn About AWS</h3> 
+      <ul class="lb-txt-p-chromium lb-ul lb-list-style-none lb-li-micro-v-margin lb-tiny-ul-block" style="margin-bottom:0px;"> 
+       <li><a href="/what-is-aws/?nc1=f_cc" target="_blank">What Is AWS?</a></li> 
+       <li><a href="/what-is-cloud-computing/?nc1=f_cc" target="_blank">What Is Cloud Computing?</a></li> 
+       <li><a href="/devops/what-is-devops/?nc1=f_cc" target="_blank">What Is DevOps?</a></li> 
+       <li><a href="/containers/?nc1=f_cc" target="_blank">What Is a Container?</a></li> 
+       <li><a href="/big-data/datalakes-and-analytics/what-is-a-data-lake/?nc1=f_cc" target="_blank">What Is a Data Lake?</a></li> 
+       <li><a href="/security/?nc1=f_cc" target="_blank">AWS Cloud Security</a></li> 
+       <li><a href="/new/?nc1=f_cc" target="_blank">What's New</a></li> 
+       <li><a href="/blogs/?nc1=f_cc" target="_blank">Blogs</a></li> 
+       <li><a href="https://press.aboutamazon.com/press-releases/aws" target="_blank" title="Press Releases">Press Releases</a></li> 
+      </ul> 
+     </div> 
+     <div class="lb-xbcol"> 
+      <h3 id="Resources_for_AWS" class="lb-txt-none lb-txt-p-chromium lb-tiny-v-margin lb-h3 lb-title"> Resources for AWS</h3> 
+      <ul class="lb-txt-p-chromium lb-ul lb-list-style-none lb-li-micro-v-margin lb-tiny-ul-block" style="margin-bottom:0px;"> 
+       <li><a href="/getting-started/?nc1=f_cc" target="_blank">Getting Started</a></li> 
+       <li><a href="/training/?nc1=f_cc" target="_blank">Training and Certification</a></li> 
+       <li><a href="/solutions/?nc1=f_cc" target="_blank">AWS Solutions Portfolio</a></li> 
+       <li><a href="/architecture/?nc1=f_cc" target="_blank">Architecture Center</a></li> 
+       <li><a href="/faqs/?nc1=f_dr" target="_blank">Product and Technical FAQs</a></li> 
+       <li><a href="/resources/analyst-reports/?nc1=f_cc" target="_blank">Analyst Reports</a></li> 
+       <li><a href="/partners/?nc1=f_dr" target="_blank">AWS Partner Network</a></li> 
+      </ul> 
+     </div> 
+     <div class="lb-xbcol"> 
+      <h3 id="Developers_on_AWS" class="lb-txt-none lb-txt-p-chromium lb-tiny-v-margin lb-h3 lb-title"> Developers on AWS</h3> 
+      <ul class="lb-txt-p-chromium lb-ul lb-list-style-none lb-li-micro-v-margin lb-tiny-ul-block" style="margin-bottom:0px;"> 
+       <li><a href="/developer/?nc1=f_dr" target="_blank">Developer Center</a></li> 
+       <li><a href="/developer/tools/?nc1=f_dr" target="_blank">SDKs &amp; Tools</a></li> 
+       <li><a href="/developer/language/net/?nc1=f_dr" target="_blank">.NET on AWS</a></li> 
+       <li><a href="/developer/language/python/?nc1=f_dr" target="_blank">Python on AWS</a></li> 
+       <li><a href="/developer/language/java/?nc1=f_dr" target="_blank">Java on AWS</a></li> 
+       <li><a href="/developer/language/php/?nc1=f_cc" target="_blank">PHP on AWS</a></li> 
+       <li><a href="/developer/language/javascript/?nc1=f_dr" target="_blank">Javascript on AWS</a></li> 
+      </ul> 
+     </div> 
+     <div class="lb-xbcol"> 
+      <h3 id="Help" class="lb-txt-none lb-txt-p-chromium lb-tiny-v-margin lb-h3 lb-title"> Help</h3> 
+      <ul class="lb-txt-p-chromium lb-ul lb-list-style-none lb-li-micro-v-margin lb-tiny-ul-block" style="margin-bottom:0px;"> 
+       <li><a href="/contact-us/?nc1=f_m" target="_blank">Contact Us</a></li> 
+       <li><a href="/careers/?nc1=f_hi" target="_blank">AWS Careers</a></li> 
+       <li><a href="https://console.aws.amazon.com/support/home/?nc1=f_dr" target="_blank">File a Support Ticket</a></li> 
+       <li><a href="/premiumsupport/knowledge-center/?nc1=f_dr" target="_blank">Knowledge Center</a></li> 
+       <li><a href="/premiumsupport/?nc1=f_dr" target="_blank">AWS Support Overview</a></li> 
+       <li><a href="/legal/?nc1=f_cc" target="_blank">Legal</a></li> 
+      </ul> 
+      <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_footer-v3_addl-help" data-lb-comp-ignore="true"> 
+      </div> 
+     </div> 
+     <div class="lb-xbcol"> 
+      <div class="lb-mbox js-mbox" data-lb-comp="mbox" data-mbox="en_footer-v3_cta" data-lb-comp-ignore="true"> 
+       <div class="data-attr-wrapper lb-tiny-hide lb-small-show lb-btn" data-da-type="so" data-da-so-type="viewport" data-da-so-language="en" data-da-so-category="monitoring" data-da-so-name="footer_buttons" data-da-so-url="all" data-da-so-version="footer_signup-default"> 
+        <a class="lb-btn-p-primary" href="https://portal.aws.amazon.com/gp/aws/developer/registration/index.html?nc1=f_ct&amp;src=default" role="button"> <span> Create an AWS Account</span> </a> 
+       </div> 
+      </div> 
+      <div class="lb-xb-grid-wrap" style="padding-left:0px; margin-top:20px;"> 
+       <div class="lb-xb-grid lb-row-max-large lb-xb-equal-height lb-snap lb-gutter-collapse lb-vgutter-collapse lb-tiny-xb-auto"> 
+        <div class="lb-xbcol"> 
+         <div class="lb-data-attr-wrapper data-attr-wrapper" data-da-so-category="monitoring" data-da-so-url="all" data-da-so-version="twitter" data-da-so-language="en" data-da-so-name="footer-socials" data-da-type="so" data-da-so-type="viewport"> 
+          <a class="lb-txt-none lb-txt-p-chromium lb-none-pad lb-txt" style="padding-left:0px; padding-right:12px;" href="https://twitter.com/awscloud" target="_blank" title="Twitter"> <i class="icon-twitter"></i></a> 
+         </div> 
+        </div> 
+        <div class="lb-xbcol"> 
+         <div class="lb-data-attr-wrapper data-attr-wrapper" data-da-so-category="monitoring" data-da-so-url="all" data-da-so-version="facebook" data-da-so-language="en" data-da-so-name="footer-socials" data-da-type="so" data-da-so-type="viewport"> 
+          <a class="lb-txt-none lb-txt-p-chromium lb-none-pad lb-none-v-margin lb-txt" style="padding-right:12px;" href="https://www.facebook.com/amazonwebservices" target="_blank" title="Facebook"> <i class="icon-facebook"></i></a> 
+         </div> 
+        </div> 
+        <div class="lb-xbcol"> 
+         <div class="lb-data-attr-wrapper data-attr-wrapper" data-da-so-category="monitoring" data-da-so-url="all" data-da-so-version="twitch" data-da-so-language="en" data-da-so-name="footer-socials" data-da-type="so" data-da-so-type="viewport"> 
+          <a class="lb-txt-none lb-txt-p-chromium lb-none-pad lb-txt" style="padding-right:12px;" href="https://www.twitch.tv/aws" target="_blank" title="Twitch"> <i class="icon-twitch"></i></a> 
+         </div> 
+        </div> 
+        <div class="lb-xbcol"> 
+         <div class="lb-data-attr-wrapper data-attr-wrapper" data-da-so-category="monitoring" data-da-so-url="all" data-da-so-version="aws-podcast" data-da-so-language="en" data-da-so-name="footer-socials" data-da-type="so" data-da-so-type="viewport"> 
+          <a class="lb-txt-none lb-txt-p-chromium lb-none-pad lb-txt" style="padding-right:12px;" href="https://aws.amazon.com/podcasts/aws-podcast/" target="_blank" title="Podcast"> <i class="icon-podcast"></i></a> 
+         </div> 
+        </div> 
+        <div class="lb-xbcol"> 
+         <div class="lb-data-attr-wrapper data-attr-wrapper" data-da-so-category="monitoring" data-da-so-url="all" data-da-so-version="newsletter" data-da-so-language="en" data-da-so-name="footer-socials" data-da-type="so" data-da-so-type="viewport"> 
+          <a class="lb-txt-none lb-txt-p-chromium lb-none-pad lb-txt" style="padding-right:12px;" href="https://pages.awscloud.com/communication-preferences?trk=homepage" target="_blank" title="Email"> <i class="icon-envelope-o"></i></a> 
+         </div> 
+        </div> 
+       </div> 
+      </div> 
+      <div class="lb-txt-normal lb-txt-white lb-txt-14 lb-rtxt" style="color:#eaeded; margin-top:0px;"> 
+       <div>
+         Amazon is an Equal Opportunity Employer: 
+        <i> Minority / Women / Disability / Veteran / Gender Identity / Sexual Orientation / Age.</i> 
+       </div> 
+      </div> 
+     </div> 
+    </div> 
+   </div> 
+   <div class="lb-none-pad lb-none-v-margin lb-xb-grid-wrap" style="background-color:#242F3E;"> 
+    <div class="lb-xb-grid lb-row-max-large lb-snap lb-tiny-xb-1"> 
+     <div class="lb-xbcol"> 
+      <ul class="lb-txt-p-chromium lb-tiny-iblock lb-none-v-margin lb-ul lb-list-style-none lb-li-micro-v-margin lb-tiny-ul-iblock"> 
+       <li class="lb-txt-bold">Language</li> 
+       <li data-language="ar"><a href="https://aws.amazon.com/ar/?nc1=h_ls">عربي</a></li> 
+       <li data-language="id"><a href="https://aws.amazon.com/id/?nc1=h_ls">Bahasa Indonesia</a></li> 
+       <li data-language="de"><a href="https://aws.amazon.com/de/?nc1=h_ls">Deutsch</a></li> 
+       <li data-language="en"><a href="https://aws.amazon.com/?nc1=h_ls">English</a></li> 
+       <li data-language="es"><a href="https://aws.amazon.com/es/?nc1=h_ls">Espa&ntilde;ol</a></li> 
+       <li data-language="fr"><a href="https://aws.amazon.com/fr/?nc1=h_ls">Fran&ccedil;ais</a></li> 
+       <li data-language="it"><a href="https://aws.amazon.com/it/?nc1=h_ls">Italiano</a></li> 
+       <li data-language="pt"><a href="https://aws.amazon.com/pt/?nc1=h_ls">Portugu&ecirc;s</a></li> 
+       <li data-language="vi"><a href="https://aws.amazon.com/vi/?nc1=f_ls">Tiếng Việt</a></li> 
+       <li data-language="tr"><a href="https://aws.amazon.com/tr/?nc1=h_ls">T&uuml;rk&ccedil;e</a></li> 
+       <li data-language="ru"><a href="https://aws.amazon.com/ru/?nc1=h_ls">Ρусский</a></li> 
+       <li data-language="th"><a href="https://aws.amazon.com/th/?nc1=f_ls">ไทย</a></li> 
+       <li data-language="jp"><a href="https://aws.amazon.com/jp/?nc1=h_ls">日本語</a></li> 
+       <li data-language="ko"><a href="https://aws.amazon.com/ko/?nc1=h_ls">한국어</a></li> 
+       <li data-language="cn"><a href="https://aws.amazon.com/cn/?nc1=h_ls">中文 (简体)</a></li> 
+       <li data-language="tw"><a href="https://aws.amazon.com/tw/?nc1=h_ls">中文 (繁體)</a></li> 
+      </ul> 
+     </div> 
+    </div> 
+   </div> 
+   <div class="lb-none-pad lb-none-v-margin lb-xb-grid-wrap" style="background-color:#EAEDED; padding-top:5px;"> 
+    <div class="lb-xb-grid lb-row-max-large lb-snap lb-tiny-xb-1"> 
+     <div class="lb-xbcol"> 
+      <ul class="lb-txt-p-squid-ink lb-none-v-margin lb-ul lb-list-style-none lb-li-none-v-margin lb-tiny-ul-iblock"> 
+       <li><a href="https://aws.amazon.com/privacy/?nc1=f_pr">Privacy</a></li> 
+       <li>|</li> 
+       <li><a href="https://aws.amazon.com/terms/?nc1=f_pr">Site Terms</a></li> 
+       <li>|</li> 
+       <li>&copy; 2020, Amazon Web Services, Inc. or its affiliates. All rights reserved.</li> 
+      </ul> 
+     </div> 
+    </div> 
+   </div> 
+  </footer> 
+  <div id="aws-page-end"></div> 
+  <div id="lb-page-end"></div> 
+  <script>require(['jquery', 'scripts']);</script> 
+  <script src="https://a0.awsstatic.com/pre-offer/1.0.11/content/sitePriv/main.js" async=""></script> 
+  <script src="https://a0.awsstatic.com/da/js/1.0.38/aws-da.js"></script> 
+  <!-- SiteCatalyst code version: H.25.1. Copyright 1996-2012 Adobe, Inc. All Rights Reserved --> 
+  <script><!--
+/************* DO NOT ALTER ANYTHING BELOW THIS LINE ! **************/
+var s_code=s.t();if(s_code)document.write(s_code)//--></script> 
+  <script><!--
+if(navigator.appVersion.indexOf('MSIE')>=0)document.write(unescape('%3C')+'\!-'+'-')
+//--></script> 
+  <noscript> 
+   <img src="//amazonwebservices.d2.sc.omtrdc.net/b/ss/awsamazonalldev2/1/H.25.1--NS/0" height="1" width="1" border="0" alt="" /> 
+  </noscript> 
+  <!--/DO NOT REMOVE/--> 
+  <!-- End SiteCatalyst code version: H.25.1. --> 
+  <!--[if lte IE 9]>
+  <script>
+    jQuery = $ = undefined;
+  </script>
+  <p class="deprecated-browser-support-message">
+    You are using an <strong>outdated</strong> browser. Please upgrade to Internet Explorer 11 or another modern browser to improve your experience.<img src="https://fls-na.amazon.com/1/action-impressions/1/OE/aws-mktg/action/awsm_:comp_DeprecatedBrowser@v=1:u=c?dataset=LIVE:PROD&instance=PUB&client=dsk&method=NA&marketplaceId=A12QK8IU0H0XW5&requestId=ABCDEFGHIJKLMNOPQRST&session=123-1234567-1234567"
+           alt="deprecated-browser pixel tag" />
+      </p>
+<![endif]--> 
+  <script>
+  if (document.documentMode === 10) {
+    var msg = 'You are using an <strong>outdated</strong> browser. Please upgrade to Internet Explorer 11 or another modern browser to improve your experience.';
+    $('html').addClass('unsupported-version');
+    $(document.body).append('<p class="deprecated-browser-support-message">' + msg + '<img src="https://fls-na.amazon.com/1/action-impressions/1/OE/aws-mktg/action/awsm_:comp_DeprecatedBrowser@v=1:u=c?dataset=LIVE:PROD&instance=PUB&client=dsk&method=NA&marketplaceId=A12QK8IU0H0XW5&requestId=ABCDEFGHIJKLMNOPQRST&session=123-1234567-1234567" alt="deprecated-browser pixel tag" /></p>');
+    jQuery = $ = undefined;
+  }
+</script> 
+  <!-- updated_at: 2020-05-20T15:18:23.606-0700 -->  
+ </body>
+</html>

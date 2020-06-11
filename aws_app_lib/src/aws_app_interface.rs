@@ -662,3 +662,39 @@ async fn get_id_host_map() -> Result<HashMap<StackString, StackString>, Error> {
         .collect();
     Ok(id_host_map)
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Error;
+
+    use crate::aws_app_interface::{get_id_host_map, get_name_map, INSTANCE_LIST};
+    use crate::ec2_instance::Ec2InstanceInfo;
+
+    #[tokio::test]
+    async fn test_get_id_host_map() -> Result<(), Error> {
+        let js = include_str!("../../tests/data/ec2_instances.json");
+        let instances: Vec<Ec2InstanceInfo> = serde_json::from_str(&js)?;
+        *INSTANCE_LIST.write().await = instances;
+        let host_map = get_id_host_map().await?;
+        assert!(host_map.len() == 1);
+        assert_eq!(
+            host_map.get("i-05c99b55b3acf8606").map(|s| s.as_str()),
+            Some("ec2-3-231-142-210.compute-1.amazonaws.com")
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_name_map() -> Result<(), Error> {
+        let js = include_str!("../../tests/data/ec2_instances.json");
+        let instances: Vec<Ec2InstanceInfo> = serde_json::from_str(&js)?;
+        *INSTANCE_LIST.write().await = instances;
+        let name_map = get_name_map().await?;
+        assert!(name_map.len() == 1);
+        assert_eq!(
+            name_map.get("ddbolineinthecloud").map(|s| s.as_str()),
+            Some("i-05c99b55b3acf8606")
+        );
+        Ok(())
+    }
+}

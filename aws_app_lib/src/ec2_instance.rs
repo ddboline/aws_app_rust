@@ -764,8 +764,11 @@ pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<Stri
 mod tests {
     use anyhow::Error;
     use log::debug;
+    use tokio::fs::write;
 
+    use crate::config::Config;
     use crate::ec2_instance::get_user_data_from_script;
+    use crate::ec2_instance::Ec2Instance;
 
     #[test]
     fn test_get_user_data_from_script() -> Result<(), Error> {
@@ -775,6 +778,28 @@ mod tests {
         )?;
         debug!("{}", user_data);
         assert!(user_data.len() > 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_get_all_instances() -> Result<(), Error> {
+        let config = Config::init_config()?;
+        let ec2 = Ec2Instance::new(&config);
+        let instances = ec2.get_all_instances().await?;
+
+        assert!(instances.len() > 0);
+
+        // let js = serde_json::to_string(&instances)?;
+        // let path = std::env::current_dir()?
+        //     .join("..")
+        //     .join("tests")
+        //     .join("data")
+        //     .join("ec2_instances.json");
+        // println!("{:?}", path);
+        // write(path, js.as_bytes()).await?;
+        // assert!(false);
+
         Ok(())
     }
 }
