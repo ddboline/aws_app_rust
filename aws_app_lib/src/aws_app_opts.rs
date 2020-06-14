@@ -57,9 +57,12 @@ impl SpotRequestOpt {
         SpotRequest {
             ami: self.ami,
             instance_type: self.instance_type,
-            security_group: self
-                .security_group
-                .unwrap_or_else(|| config.spot_security_group.clone()),
+            security_group: self.security_group.unwrap_or_else(|| {
+                config
+                    .spot_security_group
+                    .as_ref()
+                    .map_or_else(|| config.default_security_group.clone(), Clone::clone)
+            }),
             script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
             key_name: self
                 .key_name

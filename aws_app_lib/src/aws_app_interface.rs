@@ -667,8 +667,10 @@ async fn get_id_host_map() -> Result<HashMap<StackString, StackString>, Error> {
 mod tests {
     use anyhow::Error;
 
-    use crate::aws_app_interface::{get_id_host_map, get_name_map, INSTANCE_LIST};
-    use crate::ec2_instance::Ec2InstanceInfo;
+    use crate::{
+        aws_app_interface::{get_id_host_map, get_name_map, INSTANCE_LIST},
+        ec2_instance::Ec2InstanceInfo,
+    };
 
     #[tokio::test]
     async fn test_get_id_host_map() -> Result<(), Error> {

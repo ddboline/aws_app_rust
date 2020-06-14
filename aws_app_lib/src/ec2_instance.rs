@@ -13,7 +13,14 @@ use rusoto_ec2::{
     TagSpecification, TerminateInstancesRequest,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt, fs::File, io::Read, path::Path, time};
+use std::{
+    collections::HashMap,
+    fmt,
+    fs::File,
+    io::Read,
+    path::{Path, PathBuf},
+    time,
+};
 use sts_profile_auth::get_client_sts;
 use tokio::time::delay_for;
 
@@ -26,7 +33,7 @@ pub struct Ec2Instance {
     ec2_client: Ec2Client,
     my_owner_id: Option<StackString>,
     region: Region,
-    script_dir: StackString,
+    script_dir: PathBuf,
 }
 
 impl fmt::Debug for Ec2Instance {
@@ -745,12 +752,12 @@ pub struct SnapshotInfo {
     pub tags: HashMap<StackString, StackString>,
 }
 
-pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<String, Error> {
+pub fn get_user_data_from_script(default_dir: &Path, script: &str) -> Result<String, Error> {
     let fname = if Path::new(script).exists() {
-        script.to_string()
+        Path::new(script).to_path_buf()
     } else {
-        let fname = format!("{}/{}", default_dir, script);
-        if !Path::new(&fname).exists() {
+        let fname = default_dir.join(script);
+        if !fname.exists() {
             return Ok(include_str!("../../templates/setup_aws.sh").to_string());
         }
         fname
@@ -764,16 +771,17 @@ pub fn get_user_data_from_script(default_dir: &str, script: &str) -> Result<Stri
 mod tests {
     use anyhow::Error;
     use log::debug;
-    use tokio::fs::write;
+    use std::path::Path;
 
-    use crate::config::Config;
-    use crate::ec2_instance::get_user_data_from_script;
-    use crate::ec2_instance::Ec2Instance;
+    use crate::{
+        config::Config,
+        ec2_instance::{get_user_data_from_script, Ec2Instance},
+    };
 
     #[test]
     fn test_get_user_data_from_script() -> Result<(), Error> {
         let user_data = get_user_data_from_script(
-            "/home/ddboline/.config/aws_app_rust/scripts",
+            &Path::new("/home/ddboline/.config/aws_app_rust/scripts"),
             "build_rust_repo.sh",
         )?;
         debug!("{}", user_data);
@@ -790,6 +798,7 @@ mod tests {
 
         assert!(instances.len() > 0);
 
+        // use tokio::fs::write;
         // let js = serde_json::to_string(&instances)?;
         // let path = std::env::current_dir()?
         //     .join("..")
