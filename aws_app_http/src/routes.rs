@@ -5,7 +5,7 @@ use actix_web::{
 };
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 use tokio::{
     fs::{remove_file, File},
     io::{AsyncReadExt, AsyncWriteExt},
@@ -164,9 +164,9 @@ pub async fn edit_script(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let filename = format!("{}/{}", data.aws.config.script_directory, query.filename);
+    let filename = data.aws.config.script_directory.join(&query.filename);
     let mut text = String::new();
-    if Path::new(&filename).exists() {
+    if filename.exists() {
         File::open(&filename)
             .await?
             .read_to_string(&mut text)
@@ -192,7 +192,7 @@ pub async fn edit_script(
 #[derive(Serialize, Deserialize)]
 pub struct ReplaceData {
     pub filename: StackString,
-    pub text: String,
+    pub text: StackString,
 }
 
 pub async fn replace_script(
@@ -201,7 +201,7 @@ pub async fn replace_script(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let req = req.into_inner();
-    let filename = format!("{}/{}", data.aws.config.script_directory, req.filename);
+    let filename = data.aws.config.script_directory.join(&req.filename);
     let mut f = File::create(&filename).await?;
     f.write_all(req.text.as_bytes()).await?;
     form_http_response("done".to_string())
@@ -213,10 +213,9 @@ pub async fn delete_script(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let filename = format!("{}/{}", data.aws.config.script_directory, query.filename);
-    let p = Path::new(&filename);
-    if p.exists() {
-        remove_file(p).await?;
+    let filename = data.aws.config.script_directory.join(&query.filename);
+    if filename.exists() {
+        remove_file(&filename).await?;
     }
     form_http_response("done".to_string())
 }
@@ -331,7 +330,12 @@ pub async fn build_spot_request(
         ami = amis.join("\n"),
         inst_fam = inst_fam.join("\n"),
         inst = instances.join("\n"),
-        sec = data.aws.config.spot_security_group,
+        sec = data
+            .aws
+            .config
+            .spot_security_group
+            .as_ref()
+            .unwrap_or_else(|| &data.aws.config.default_security_group),
         script = files.join("\n"),
         key = keys.join("\n"),
         price = data.aws.config.max_spot_price,

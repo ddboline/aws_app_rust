@@ -530,7 +530,7 @@ impl HandleRequest<DeleteVolumeRequest> for AwsAppInterface {
 
 #[derive(Serialize, Deserialize)]
 pub struct ModifyVolumeRequest {
-    volid: String,
+    volid: StackString,
     size: i64,
 }
 
@@ -665,7 +665,7 @@ impl HandleRequest<NoVncStartRequest> for AwsAppInterface {
                         "8787",
                         "--ssl-only",
                         "--web",
-                        novnc_path.as_str(),
+                        novnc_path.to_string_lossy().as_ref(),
                         "--cert",
                         &cert.to_string_lossy(),
                         "--key",
