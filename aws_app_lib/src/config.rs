@@ -1,52 +1,58 @@
 use anyhow::{format_err, Error};
-use std::{env::var, ops::Deref, path::Path, sync::Arc};
+use serde::Deserialize;
+use std::{
+    ops::Deref,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use crate::stack_string::StackString;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Deserialize)]
 pub struct ConfigInner {
     pub database_url: StackString,
+    #[serde(default = "default_aws_region_name")]
     pub aws_region_name: StackString,
     pub my_owner_id: Option<StackString>,
+    #[serde(default = "default_max_spot_price")]
     pub max_spot_price: f32,
     pub default_security_group: StackString,
-    pub spot_security_group: StackString,
+    pub spot_security_group: Option<StackString>,
     pub default_key_name: StackString,
-    pub script_directory: StackString,
+    #[serde(default = "default_script_directory")]
+    pub script_directory: PathBuf,
+    #[serde(default = "default_ubuntu_release")]
     pub ubuntu_release: StackString,
+    #[serde(default = "default_port")]
     pub port: u32,
+    #[serde(default = "default_secret_key")]
     pub secret_key: StackString,
+    #[serde(default = "default_domain")]
     pub domain: StackString,
-    pub novnc_path: Option<StackString>,
+    pub novnc_path: Option<PathBuf>,
 }
 
-macro_rules! set_config_ok {
-    ($s:ident, $id:ident) => {
-        $s.$id = var(&stringify!($id).to_uppercase()).ok().map(Into::into);
-    };
+fn default_aws_region_name() -> StackString {
+    "us-east-1".into()
 }
-
-macro_rules! set_config_parse {
-    ($s:ident, $id:ident, $d:expr) => {
-        $s.$id = var(&stringify!($id).to_uppercase())
-            .ok()
-            .and_then(|x| x.parse().ok())
-            .unwrap_or_else(|| $d);
-    };
+fn default_max_spot_price() -> f32 {
+    0.20
 }
-
-macro_rules! set_config_must {
-    ($s:ident, $id:ident) => {
-        $s.$id = var(&stringify!($id).to_uppercase())
-            .map(Into::into)
-            .map_err(|e| format_err!("{} must be set: {}", stringify!($id).to_uppercase(), e))?;
-    };
+fn default_script_directory() -> PathBuf {
+    let config_dir = dirs::config_dir().expect("No CONFIG directory");
+    config_dir.join("aws_app_rust").join("scripts")
 }
-
-macro_rules! set_config_default {
-    ($s:ident, $id:ident, $d:expr) => {
-        $s.$id = var(&stringify!($id).to_uppercase()).map_or_else(|_| $d, Into::into);
-    };
+fn default_ubuntu_release() -> StackString {
+    "bionic-18.04".into()
+}
+fn default_port() -> u32 {
+    3096
+}
+fn default_secret_key() -> StackString {
+    "0123".repeat(8).into()
+}
+fn default_domain() -> StackString {
+    "localhost".into()
 }
 
 #[derive(Default, Debug, Clone)]
@@ -86,36 +92,7 @@ impl Config {
             dotenv::from_path(env_file).ok();
         }
 
-        let mut conf = ConfigInner::default();
-
-        set_config_must!(conf, database_url);
-        set_config_must!(conf, default_security_group);
-        set_config_must!(conf, default_key_name);
-
-        set_config_default!(conf, aws_region_name, "us-east-1".into());
-        set_config_default!(
-            conf,
-            spot_security_group,
-            conf.default_security_group.clone()
-        );
-        set_config_default!(
-            conf,
-            script_directory,
-            config_dir
-                .join("aws_app_rust")
-                .join("scripts")
-                .to_string_lossy()
-                .to_string()
-                .into()
-        );
-        set_config_default!(conf, ubuntu_release, "bionic-18.04".into());
-        set_config_default!(conf, secret_key, "0123".repeat(8).into());
-        set_config_default!(conf, domain, "localhost".into());
-
-        set_config_ok!(conf, my_owner_id);
-        set_config_parse!(conf, max_spot_price, 0.20);
-        set_config_parse!(conf, port, 3096);
-        set_config_ok!(conf, novnc_path);
+        let conf: ConfigInner = envy::from_env()?;
 
         Ok(Self(Arc::new(conf)))
     }
