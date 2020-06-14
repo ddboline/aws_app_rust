@@ -22,8 +22,10 @@ use aws_app_lib::{
     stack_string::StackString,
 };
 
+type AmiInfoValue = (DateTime<Utc>, Option<AmiInfo>);
+
 lazy_static! {
-    static ref CACHE_UBUNTU_AMI: Mutex<SizedCache<StackString, (DateTime<Utc>, Option<AmiInfo>)>> =
+    static ref CACHE_UBUNTU_AMI: Mutex<SizedCache<StackString, AmiInfoValue>> =
         Mutex::new(SizedCache::with_size(10));
     static ref NOVNC_CHILDREN: RwLock<Vec<Child>> = RwLock::new(Vec::new());
 }
