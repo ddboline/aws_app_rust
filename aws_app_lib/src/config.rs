@@ -1,11 +1,11 @@
 use anyhow::Error;
+use lazy_static::lazy_static;
 use serde::Deserialize;
 use std::{
     ops::Deref,
     path::{Path, PathBuf},
     sync::Arc,
 };
-use lazy_static::lazy_static;
 
 use crate::stack_string::StackString;
 
