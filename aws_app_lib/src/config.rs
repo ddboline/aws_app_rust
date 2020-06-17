@@ -5,8 +5,13 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use lazy_static::lazy_static;
 
 use crate::stack_string::StackString;
+
+lazy_static! {
+    static ref CONFIG_DIR: PathBuf = dirs::config_dir().expect("No CONFIG directory");
+}
 
 #[derive(Default, Debug, Deserialize)]
 pub struct ConfigInner {
@@ -32,9 +37,6 @@ pub struct ConfigInner {
     pub novnc_path: Option<PathBuf>,
 }
 
-fn config_dir() -> PathBuf {
-    dirs::config_dir().expect("No CONFIG directory")
-}
 fn default_aws_region_name() -> StackString {
     "us-east-1".into()
 }
@@ -42,7 +44,7 @@ fn default_max_spot_price() -> f32 {
     0.20
 }
 fn default_script_directory() -> PathBuf {
-    config_dir().join("aws_app_rust").join("scripts")
+    CONFIG_DIR.join("aws_app_rust").join("scripts")
 }
 fn default_ubuntu_release() -> StackString {
     "bionic-18.04".into()
@@ -79,7 +81,7 @@ impl Config {
 
     pub fn init_config() -> Result<Self, Error> {
         let fname = Path::new("config.env");
-        let default_fname = config_dir().join("aws_app_rust").join("config.env");
+        let default_fname = CONFIG_DIR.join("aws_app_rust").join("config.env");
 
         let env_file = if fname.exists() {
             fname
