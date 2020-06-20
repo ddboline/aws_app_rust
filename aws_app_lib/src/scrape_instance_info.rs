@@ -74,6 +74,8 @@ fn parse_result(
             }
         }
     }
+    instance_families.sort_by(|x, y| x.family_name.as_str().cmp(y.family_name.as_str()));
+    instance_families.dedup_by(|x, y| x.family_name.as_str() == y.family_name.as_str());
 
     Ok((instance_families, instance_types))
 }
@@ -319,4 +321,25 @@ fn extract_instance_type_object_pv<T: AsRef<str>>(
         memory_gib,
         generation: AwsGeneration::PV.to_string().into(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Error;
+
+    use crate::models::AwsGeneration;
+    use crate::scrape_instance_info::parse_result;
+
+    #[test]
+    fn test_parse_result() -> Result<(), Error> {
+        let text_hvm = include_str!("../../tests/data/instance_types_hvm.html");
+        let (families, types) = parse_result(&text_hvm, AwsGeneration::HVM)?;
+        assert_eq!(families.len(), 32);
+        assert_eq!(types.len(), 264);
+        let text_pv = include_str!("../../tests/data/instance_types_pv.html");
+        let (families, types) = parse_result(&text_pv, AwsGeneration::PV)?;
+        assert_eq!(families.len(), 12);
+        assert_eq!(types.len(), 33);
+        Ok(())
+    }
 }
