@@ -140,7 +140,7 @@ fn get_instance_pricing(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct PricingEntry {
     price: HashMap<StackString, StackString>,
     attributes: HashMap<StackString, StackString>,
@@ -148,7 +148,7 @@ struct PricingEntry {
     calculated_price: Option<HashMap<StackString, HashMap<StackString, f64>>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct PricingJson {
     prices: Vec<PricingEntry>,
 }
@@ -157,7 +157,8 @@ struct PricingJson {
 mod tests {
     use anyhow::Error;
 
-    use crate::scrape_pricing_info::parse_json_url_body;
+    use crate::models::PricingType;
+    use crate::scrape_pricing_info::{parse_json, parse_json_url_body, PricingJson};
 
     #[test]
     fn test_parse_json_url_body() -> Result<(), Error> {
@@ -171,6 +172,21 @@ mod tests {
             result.as_str(),
             "https://a0.p.awsstatic.com/pricing/1.0/ec2/region/us-east-1/ondemand/linux/index.json"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_json() -> Result<(), Error> {
+        let reserved = include_str!("../../tests/data/reserved_instance.json");
+        let js: PricingJson = serde_json::from_str(reserved)?;
+        let ptype = PricingType::Reserved;
+        let results = parse_json(js, ptype)?;
+        assert_eq!(results.len(), 263);
+        let ondemand = include_str!("../../tests/data/ondemand.json");
+        let js: PricingJson = serde_json::from_str(ondemand)?;
+        let ptype = PricingType::OnDemand;
+        let results = parse_json(js, ptype)?;
+        assert_eq!(results.len(), 263);
         Ok(())
     }
 }
