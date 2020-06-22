@@ -227,6 +227,22 @@ pub struct SpotBuilder {
     pub script: Option<StackString>,
 }
 
+fn move_element_to_front<T, F>(arr: &mut [T], filt: F)
+where
+    F: Fn(&T) -> bool,
+{
+    if let Some(idx) = arr
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, item)| if filt(item) { Some(idx) } else { None })
+        .next()
+    {
+        for i in (0..idx).rev() {
+            arr.swap(i + 1, i);
+        }
+    }
+}
+
 pub async fn build_spot_request(
     query: Query<SpotBuilder>,
     _: LoggedUser,
@@ -242,16 +258,11 @@ pub async fn build_spot_request(
         .map(Arc::new)
         .collect();
 
-    let ami_opt = if let Some(ami_) = &query.ami {
-        let mut ami_opt: Vec<_> = amis.iter().filter(|ami| &ami.id == ami_).cloned().collect();
-        amis.retain(|ami| &ami.id != ami_);
-        ami_opt.extend_from_slice(&amis);
-        ami_opt
-    } else {
-        amis
-    };
+    if let Some(query_ami) = &query.ami {
+        move_element_to_front(&mut amis, |ami| &ami.id == query_ami);
+    }
 
-    let amis: Vec<_> = ami_opt
+    let amis: Vec<_> = amis
         .into_iter()
         .map(|ami| format!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
         .collect();
@@ -262,20 +273,11 @@ pub async fn build_spot_request(
         .map(Arc::new)
         .collect();
 
-    let inst_opt = if let Some(inst) = &query.ami {
-        let mut inst_opt: Vec<_> = inst_fam
-            .iter()
-            .filter(|fam| &fam.family_name == inst)
-            .cloned()
-            .collect();
-        inst_fam.retain(|fam| &fam.family_name != inst);
-        inst_opt.extend_from_slice(&inst_fam);
-        inst_opt
-    } else {
-        inst_fam
-    };
+    if let Some(inst) = &query.inst {
+        move_element_to_front(&mut inst_fam, |fam| &fam.family_name == inst);
+    }
 
-    let inst_fam: Vec<_> = inst_opt
+    let inst_fam: Vec<_> = inst_fam
         .into_iter()
         .map(|fam| format!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
         .collect();
@@ -289,15 +291,11 @@ pub async fn build_spot_request(
 
     let mut files = data.aws.get_all_scripts()?;
 
-    let file_opts = if let Some(script) = &query.script {
-        let mut file_opt: Vec<_> = files.iter().filter(|f| f == &script).cloned().collect();
-        files.retain(|f| f != script);
-        file_opt.extend_from_slice(&files);
-        file_opt
-    } else {
-        files
-    };
-    let files: Vec<_> = file_opts
+    if let Some(script) = &query.script {
+        move_element_to_front(&mut files, |f| f == script);
+    }
+
+    let files: Vec<_> = files
         .into_iter()
         .map(|f| format!(r#"<option value="{f}">{f}</option>"#, f = f))
         .collect();
@@ -408,8 +406,10 @@ pub async fn get_prices(
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
-    let inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
-        .await?
+    let mut inst_fam = InstanceFamily::get_all(&data.aws.pool).await?;
+    move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
+
+    let inst_fam: Vec<_> = inst_fam
         .into_iter()
         .map(|fam| {
             format!(
