@@ -234,8 +234,7 @@ where
     if let Some(idx) = arr
         .iter()
         .enumerate()
-        .filter_map(|(idx, item)| if filt(item) { Some(idx) } else { None })
-        .next()
+        .find_map(|(idx, item)| if filt(item) { Some(idx) } else { None })
     {
         for i in (0..idx).rev() {
             arr.swap(i + 1, i);
