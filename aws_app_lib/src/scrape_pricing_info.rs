@@ -157,8 +157,10 @@ struct PricingJson {
 mod tests {
     use anyhow::Error;
 
-    use crate::models::PricingType;
-    use crate::scrape_pricing_info::{parse_json, parse_json_url_body, PricingJson};
+    use crate::{
+        models::PricingType,
+        scrape_pricing_info::{parse_json, parse_json_url_body, PricingJson},
+    };
 
     #[test]
     fn test_parse_json_url_body() -> Result<(), Error> {

@@ -327,8 +327,7 @@ fn extract_instance_type_object_pv<T: AsRef<str>>(
 mod tests {
     use anyhow::Error;
 
-    use crate::models::AwsGeneration;
-    use crate::scrape_instance_info::parse_result;
+    use crate::{models::AwsGeneration, scrape_instance_info::parse_result};
 
     #[test]
     fn test_parse_result() -> Result<(), Error> {
