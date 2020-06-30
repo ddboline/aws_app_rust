@@ -52,7 +52,7 @@ pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
 
 #[derive(Serialize, Deserialize)]
 pub struct ResourceRequest {
-    resource: StackString,
+    resource: ResourceType,
 }
 
 pub async fn list(
@@ -60,8 +60,8 @@ pub async fn list(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    let query: ResourceType = query.resource.parse().unwrap_or(ResourceType::Instances);
-    let results = data.aws.handle(query).await?;
+    let query = query.into_inner();
+    let results = data.aws.handle(query.resource).await?;
     form_http_response(results.join("\n"))
 }
 

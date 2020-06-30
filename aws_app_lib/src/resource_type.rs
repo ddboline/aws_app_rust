@@ -1,7 +1,9 @@
 use anyhow::{format_err, Error};
-use std::{fmt, str::FromStr};
+use serde::{Deserialize, Serialize};
+use std::{convert::TryFrom, fmt, str::FromStr};
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(into = "String", try_from = "String")]
 pub enum ResourceType {
     Instances,
     Reserved,
@@ -50,5 +52,18 @@ impl FromStr for ResourceType {
             "script" => Ok(Self::Script),
             _ => Err(format_err!("{} is not a ResourceType", s)),
         }
+    }
+}
+
+impl From<ResourceType> for String {
+    fn from(item: ResourceType) -> Self {
+        item.to_string()
+    }
+}
+
+impl TryFrom<String> for ResourceType {
+    type Error = Error;
+    fn try_from(item: String) -> Result<Self, Self::Error> {
+        item.parse()
     }
 }
