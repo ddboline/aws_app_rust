@@ -273,7 +273,9 @@ pub async fn build_spot_request(
         .collect();
 
     if let Some(inst) = &query.inst {
-        move_element_to_front(&mut inst_fam, |fam| &fam.family_name == inst);
+        move_element_to_front(&mut inst_fam, |fam| inst.contains(fam.family_name.as_str()));
+    } else {
+        move_element_to_front(&mut inst_fam, |fam| fam.family_name == "t3");
     }
 
     let inst_fam: Vec<_> = inst_fam
