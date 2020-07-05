@@ -11,7 +11,7 @@ use smartstring::alias::String as SmartString;
 use std::{
     borrow::{Borrow, Cow},
     cmp::PartialEq,
-    fmt::{Display, Formatter, self},
+    fmt::{self, Display, Formatter},
     io::Write,
     ops::{Deref, DerefMut},
     path::Path,
