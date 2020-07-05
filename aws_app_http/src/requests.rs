@@ -715,8 +715,8 @@ impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
                 debug!("Failed to kill {}", e);
             }
             let result = child.wait_with_output().await?;
-            output.push(StackString::from_utf8(result.stdout)?.into());
-            output.push(StackString::from_utf8(result.stderr)?.into());
+            output.push(StackString::from_utf8(result.stdout)?);
+            output.push(StackString::from_utf8(result.stderr)?);
         }
         children.clear();
         Ok(output)
