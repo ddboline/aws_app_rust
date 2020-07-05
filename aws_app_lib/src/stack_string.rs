@@ -6,7 +6,7 @@ use diesel::{
     serialize::{Output, Result as SerResult, ToSql},
     sql_types::Text,
 };
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use smartstring::alias::String as SmartString;
 use std::{
     borrow::{Borrow, Cow},
