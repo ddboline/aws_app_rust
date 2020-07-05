@@ -386,7 +386,7 @@ impl AwsAppOpts {
             Self::Connect { instance_id } => app.connect(instance_id.as_ref()).await,
             Self::Status { instance_id } => {
                 for line in app.get_status(instance_id.as_ref()).await? {
-                    app.stdout.send(line.into())?;
+                    app.stdout.send(line)?;
                 }
                 Ok(())
             }
