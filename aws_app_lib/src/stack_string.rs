@@ -8,15 +8,15 @@ use diesel::{
 };
 use serde::{Deserialize, Serialize};
 use smartstring::alias::String as SmartString;
-use std::fmt;
-use std::string::FromUtf8Error;
 use std::{
     borrow::{Borrow, Cow},
     cmp::PartialEq,
+    fmt,
     io::Write,
     ops::{Deref, DerefMut},
     path::Path,
     str::FromStr,
+    string::FromUtf8Error,
 };
 
 #[derive(
