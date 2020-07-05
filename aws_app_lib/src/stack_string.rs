@@ -11,7 +11,7 @@ use smartstring::alias::String as SmartString;
 use std::{
     borrow::{Borrow, Cow},
     cmp::PartialEq,
-    fmt,
+    fmt::{Display, Formatter, self},
     io::Write,
     ops::{Deref, DerefMut},
     path::Path,
@@ -49,8 +49,8 @@ impl StackString {
     }
 }
 
-impl fmt::Display for StackString {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for StackString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
