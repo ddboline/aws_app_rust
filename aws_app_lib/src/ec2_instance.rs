@@ -164,7 +164,7 @@ impl Ec2Instance {
         Ok(req.into_iter().map(|ami| (ami.name, ami.id)).collect())
     }
 
-    pub async fn get_all_regions(&self) -> Result<HashMap<String, String>, Error> {
+    pub async fn get_all_regions(&self) -> Result<HashMap<StackString, StackString>, Error> {
         self.ec2_client
             .describe_regions(DescribeRegionsRequest::default())
             .await
@@ -172,7 +172,9 @@ impl Ec2Instance {
                 r.regions
                     .unwrap_or_else(Vec::new)
                     .into_iter()
-                    .filter_map(|region| Some((region.region_name?, region.opt_in_status?)))
+                    .filter_map(|region| {
+                        Some((region.region_name?.into(), region.opt_in_status?.into()))
+                    })
                     .collect()
             })
             .map_err(Into::into)
@@ -251,10 +253,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_latest_spot_inst_prices(
+    pub async fn get_latest_spot_inst_prices<T: AsRef<str>>(
         &self,
-        inst_list: &[String],
-    ) -> Result<HashMap<String, f32>, Error> {
+        inst_list: &[T],
+    ) -> Result<HashMap<StackString, f32>, Error> {
         // TODO: Generalize this beyond us-east-1...
         let zones: Vec<_> = [
             "us-east-1a",
@@ -285,7 +287,7 @@ impl Ec2Instance {
                 instance_types: if inst_list.is_empty() {
                     None
                 } else {
-                    Some(inst_list.to_vec())
+                    Some(inst_list.iter().map(|x| x.as_ref().into()).collect())
                 },
                 ..DescribeSpotPriceHistoryRequest::default()
             })
@@ -297,7 +299,7 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|spot_price| {
                         Some((
-                            spot_price.instance_type?,
+                            spot_price.instance_type?.into(),
                             spot_price.spot_price.and_then(|s| s.parse().ok())?,
                         ))
                     })
@@ -401,7 +403,7 @@ impl Ec2Instance {
     }
 
     pub async fn terminate_instance<T: AsRef<str>>(&self, instance_ids: &[T]) -> Result<(), Error> {
-        let instance_ids: Vec<String> = instance_ids
+        let instance_ids: Vec<_> = instance_ids
             .iter()
             .map(|s| s.as_ref().to_string())
             .collect();
@@ -427,7 +429,7 @@ impl Ec2Instance {
                     image_id: Some(spot.ami.to_string()),
                     instance_type: Some(spot.instance_type.to_string()),
                     security_group_ids: Some(vec![spot.security_group.to_string()]),
-                    user_data: Some(base64::encode(&user_data)),
+                    user_data: Some(base64::encode(user_data.as_str())),
                     key_name: Some(spot.key_name.to_string()),
                     ..RequestSpotLaunchSpecification::default()
                 }),
@@ -465,7 +467,7 @@ impl Ec2Instance {
         &self,
         inst_ids: &[T],
     ) -> Result<(), Error> {
-        let inst_ids: Vec<String> = inst_ids.iter().map(|s| s.as_ref().to_string()).collect();
+        let inst_ids: Vec<_> = inst_ids.iter().map(|s| s.as_ref().to_string()).collect();
         self.ec2_client
             .cancel_spot_instance_requests(CancelSpotInstanceRequestsRequest {
                 spot_instance_request_ids: inst_ids,
@@ -509,7 +511,7 @@ impl Ec2Instance {
                 max_count: 1,
                 key_name: Some(request.key_name.to_string()),
                 security_group_ids: Some(vec![request.security_group.to_string()]),
-                user_data: Some(base64::encode(&user_data)),
+                user_data: Some(base64::encode(user_data.as_str())),
                 ..RunInstancesRequest::default()
             })
             .await?;
@@ -522,7 +524,11 @@ impl Ec2Instance {
         Ok(())
     }
 
-    pub async fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
+    pub async fn create_image(
+        &self,
+        inst_id: &str,
+        name: &str,
+    ) -> Result<Option<StackString>, Error> {
         self.ec2_client
             .create_image(CreateImageRequest {
                 instance_id: inst_id.to_string(),
@@ -531,7 +537,7 @@ impl Ec2Instance {
             })
             .await
             .map_err(Into::into)
-            .map(|r| r.image_id)
+            .map(|r| r.image_id.map(Into::into))
     }
 
     pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
@@ -549,7 +555,7 @@ impl Ec2Instance {
         zoneid: &str,
         size: Option<i64>,
         snapid: Option<T>,
-    ) -> Result<Option<String>, Error> {
+    ) -> Result<Option<StackString>, Error> {
         let snapid = snapid.as_ref().map(|s| s.as_ref().to_string());
         self.ec2_client
             .create_volume(CreateVolumeRequest {
@@ -560,7 +566,7 @@ impl Ec2Instance {
                 ..CreateVolumeRequest::default()
             })
             .await
-            .map(|v| v.volume_id)
+            .map(|v| v.volume_id.map(Into::into))
             .map_err(Into::into)
     }
 
@@ -619,7 +625,7 @@ impl Ec2Instance {
         &self,
         volid: &str,
         tags: &HashMap<StackString, StackString>,
-    ) -> Result<Option<String>, Error> {
+    ) -> Result<Option<StackString>, Error> {
         self.ec2_client
             .create_snapshot(CreateSnapshotRequest {
                 volume_id: volid.to_string(),
@@ -641,7 +647,7 @@ impl Ec2Instance {
                 ..CreateSnapshotRequest::default()
             })
             .await
-            .map(|s| s.snapshot_id)
+            .map(|s| s.snapshot_id.map(Into::into))
             .map_err(Into::into)
     }
 
@@ -655,7 +661,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_key_pairs(&self) -> Result<Vec<(String, String)>, Error> {
+    pub async fn get_all_key_pairs(&self) -> Result<Vec<(StackString, StackString)>, Error> {
         self.ec2_client
             .describe_key_pairs(DescribeKeyPairsRequest::default())
             .await
@@ -665,7 +671,7 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|key| {
                         let fingerprint = key.key_fingerprint.unwrap_or_else(|| "".to_string());
-                        key.key_name.map(|x| (x, fingerprint))
+                        key.key_name.map(|x| (x.into(), fingerprint.into()))
                     })
                     .collect()
             })
@@ -752,19 +758,19 @@ pub struct SnapshotInfo {
     pub tags: HashMap<StackString, StackString>,
 }
 
-pub fn get_user_data_from_script(default_dir: &Path, script: &str) -> Result<String, Error> {
+pub fn get_user_data_from_script(default_dir: &Path, script: &str) -> Result<StackString, Error> {
     let fname = if Path::new(script).exists() {
         Path::new(script).to_path_buf()
     } else {
         let fname = default_dir.join(script);
         if !fname.exists() {
-            return Ok(include_str!("../../templates/setup_aws.sh").to_string());
+            return Ok(include_str!("../../templates/setup_aws.sh").into());
         }
         fname
     };
     let mut user_data = String::new();
     File::open(fname)?.read_to_string(&mut user_data)?;
-    Ok(user_data)
+    Ok(user_data.into())
 }
 
 #[cfg(test)]

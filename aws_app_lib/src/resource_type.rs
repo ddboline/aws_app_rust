@@ -61,6 +61,13 @@ impl From<ResourceType> for String {
     }
 }
 
+impl TryFrom<&str> for ResourceType {
+    type Error = Error;
+    fn try_from(item: &str) -> Result<Self, Self::Error> {
+        item.parse()
+    }
+}
+
 impl TryFrom<String> for ResourceType {
     type Error = Error;
     fn try_from(item: String) -> Result<Self, Self::Error> {

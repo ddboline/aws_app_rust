@@ -7,8 +7,8 @@ use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::{
-    fs::{remove_file, File},
-    io::{AsyncReadExt, AsyncWriteExt},
+    fs::{read_to_string, remove_file, File},
+    io::AsyncWriteExt,
 };
 
 use aws_app_lib::{
@@ -165,13 +165,11 @@ pub async fn edit_script(
 ) -> Result<HttpResponse, Error> {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
-    let mut text = String::new();
-    if filename.exists() {
-        File::open(&filename)
-            .await?
-            .read_to_string(&mut text)
-            .await?;
-    }
+    let text = if filename.exists() {
+        read_to_string(&filename).await?
+    } else {
+        String::new()
+    };
     let rows = text.split('\n').count() + 5;
     let body = format!(
         r#"

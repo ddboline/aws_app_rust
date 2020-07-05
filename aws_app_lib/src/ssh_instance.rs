@@ -30,17 +30,17 @@ impl SSHInstance {
         }
     }
 
-    pub fn get_ssh_username_host(&self) -> Result<String, Error> {
+    pub fn get_ssh_username_host(&self) -> Result<StackString, Error> {
         let ssh_str = if self.port == 22 {
-            format!("{}@{}", self.user, self.host)
+            format!("{}@{}", self.user, self.host).into()
         } else {
-            format!("-p {} {}@{}", self.port, self.user, self.host)
+            format!("-p {} {}@{}", self.port, self.user, self.host).into()
         };
 
         Ok(ssh_str)
     }
 
-    pub async fn run_command_stream_stdout(&self, cmd: &str) -> Result<Vec<String>, Error> {
+    pub async fn run_command_stream_stdout(&self, cmd: &str) -> Result<Vec<StackString>, Error> {
         if let Some(host_lock) = LOCK_CACHE.read().await.get(&self.host) {
             let _ = host_lock.lock().await;
             debug!("cmd {}", cmd);
@@ -52,8 +52,8 @@ impl SSHInstance {
                 .kill_on_drop(true)
                 .output()
                 .await?;
-            let output = String::from_utf8(output.stdout)?;
-            let output: Vec<_> = output.split('\n').map(ToString::to_string).collect();
+            let output = StackString::from_utf8(output.stdout)?;
+            let output: Vec<_> = output.split('\n').map(Into::into).collect();
             Ok(output)
         } else {
             Err(format_err!("Failed to acquire lock"))

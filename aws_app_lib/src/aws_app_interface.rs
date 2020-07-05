@@ -5,7 +5,6 @@ use lazy_static::lazy_static;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
-    string::String,
 };
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
@@ -355,7 +354,7 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub async fn get_status(&self, instance_id: &str) -> Result<Vec<String>, Error> {
+    pub async fn get_status(&self, instance_id: &str) -> Result<Vec<StackString>, Error> {
         self.run_command(instance_id, "tail /var/log/cloud-init-output.log")
             .await
     }
@@ -364,7 +363,7 @@ impl AwsAppInterface {
         &self,
         instance_id: &str,
         command: &str,
-    ) -> Result<Vec<String>, Error> {
+    ) -> Result<Vec<StackString>, Error> {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let id_host_map = get_id_host_map().await?;
@@ -423,7 +422,7 @@ impl AwsAppInterface {
                 let res_price = prices
                     .get(&(inst.to_string(), "reserved".to_string()))
                     .map(|x| x.price);
-                let spot_price = spot_prices.get(&inst);
+                let spot_price = spot_prices.get(inst.as_str());
                 let instance_metadata = instance_list
                     .get(&inst)
                     .ok_or_else(|| format_err!("this should be impossible {}", inst))?;
@@ -514,7 +513,11 @@ impl AwsAppInterface {
         self.ec2.run_ec2_instance(&req).await
     }
 
-    pub async fn create_image(&self, inst_id: &str, name: &str) -> Result<Option<String>, Error> {
+    pub async fn create_image(
+        &self,
+        inst_id: &str,
+        name: &str,
+    ) -> Result<Option<StackString>, Error> {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let inst_id = map_or_val(&name_map, inst_id);
@@ -537,7 +540,7 @@ impl AwsAppInterface {
         zoneid: &str,
         size: Option<i64>,
         snapid: Option<T>,
-    ) -> Result<Option<String>, Error> {
+    ) -> Result<Option<StackString>, Error> {
         let snap_map = self.get_snapshot_map().await?;
         let snapid = snapid.map(|s| map_or_val(&snap_map, s.as_ref()).to_string());
         self.ec2.create_ebs_volume(zoneid, size, snapid).await
@@ -590,7 +593,7 @@ impl AwsAppInterface {
         &self,
         volid: &str,
         tags: &HashMap<StackString, StackString>,
-    ) -> Result<Option<String>, Error> {
+    ) -> Result<Option<StackString>, Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
         self.ec2.create_ebs_snapshot(&volid, tags).await
@@ -618,9 +621,9 @@ impl AwsAppInterface {
     }
 }
 
-fn print_tags<T: Display>(tags: &HashMap<T, T>) -> String {
+fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
     let results: Vec<_> = tags.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
-    results.join(", ")
+    results.join(", ").into()
 }
 
 fn map_or_val<'a>(name_map: &'a HashMap<StackString, StackString>, id: &'a str) -> &'a str {
