@@ -6,12 +6,14 @@ use rust_auth_server::static_files;
 use std::fmt::Debug;
 use thiserror::Error;
 
+use aws_app_lib::stack_string::StackString;
+
 #[derive(Error, Debug)]
 pub enum ServiceError {
     #[error("Internal Server Error")]
     InternalServerError,
     #[error("BadRequest: {}", _0)]
-    BadRequest(String),
+    BadRequest(StackString),
     #[error("Unauthorized")]
     Unauthorized,
     #[error("Anyhow error {0}")]

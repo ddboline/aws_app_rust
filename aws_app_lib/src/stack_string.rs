@@ -7,8 +7,9 @@ use diesel::{
     sql_types::Text,
 };
 use serde::{Deserialize, Serialize};
-use smartstring::{alias::String as SmartString};
+use smartstring::alias::String as SmartString;
 use std::fmt;
+use std::string::FromUtf8Error;
 use std::{
     borrow::{Borrow, Cow},
     cmp::PartialEq,
@@ -41,6 +42,10 @@ pub struct StackString(SmartString);
 impl StackString {
     pub fn as_str(&self) -> &str {
         self.0.as_str()
+    }
+
+    pub fn from_utf8(vec: Vec<u8>) -> Result<Self, FromUtf8Error> {
+        String::from_utf8(vec).map(Into::into)
     }
 }
 

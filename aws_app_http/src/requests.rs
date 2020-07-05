@@ -279,7 +279,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                                     "#, vol.id
                                 )
                             } else {
-                                print_tags(&vol.tags)
+                                print_tags(&vol.tags).into()
                             },
                             if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 format!(
@@ -340,7 +340,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                                     "#, snap.id
                                 )
                             } else {
-                                print_tags(&snap.tags)
+                                print_tags(&snap.tags).into()
                             }
                         )
                         .into()
@@ -461,7 +461,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
     Ok(result)
 }
 
-async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>, Error> {
+async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<StackString>, Error> {
     let images = app.ecr.get_all_images(&repo).await?;
     let lines: Vec<_> = images
         .iter()
@@ -481,14 +481,15 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<String>
                 image.pushed_at,
                 image.image_size,
             )
+            .into()
         })
         .collect();
     Ok(lines)
 }
 
-fn print_tags<T: Display>(tags: &HashMap<T, T>) -> String {
+fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
     let results: Vec<_> = tags.iter().map(|(k, v)| format!("{} = {}", k, v)).collect();
-    results.join(", ")
+    results.join(", ").into()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -692,7 +693,7 @@ pub struct NoVncStopRequest {}
 
 #[async_trait]
 impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
-    type Result = Result<Vec<String>, Error>;
+    type Result = Result<Vec<StackString>, Error>;
     async fn handle(&self, _: NoVncStopRequest) -> Self::Result {
         let mut children = NOVNC_CHILDREN.write().await;
         for child in children.iter_mut() {
@@ -714,8 +715,8 @@ impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
                 debug!("Failed to kill {}", e);
             }
             let result = child.wait_with_output().await?;
-            output.push(String::from_utf8(result.stdout)?);
-            output.push(String::from_utf8(result.stderr)?);
+            output.push(StackString::from_utf8(result.stdout)?.into());
+            output.push(StackString::from_utf8(result.stderr)?.into());
         }
         children.clear();
         Ok(output)
@@ -728,7 +729,7 @@ pub async fn get_websock_pids() -> Result<Vec<usize>, Error> {
         .stdout(Stdio::piped())
         .spawn()?;
     let output = websock.wait_with_output().await?;
-    let output = String::from_utf8(output.stdout)?;
+    let output = StackString::from_utf8(output.stdout)?;
     let result: Vec<_> = output
         .split('\n')
         .filter_map(|s| {
