@@ -6,7 +6,7 @@ use diesel::{
     serialize::{Output, Result as SerResult, ToSql},
     sql_types::Text,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use smartstring::alias::String as SmartString;
 use std::{
     borrow::{Borrow, Cow},
@@ -20,8 +20,6 @@ use std::{
 };
 
 #[derive(
-    Serialize,
-    Deserialize,
     Debug,
     Clone,
     Into,
@@ -36,7 +34,6 @@ use std::{
     Ord,
 )]
 #[sql_type = "Text"]
-#[serde(into = "String", from = "String")]
 pub struct StackString(SmartString);
 
 impl StackString {
@@ -46,6 +43,25 @@ impl StackString {
 
     pub fn from_utf8(vec: Vec<u8>) -> Result<Self, FromUtf8Error> {
         String::from_utf8(vec).map(Into::into)
+    }
+}
+
+impl Serialize for StackString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.0.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for StackString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(s.into())
     }
 }
 
