@@ -1,5 +1,6 @@
 use anyhow::Error;
 use chrono::{DateTime, Duration, Utc};
+use itertools::Itertools;
 use log::debug;
 use rusoto_core::Region;
 use rusoto_ec2::{
@@ -138,7 +139,8 @@ impl Ec2Instance {
             ..DescribeImagesRequest::default()
         };
         let req = self.ec2_client.describe_images(request).await?;
-        let mut images: Vec<_> = req
+
+        let image = req
             .images
             .unwrap_or_else(Vec::new)
             .into_iter()
@@ -154,9 +156,11 @@ impl Ec2Instance {
                         .collect(),
                 })
             })
-            .collect();
-        images.sort_by(|x, y| x.name.cmp(&y.name));
-        Ok(images.into_iter().last())
+            .minmax_by(|x, y| x.name.cmp(&y.name))
+            .into_option()
+            .map(|(_, x)| x);
+
+        Ok(image)
     }
 
     pub async fn get_ami_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
