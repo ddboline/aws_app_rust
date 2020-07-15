@@ -14,12 +14,12 @@ use tokio::{
     sync::{Mutex, RwLock},
     try_join,
 };
+use stack_string::StackString;
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
     ec2_instance::AmiInfo,
     resource_type::ResourceType,
-    stack_string::StackString,
 };
 
 type AmiInfoValue = (DateTime<Utc>, Option<AmiInfo>);

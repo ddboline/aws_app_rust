@@ -2,6 +2,7 @@ use anyhow::Error;
 use futures::future::try_join_all;
 use std::{collections::HashMap, string::ToString, sync::Arc};
 use structopt::StructOpt;
+use stack_string::StackString;
 
 use crate::{
     aws_app_interface::AwsAppInterface,
@@ -10,7 +11,6 @@ use crate::{
     models::{InstanceFamily, InstanceList},
     pgpool::PgPool,
     resource_type::ResourceType,
-    stack_string::StackString,
 };
 
 #[derive(Debug, Clone, StructOpt)]

@@ -7,11 +7,11 @@ use select::{
     node::Node,
     predicate::{Class, Name},
 };
+use stack_string::StackString;
 
 use crate::{
     models::{AwsGeneration, InstanceFamilyInsert, InstanceList},
     pgpool::PgPool,
-    stack_string::StackString,
 };
 
 pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {

@@ -8,8 +8,9 @@ use rusoto_ecr::{
 };
 use std::fmt;
 use sts_profile_auth::get_client_sts;
+use stack_string::StackString;
 
-use crate::{config::Config, stack_string::StackString};
+use crate::{config::Config, };
 
 #[derive(Clone)]
 pub struct EcrInstance {

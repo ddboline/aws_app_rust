@@ -6,11 +6,11 @@ use diesel::{
 };
 use std::fmt;
 use tokio::task::spawn_blocking;
+use stack_string::StackString;
 
 use crate::{
     pgpool::{PgPool, PgPoolConn},
     schema::{authorized_users, instance_family, instance_list, instance_pricing},
-    stack_string::StackString,
 };
 
 #[derive(Queryable, Clone, Debug)]

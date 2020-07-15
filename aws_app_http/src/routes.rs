@@ -10,12 +10,12 @@ use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
 };
+use stack_string::StackString;
 
 use aws_app_lib::{
     ec2_instance::SpotRequest,
     models::{InstanceFamily, InstanceList},
     resource_type::ResourceType,
-    stack_string::StackString,
 };
 
 use super::{

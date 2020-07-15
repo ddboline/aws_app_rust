@@ -8,6 +8,7 @@ use std::{
 };
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
+use stack_string::StackString;
 
 use crate::{
     config::Config,
@@ -20,7 +21,6 @@ use crate::{
     scrape_instance_info::scrape_instance_info,
     scrape_pricing_info::scrape_pricing_info,
     ssh_instance::SSHInstance,
-    stack_string::StackString,
     stdout_channel::StdoutChannel,
 };
 

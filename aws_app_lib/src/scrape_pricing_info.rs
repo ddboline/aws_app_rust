@@ -5,11 +5,11 @@ use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
 use std::collections::HashMap;
+use stack_string::StackString;
 
 use crate::{
     models::{InstancePricingInsert, PricingType},
     pgpool::PgPool,
-    stack_string::StackString,
 };
 
 pub async fn scrape_pricing_info(

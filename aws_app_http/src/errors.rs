@@ -5,8 +5,7 @@ use log::error;
 use rust_auth_server::static_files;
 use std::fmt::Debug;
 use thiserror::Error;
-
-use aws_app_lib::stack_string::StackString;
+use stack_string::StackString;
 
 #[derive(Error, Debug)]
 pub enum ServiceError {

@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::stack_string::StackString;
+use stack_string::StackString;
 
 lazy_static! {
     static ref CONFIG_DIR: PathBuf = dirs::config_dir().expect("No CONFIG directory");
