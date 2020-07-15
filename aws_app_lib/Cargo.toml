@@ -41,4 +41,4 @@ derive_more = "0.99"
 envy = "0.4"
 smartstring = "0.2"
 itertools = "0.9"
-stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", branch="master", features=["diesel_types"] }
+stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.1.1", features=["diesel_types"] }
