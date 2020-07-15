@@ -5,12 +5,12 @@ use actix_web::{
 };
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
+use stack_string::StackString;
 use std::sync::Arc;
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
 };
-use stack_string::StackString;
 
 use aws_app_lib::{
     ec2_instance::SpotRequest,

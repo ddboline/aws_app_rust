@@ -1,8 +1,8 @@
 use anyhow::Error;
 use futures::future::try_join_all;
+use stack_string::StackString;
 use std::{collections::HashMap, string::ToString, sync::Arc};
 use structopt::StructOpt;
-use stack_string::StackString;
 
 use crate::{
     aws_app_interface::AwsAppInterface,
@@ -400,8 +400,9 @@ impl AwsAppOpts {
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
+    use stack_string::StackString;
 
-    use crate::{aws_app_opts::get_tags, stack_string::StackString};
+    use crate::aws_app_opts::get_tags;
 
     #[test]
     fn test_get_tags() -> Result<(), Error> {

@@ -6,11 +6,11 @@ use rusoto_ecr::{
     BatchDeleteImageRequest, DescribeImagesRequest, DescribeRepositoriesRequest, Ecr, EcrClient,
     ImageIdentifier,
 };
+use stack_string::StackString;
 use std::fmt;
 use sts_profile_auth::get_client_sts;
-use stack_string::StackString;
 
-use crate::{config::Config, };
+use crate::config::Config;
 
 #[derive(Clone)]
 pub struct EcrInstance {

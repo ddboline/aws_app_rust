@@ -8,13 +8,13 @@ use lazy_static::lazy_static;
 use log::debug;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
+use stack_string::StackString;
 use std::{collections::HashMap, fmt::Display, path::Path, process::Stdio};
 use tokio::{
     process::{Child, Command},
     sync::{Mutex, RwLock},
     try_join,
 };
-use stack_string::StackString;
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},

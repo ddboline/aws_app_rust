@@ -4,9 +4,9 @@ use diesel::{
     Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
     TextExpressionMethods,
 };
+use stack_string::StackString;
 use std::fmt;
 use tokio::task::spawn_blocking;
-use stack_string::StackString;
 
 use crate::{
     pgpool::{PgPool, PgPoolConn},

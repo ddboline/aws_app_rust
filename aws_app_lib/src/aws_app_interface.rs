@@ -2,13 +2,13 @@ use anyhow::{format_err, Error};
 use chrono::Local;
 use futures::future::try_join_all;
 use lazy_static::lazy_static;
+use stack_string::StackString;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
 };
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
-use stack_string::StackString;
 
 use crate::{
     config::Config,

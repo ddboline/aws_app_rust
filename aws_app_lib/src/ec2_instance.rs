@@ -14,6 +14,7 @@ use rusoto_ec2::{
     TagSpecification, TerminateInstancesRequest,
 };
 use serde::{Deserialize, Serialize};
+use stack_string::StackString;
 use std::{
     collections::HashMap,
     fmt,
@@ -24,9 +25,8 @@ use std::{
 };
 use sts_profile_auth::get_client_sts;
 use tokio::time::delay_for;
-use stack_string::StackString;
 
-use crate::{config::Config, };
+use crate::config::Config;
 
 static UBUNTU_OWNER: &str = "099720109477";
 

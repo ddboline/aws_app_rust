@@ -4,8 +4,8 @@ use futures::future::try_join_all;
 use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
-use std::collections::HashMap;
 use stack_string::StackString;
+use std::collections::HashMap;
 
 use crate::{
     models::{InstancePricingInsert, PricingType},
