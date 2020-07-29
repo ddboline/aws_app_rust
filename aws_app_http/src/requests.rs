@@ -143,14 +143,13 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             req.instance_type,
                             req.spot_type,
                             req.status,
-                            if &req.status == "pending" {
-                                format!(
+                            match req.status.as_str() {
+                                "pending" | "pending-fulfillment" => format!(
                                     r#"<input type="button" name="cancel" value="Cancel"
                                         onclick="cancelSpotRequest('{}')">"#,
                                     req.id
-                                )
-                            } else {
-                                "".to_string()
+                                ),
+                                _ => "".to_string(),
                             }
                         )
                         .into()

@@ -288,7 +288,7 @@ DISPLAY_TEXT
             listResource('spot');
         }
         xmlhttp.open("GET", url, true);
-        xmlhttp.set(null);
+        xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function listAllPrices() {
