@@ -109,7 +109,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             res.state,
                             res.availability_zone
                                 .as_ref()
-                                .map_or_else(|| "", |s| s.as_str())
+                                .map_or_else(|| "", StackString::as_str)
                         )
                         .into()
                     })
@@ -305,8 +305,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     return Ok(Vec::new());
                 }
                 snapshots.sort_by(|x, y| {
-                    let x = x.tags.get("Name").map_or("", |s| s.as_str());
-                    let y = y.tags.get("Name").map_or("", |s| s.as_str());
+                    let x = x.tags.get("Name").map_or("", StackString::as_str);
+                    let y = y.tags.get("Name").map_or("", StackString::as_str);
                     x.cmp(&y)
                 });
                 output.push(
@@ -475,7 +475,7 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<StackSt
                     repo, image.digest,
                 ),
                 repo,
-                image.tags.get(0).map_or_else(|| "None", |s| s.as_str()),
+                image.tags.get(0).map_or_else(|| "None", StackString::as_str),
                 image.digest,
                 image.pushed_at,
                 image.image_size,

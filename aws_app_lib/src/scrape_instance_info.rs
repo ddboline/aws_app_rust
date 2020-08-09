@@ -74,8 +74,8 @@ fn parse_result(
             }
         }
     }
-    instance_families.sort_by(|x, y| x.family_name.as_str().cmp(y.family_name.as_str()));
-    instance_families.dedup_by(|x, y| x.family_name.as_str() == y.family_name.as_str());
+    instance_families.sort_by(|x, y| x.family_name.cmp(&y.family_name));
+    instance_families.dedup_by(|x, y| x.family_name == y.family_name);
 
     Ok((instance_families, instance_types))
 }

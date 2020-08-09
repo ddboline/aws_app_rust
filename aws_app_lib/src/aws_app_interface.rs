@@ -669,6 +669,7 @@ async fn get_id_host_map() -> Result<HashMap<StackString, StackString>, Error> {
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
+    use stack_string::StackString;
 
     use crate::{
         aws_app_interface::{get_id_host_map, get_name_map, INSTANCE_LIST},
@@ -683,7 +684,7 @@ mod tests {
         let host_map = get_id_host_map().await?;
         assert!(host_map.len() == 1);
         assert_eq!(
-            host_map.get("i-05c99b55b3acf8606").map(|s| s.as_str()),
+            host_map.get("i-05c99b55b3acf8606").map(StackString::as_str),
             Some("ec2-3-231-142-210.compute-1.amazonaws.com")
         );
         Ok(())
@@ -697,7 +698,7 @@ mod tests {
         let name_map = get_name_map().await?;
         assert!(name_map.len() == 1);
         assert_eq!(
-            name_map.get("ddbolineinthecloud").map(|s| s.as_str()),
+            name_map.get("ddbolineinthecloud").map(StackString::as_str),
             Some("i-05c99b55b3acf8606")
         );
         Ok(())

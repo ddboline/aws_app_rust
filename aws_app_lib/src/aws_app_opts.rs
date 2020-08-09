@@ -400,7 +400,6 @@ impl AwsAppOpts {
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
-    use stack_string::StackString;
 
     use crate::aws_app_opts::get_tags;
 
@@ -409,10 +408,10 @@ mod tests {
         let tags0 = &["spartacus", "Types:Nothing", "LastName:NoWhere"];
         let tags = get_tags(tags0);
         println!("{:?}", tags);
-        assert_eq!(tags.get("Name").map(StackString::as_str), Some("spartacus"));
-        assert_eq!(tags.get("Types").map(StackString::as_str), Some("Nothing"));
+        assert_eq!(tags.get("Name").map(Into::into), Some("spartacus"));
+        assert_eq!(tags.get("Types").map(Into::into), Some("Nothing"));
         assert_eq!(
-            tags.get("LastName").map(StackString::as_str),
+            tags.get("LastName").map(Into::into),
             Some("NoWhere")
         );
         Ok(())
