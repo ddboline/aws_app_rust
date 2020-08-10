@@ -475,7 +475,10 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<StackSt
                     repo, image.digest,
                 ),
                 repo,
-                image.tags.get(0).map_or_else(|| "None", StackString::as_str),
+                image
+                    .tags
+                    .get(0)
+                    .map_or_else(|| "None", StackString::as_str),
                 image.digest,
                 image.pushed_at,
                 image.image_size,
