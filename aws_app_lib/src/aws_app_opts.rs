@@ -410,10 +410,7 @@ mod tests {
         println!("{:?}", tags);
         assert_eq!(tags.get("Name").map(Into::into), Some("spartacus"));
         assert_eq!(tags.get("Types").map(Into::into), Some("Nothing"));
-        assert_eq!(
-            tags.get("LastName").map(Into::into),
-            Some("NoWhere")
-        );
+        assert_eq!(tags.get("LastName").map(Into::into), Some("NoWhere"));
         Ok(())
     }
 }
