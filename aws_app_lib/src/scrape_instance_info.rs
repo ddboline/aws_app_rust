@@ -151,16 +151,14 @@ fn extract_instance_types_pv(
             }
         }
         if final_bitmap == 0xf {
-            let instance_families: Result<Vec<_>, Error> = rows[1..]
+            let instance_families = rows[1..]
                 .iter()
                 .map(|row| extract_instance_family_object_pv(row, final_indicies))
-                .collect();
-            let instance_types: Result<Vec<_>, Error> = rows[1..]
+                .collect::<Result<Vec<_>, Error>>()?;
+            let instance_types = rows[1..]
                 .iter()
                 .map(|row| extract_instance_type_object_pv(row, final_indicies))
-                .collect();
-            let instance_families = instance_families?;
-            let instance_types = instance_types?;
+                .collect::<Result<Vec<_>, Error>>()?;
             return Ok((instance_families, instance_types));
         }
     }
