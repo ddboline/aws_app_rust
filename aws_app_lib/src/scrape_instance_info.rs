@@ -151,12 +151,16 @@ fn extract_instance_types_pv(
             }
         }
         if final_bitmap == 0xf {
-            let mut instance_families = Vec::new();
-            let mut instance_types = Vec::new();
-            for row in &rows[1..] {
-                instance_families.push(extract_instance_family_object_pv(row, final_indicies)?);
-                instance_types.push(extract_instance_type_object_pv(row, final_indicies)?);
-            }
+            let instance_families: Result<Vec<_>, Error> = rows[1..]
+                .iter()
+                .map(|row| extract_instance_family_object_pv(row, final_indicies))
+                .collect();
+            let instance_types: Result<Vec<_>, Error> = rows[1..]
+                .iter()
+                .map(|row| extract_instance_type_object_pv(row, final_indicies))
+                .collect();
+            let instance_families = instance_families?;
+            let instance_types = instance_types?;
             return Ok((instance_families, instance_types));
         }
     }
