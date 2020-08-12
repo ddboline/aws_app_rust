@@ -109,9 +109,26 @@ async fn insert_result(
     Ok(output)
 }
 
+#[derive(Debug, Clone, Copy)]
+struct ColumnIndicies {
+    instance_family: usize,
+    instance_type: usize,
+    n_cpu: usize,
+    memory: usize,
+}
+
 fn extract_instance_types_pv(
     table: &Node,
 ) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
+    fn indicies_to_struct(indicies: &[Option<usize>; 4]) -> Option<ColumnIndicies> {
+        Some(ColumnIndicies {
+            instance_family: indicies[0]?,
+            instance_type: indicies[1]?,
+            n_cpu: indicies[2]?,
+            memory: indicies[3]?,
+        })
+    }
+
     let allowed_columns = ["Instance Family", "Instance Type", "vCPU", "Memory (GiB)"];
     let rows: Vec<_> = table
         .find(Name("tr"))
@@ -140,17 +157,15 @@ fn extract_instance_types_pv(
         })
         .collect();
     if rows.len() > 1 {
-        let mut final_bitmap: u8 = 0x0;
-        let mut final_indicies: [usize; 4] = [0; 4];
+        let mut final_indicies: [Option<usize>; 4] = [None; 4];
         for (idx, name) in allowed_columns.iter().enumerate() {
             for (idy, col) in rows[0].iter().enumerate() {
                 if col == name {
-                    final_bitmap |= 1 << idx;
-                    final_indicies[idx] = idy;
+                    final_indicies[idx] = Some(idy);
                 }
             }
         }
-        if final_bitmap == 0xf {
+        if let Some(final_indicies) = indicies_to_struct(&final_indicies) {
             let instance_families = rows[1..]
                 .iter()
                 .map(|row| extract_instance_family_object_pv(row, final_indicies))
@@ -167,10 +182,10 @@ fn extract_instance_types_pv(
 
 fn extract_instance_family_object_pv<T: AsRef<str>>(
     row: &[T],
-    indicies: [usize; 4],
+    indicies: ColumnIndicies,
 ) -> Result<InstanceFamilyInsert, Error> {
-    let family_type = row[indicies[0]].as_ref().into();
-    let family_name = row[indicies[1]]
+    let family_type = row[indicies.instance_family].as_ref().into();
+    let family_name = row[indicies.instance_type]
         .as_ref()
         .split('.')
         .next()
@@ -183,6 +198,15 @@ fn extract_instance_family_object_pv<T: AsRef<str>>(
 }
 
 fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> {
+    fn indicies_to_struct(indicies: &[Option<usize>; 3]) -> Option<ColumnIndicies> {
+        Some(ColumnIndicies {
+            instance_family: 0,
+            instance_type: indicies[0]?,
+            n_cpu: indicies[1]?,
+            memory: indicies[2]?,
+        })
+    }
+
     let allowed_columns = [
         ["Instance Type", "vCPU", "Mem (GiB)"],
         ["Instance Type", "vCPU", "Memory (GiB)"],
@@ -228,26 +252,22 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
     if rows.len() < 2 {
         return Ok(Vec::new());
     }
-    let mut final_bitmap: u8 = 0x0;
-    let mut final_indicies: [usize; 3] = [0; 3];
+    let mut final_indicies = None;
     for cols in &allowed_columns {
-        let mut bitmap: u8 = 0x0;
-        let mut indicies: [usize; 3] = [0; 3];
+        let mut indicies: [Option<usize>; 3] = [None; 3];
         for (idx, name) in cols.iter().enumerate() {
             for (idy, col) in rows[0].iter().enumerate() {
                 if col == name {
-                    bitmap |= 1 << idx;
-                    indicies[idx] = idy;
+                    indicies[idx] = Some(idy);
                 }
             }
         }
-        if bitmap == 0x7 {
-            final_bitmap = bitmap;
-            final_indicies = indicies;
+        if let Some(indicies) = indicies_to_struct(&indicies) {
+            final_indicies = Some(indicies);
             break;
         }
     }
-    if final_bitmap == 0x7 {
+    if let Some(final_indicies) = final_indicies {
         rows[1..]
             .iter()
             .map(
@@ -278,9 +298,9 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
 
 fn extract_instance_type_object_hvm<T: AsRef<str>>(
     row: &[T],
-    indicies: [usize; 3],
+    indicies: ColumnIndicies,
 ) -> Result<InstanceList, Error> {
-    let idx = if row[indicies[0]]
+    let idx = if row[indicies.instance_type]
         .as_ref()
         .replace("*", "")
         .parse::<i32>()
@@ -291,9 +311,18 @@ fn extract_instance_type_object_hvm<T: AsRef<str>>(
         0
     };
 
-    let instance_type = row[(indicies[0] - idx)].as_ref().replace("*", "").into();
-    let n_cpu: i32 = row[(indicies[1] - idx)].as_ref().replace("*", "").parse()?;
-    let memory_gib: f64 = row[(indicies[2] - idx)].as_ref().replace(",", "").parse()?;
+    let instance_type = row[(indicies.instance_type - idx)]
+        .as_ref()
+        .replace("*", "")
+        .into();
+    let n_cpu: i32 = row[(indicies.n_cpu - idx)]
+        .as_ref()
+        .replace("*", "")
+        .parse()?;
+    let memory_gib: f64 = row[(indicies.memory - idx)]
+        .as_ref()
+        .replace(",", "")
+        .parse()?;
 
     Ok(InstanceList {
         instance_type,
@@ -305,17 +334,26 @@ fn extract_instance_type_object_hvm<T: AsRef<str>>(
 
 fn extract_instance_type_object_pv<T: AsRef<str>>(
     row: &[T],
-    indicies: [usize; 4],
+    indicies: ColumnIndicies,
 ) -> Result<InstanceList, Error> {
-    let idx = if row[indicies[1]].as_ref().parse::<i32>().is_ok() {
+    let idx = if row[indicies.instance_type].as_ref().parse::<i32>().is_ok() {
         1
     } else {
         0
     };
 
-    let instance_type = row[(indicies[1] - idx)].as_ref().replace("*", "").into();
-    let n_cpu: i32 = row[(indicies[2] - idx)].as_ref().replace("*", "").parse()?;
-    let memory_gib: f64 = row[(indicies[3] - idx)].as_ref().replace(",", "").parse()?;
+    let instance_type = row[(indicies.instance_type - idx)]
+        .as_ref()
+        .replace("*", "")
+        .into();
+    let n_cpu: i32 = row[(indicies.n_cpu - idx)]
+        .as_ref()
+        .replace("*", "")
+        .parse()?;
+    let memory_gib: f64 = row[(indicies.memory - idx)]
+        .as_ref()
+        .replace(",", "")
+        .parse()?;
 
     Ok(InstanceList {
         instance_type,
