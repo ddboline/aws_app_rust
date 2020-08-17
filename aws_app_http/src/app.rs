@@ -50,36 +50,50 @@ pub async fn start_app() {
                     .max_age_time(Duration::days(1))
                     .secure(false),
             ))
-            .service(web::resource("/aws/index.html").route(web::get().to(sync_frontpage)))
-            .service(web::resource("/aws/list").route(web::get().to(list)))
-            .service(web::resource("/aws/terminate").route(web::get().to(terminate)))
-            .service(web::resource("/aws/delete_image").route(web::get().to(delete_image)))
-            .service(web::resource("/aws/delete_volume").route(web::get().to(delete_volume)))
-            .service(web::resource("/aws/modify_volume").route(web::get().to(modify_volume)))
-            .service(web::resource("/aws/delete_snapshot").route(web::get().to(delete_snapshot)))
-            .service(web::resource("/aws/create_snapshot").route(web::get().to(create_snapshot)))
-            .service(web::resource("/aws/tag_item").route(web::get().to(tag_item)))
-            .service(web::resource("/aws/delete_ecr_image").route(web::get().to(delete_ecr_image)))
             .service(
-                web::resource("/aws/cleanup_ecr_images").route(web::get().to(cleanup_ecr_images)),
+                web::scope("/aws")
+                    .service(web::resource("/index.html").route(web::get().to(sync_frontpage)))
+                    .service(web::resource("/list").route(web::get().to(list)))
+                    .service(web::resource("/terminate").route(web::get().to(terminate)))
+                    .service(web::resource("/delete_image").route(web::get().to(delete_image)))
+                    .service(web::resource("/delete_volume").route(web::get().to(delete_volume)))
+                    .service(web::resource("/modify_volume").route(web::get().to(modify_volume)))
+                    .service(
+                        web::resource("/delete_snapshot").route(web::get().to(delete_snapshot)),
+                    )
+                    .service(
+                        web::resource("/create_snapshot").route(web::get().to(create_snapshot)),
+                    )
+                    .service(web::resource("/tag_item").route(web::get().to(tag_item)))
+                    .service(
+                        web::resource("/delete_ecr_image").route(web::get().to(delete_ecr_image)),
+                    )
+                    .service(
+                        web::resource("/cleanup_ecr_images")
+                            .route(web::get().to(cleanup_ecr_images)),
+                    )
+                    .service(web::resource("/edit_script").route(web::get().to(edit_script)))
+                    .service(web::resource("/replace_script").route(web::post().to(replace_script)))
+                    .service(web::resource("/delete_script").route(web::get().to(delete_script)))
+                    .service(
+                        web::resource("/build_spot_request")
+                            .route(web::get().to(build_spot_request)),
+                    )
+                    .service(web::resource("/request_spot").route(web::post().to(request_spot)))
+                    .service(web::resource("/cancel_spot").route(web::get().to(cancel_spot)))
+                    .service(web::resource("/prices").route(web::get().to(get_prices)))
+                    .service(web::resource("/update").route(web::get().to(update)))
+                    .service(web::resource("/status").route(web::get().to(status)))
+                    .service(web::resource("/command").route(web::post().to(command)))
+                    .service(web::resource("/instances").route(web::get().to(get_instances)))
+                    .service(
+                        web::scope("/novnc")
+                            .service(web::resource("/start").route(web::get().to(novnc_launcher)))
+                            .service(web::resource("/status").route(web::get().to(novnc_status)))
+                            .service(web::resource("/stop").route(web::get().to(novnc_shutdown))),
+                    )
+                    .service(web::resource("/user").route(web::get().to(user))),
             )
-            .service(web::resource("/aws/edit_script").route(web::get().to(edit_script)))
-            .service(web::resource("/aws/replace_script").route(web::post().to(replace_script)))
-            .service(web::resource("/aws/delete_script").route(web::get().to(delete_script)))
-            .service(
-                web::resource("/aws/build_spot_request").route(web::get().to(build_spot_request)),
-            )
-            .service(web::resource("/aws/request_spot").route(web::post().to(request_spot)))
-            .service(web::resource("/aws/cancel_spot").route(web::get().to(cancel_spot)))
-            .service(web::resource("/aws/prices").route(web::get().to(get_prices)))
-            .service(web::resource("/aws/update").route(web::get().to(update)))
-            .service(web::resource("/aws/status").route(web::get().to(status)))
-            .service(web::resource("/aws/command").route(web::post().to(command)))
-            .service(web::resource("/aws/instances").route(web::get().to(get_instances)))
-            .service(web::resource("/aws/novnc/start").route(web::get().to(novnc_launcher)))
-            .service(web::resource("/aws/novnc/status").route(web::get().to(novnc_status)))
-            .service(web::resource("/aws/novnc/stop").route(web::get().to(novnc_shutdown)))
-            .service(web::resource("/aws/user").route(web::get().to(user)))
     })
     .bind(&format!("127.0.0.1:{}", port))
     .unwrap_or_else(|_| panic!("Failed to bind to port {}", port))
