@@ -15,6 +15,8 @@ use tokio::{
     sync::{Mutex, RwLock},
     try_join,
 };
+use std::ops::Deref;
+use std::future::Future;
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
@@ -25,34 +27,49 @@ use aws_app_lib::{
 type AmiInfoValue = (DateTime<Utc>, Option<AmiInfo>);
 
 lazy_static! {
-    static ref CACHE_UBUNTU_AMI: Mutex<SizedCache<StackString, AmiInfoValue>> =
-        Mutex::new(SizedCache::with_size(10));
+    static ref CACHE_UBUNTU_AMI: InfoCache = InfoCache::default();
     static ref NOVNC_CHILDREN: RwLock<Vec<Child>> = RwLock::new(Vec::new());
 }
 
-macro_rules! get_cached {
-    ($hash:ident, $mutex:expr, $call:expr) => {{
-        let mut has_cache = false;
+struct InfoCache(Mutex<SizedCache<StackString, AmiInfoValue>>);
 
-        let d = match $mutex.lock().await.cache_get(&$hash) {
+impl Default for InfoCache {
+    fn default() -> Self {
+        Self(Mutex::new(SizedCache::with_size(10)))
+    }
+}
+
+impl Deref for InfoCache {
+    type Target = Mutex<SizedCache<StackString, AmiInfoValue>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl InfoCache {
+    async fn get_cached<F>(&self, hash: &str, call: F) -> Result<Option<AmiInfo>, Error>
+    where F: Future<Output=Result<Option<AmiInfo>, Error>>,
+    {
+        let mut has_cache = false;
+        let d = match self.lock().await.cache_get(&hash.into()) {
             Some((t, d)) => {
                 if *t < Utc::now() - Duration::hours(1) {
-                    $call.await?
+                    call.await?
                 } else {
                     has_cache = true;
                     d.clone()
                 }
             }
-            None => $call.await?,
+            None => call.await?,
         };
         if !has_cache {
-            $mutex
+            self
                 .lock()
                 .await
-                .cache_set($hash.clone(), (Utc::now(), d.clone()));
+                .cache_set(hash.into(), (Utc::now(), d.clone()));
         }
         Ok(d)
-    }};
+    }
 }
 
 #[async_trait]
@@ -160,12 +177,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
             }
             ResourceType::Ami => {
                 let ubuntu_ami = async {
-                    let hash = self.config.ubuntu_release.clone();
-                    get_cached!(
-                        hash,
-                        CACHE_UBUNTU_AMI,
-                        self.ec2.get_latest_ubuntu_ami(&hash)
-                    )
+                    let hash = self.config.ubuntu_release.as_str();
+                    CACHE_UBUNTU_AMI.get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash)).await
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
