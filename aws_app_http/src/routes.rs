@@ -30,20 +30,22 @@ use super::{
     },
 };
 
-fn form_http_response(body: String) -> Result<HttpResponse, Error> {
+pub type HttpResult = Result<HttpResponse, Error>;
+
+fn form_http_response(body: String) -> HttpResult {
     Ok(HttpResponse::build(StatusCode::OK)
         .content_type("text/html; charset=utf-8")
         .body(body))
 }
 
-fn to_json<T>(js: T) -> Result<HttpResponse, Error>
+fn to_json<T>(js: T) -> HttpResult
 where
     T: Serialize,
 {
     Ok(HttpResponse::Ok().json(js))
 }
 
-pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> HttpResult {
     let results = data.aws.handle(ResourceType::Instances).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
@@ -59,7 +61,7 @@ pub async fn list(
     query: Query<ResourceRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     let results = data.aws.handle(query.resource).await?;
     form_http_response(results.join("\n"))
@@ -69,7 +71,7 @@ pub async fn terminate(
     query: Query<TerminateRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
@@ -79,7 +81,7 @@ pub async fn delete_image(
     query: Query<DeleteImageRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
@@ -89,7 +91,7 @@ pub async fn delete_volume(
     query: Query<DeleteVolumeRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
@@ -99,7 +101,7 @@ pub async fn modify_volume(
     query: Query<ModifyVolumeRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
@@ -109,7 +111,7 @@ pub async fn delete_snapshot(
     query: Query<DeleteSnapshotRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
@@ -119,7 +121,7 @@ pub async fn create_snapshot(
     query: Query<CreateSnapshotRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
@@ -129,7 +131,7 @@ pub async fn tag_item(
     query: Query<TagItemRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
@@ -139,16 +141,13 @@ pub async fn delete_ecr_image(
     query: Query<DeleteEcrImageRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
 }
 
-pub async fn cleanup_ecr_images(
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+pub async fn cleanup_ecr_images(_: LoggedUser, data: Data<AppState>) -> HttpResult {
     data.aws.handle(CleanupEcrImagesRequest {}).await?;
     form_http_response("finished".to_string())
 }
@@ -162,7 +161,7 @@ pub async fn edit_script(
     query: Query<EditData>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
     let text = if filename.exists() {
@@ -197,7 +196,7 @@ pub async fn replace_script(
     req: Json<ReplaceData>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let req = req.into_inner();
     let filename = data.aws.config.script_directory.join(&req.filename);
     let mut f = File::create(&filename).await?;
@@ -209,7 +208,7 @@ pub async fn delete_script(
     query: Query<EditData>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
     if filename.exists() {
@@ -244,7 +243,7 @@ pub async fn build_spot_request(
     query: Query<SpotBuilder>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
 
     let mut amis: Vec<_> = data
@@ -370,7 +369,7 @@ pub async fn request_spot(
     req: Json<SpotRequestData>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let req = req.into_inner().into();
     data.aws.ec2.request_spot_instance(&req).await?;
     form_http_response("done".to_string())
@@ -385,7 +384,7 @@ pub async fn cancel_spot(
     query: Query<CancelSpotRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     data.aws
         .ec2
@@ -403,7 +402,7 @@ pub async fn get_prices(
     query: Query<PriceRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     let mut inst_fam = InstanceFamily::get_all(&data.aws.pool).await?;
     move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
@@ -489,7 +488,7 @@ pub async fn get_prices(
     form_http_response(body)
 }
 
-pub async fn update(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+pub async fn update(_: LoggedUser, data: Data<AppState>) -> HttpResult {
     let entries = data.aws.update().await?;
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
@@ -505,7 +504,7 @@ pub async fn status(
     query: Query<StatusRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let query = query.into_inner();
     let entries = data.aws.get_status(&query.instance).await?;
     let body = format!(
@@ -531,7 +530,7 @@ pub async fn command(
     payload: Json<CommandRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let payload = payload.into_inner();
     let entries = data
         .aws
@@ -565,7 +564,7 @@ pub async fn get_instances(
     query: Query<InstancesRequest>,
     _: LoggedUser,
     data: Data<AppState>,
-) -> Result<HttpResponse, Error> {
+) -> HttpResult {
     let instances: Vec<_> = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
         .await?
         .into_iter()
@@ -587,7 +586,7 @@ async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Er
     ))
 }
 
-pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
         return form_http_response("NoVNC not configured".to_string());
     }
@@ -598,7 +597,7 @@ pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
     form_http_response(body)
 }
 
-pub async fn novnc_shutdown(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+pub async fn novnc_shutdown(_: LoggedUser, data: Data<AppState>) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
         return form_http_response("NoVNC not configured".to_string());
     }
@@ -610,7 +609,7 @@ pub async fn novnc_shutdown(_: LoggedUser, data: Data<AppState>) -> Result<HttpR
     form_http_response(body)
 }
 
-pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpResponse, Error> {
+pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
         return form_http_response("NoVNC not configured".to_string());
     }
@@ -625,6 +624,6 @@ pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> Result<HttpRes
     form_http_response(body)
 }
 
-pub async fn user(user: LoggedUser, _: Data<AppState>) -> Result<HttpResponse, Error> {
+pub async fn user(user: LoggedUser, _: Data<AppState>) -> HttpResult {
     to_json(user)
 }
