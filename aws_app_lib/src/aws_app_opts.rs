@@ -241,12 +241,10 @@ impl AwsAppOpts {
         let pool = PgPool::new(&config.database_url);
         let app = AwsAppInterface::new(config, pool);
 
-        let task = app.stdout.spawn_stdout_task();
-
         let result = match opts {
             Self::Update => {
                 for line in app.update().await? {
-                    app.stdout.send(line)?;
+                    app.stdout.send(line);
                 }
                 Ok(())
             }
@@ -294,7 +292,7 @@ impl AwsAppOpts {
             Self::ListFamilies => {
                 for fam in InstanceFamily::get_all(&app.pool).await? {
                     app.stdout
-                        .send(format!("{:5} {}", fam.family_name, fam.family_type).into())?;
+                        .send(format!("{:5} {}", fam.family_name, fam.family_type));
                 }
                 Ok(())
             }
@@ -319,13 +317,10 @@ impl AwsAppOpts {
                     x.cmp(&y)
                 });
                 for inst in instances {
-                    app.stdout.send(
-                        format!(
-                            "{:18} cpu: {:3} mem: {:6.2} {}",
-                            inst.instance_type, inst.n_cpu, inst.memory_gib, inst.generation,
-                        )
-                        .into(),
-                    )?;
+                    app.stdout.send(format!(
+                        "{:18} cpu: {:3} mem: {:6.2} {}",
+                        inst.instance_type, inst.n_cpu, inst.memory_gib, inst.generation,
+                    ));
                 }
                 Ok(())
             }
@@ -334,7 +329,7 @@ impl AwsAppOpts {
                     .create_image(instance_id.as_ref(), name.as_ref())
                     .await?
                 {
-                    app.stdout.send(format!("New id {}", id).into())?;
+                    app.stdout.send(format!("New id {}", id));
                 }
                 Ok(())
             }
@@ -345,9 +340,9 @@ impl AwsAppOpts {
                 snapid,
             } => {
                 app.stdout
-                    .send(format!("{:?} {} {:?}", size, zoneid, snapid).into())?;
+                    .send(format!("{:?} {} {:?}", size, zoneid, snapid));
                 if let Some(id) = app.create_ebs_volume(zoneid.as_ref(), size, snapid).await? {
-                    app.stdout.send(format!("Created Volume {}", id).into())?;
+                    app.stdout.send(format!("Created Volume {}", id));
                 }
                 Ok(())
             }
@@ -367,7 +362,7 @@ impl AwsAppOpts {
                     .create_ebs_snapshot(volid.as_ref(), &get_tags(&tags))
                     .await?
                 {
-                    app.stdout.send(format!("Created snapshot {}", id).into())?;
+                    app.stdout.send(format!("Created snapshot {}", id));
                 }
                 Ok(())
             }
@@ -386,14 +381,13 @@ impl AwsAppOpts {
             Self::Connect { instance_id } => app.connect(instance_id.as_ref()).await,
             Self::Status { instance_id } => {
                 for line in app.get_status(instance_id.as_ref()).await? {
-                    app.stdout.send(line)?;
+                    app.stdout.send(line);
                 }
                 Ok(())
             }
         };
         result?;
-        app.stdout.close().await?;
-        task.await?
+        app.stdout.close().await
     }
 }
 

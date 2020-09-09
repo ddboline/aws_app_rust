@@ -39,3 +39,4 @@ smartstring = "0.2"
 itertools = "0.9"
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.1.6", features=["diesel_types"] }
 smallvec = "1.4"
+deadqueue = "0.1"

@@ -117,7 +117,7 @@ impl AwsAppInterface {
 
                 if !result.is_empty() {
                     self.stdout
-                        .send(format!("instances:\n{}", result.join("\n")).into())?;
+                        .send(format!("instances:\n{}", result.join("\n")));
                 }
             }
             ResourceType::Reserved => {
@@ -142,9 +142,10 @@ impl AwsAppInterface {
                 if reserved.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send(
-                    format!("---\nGet Reserved Instance\n---\n{}", reserved.join("\n")).into(),
-                )?;
+                self.stdout.send(format!(
+                    "---\nGet Reserved Instance\n---\n{}",
+                    reserved.join("\n")
+                ));
             }
             ResourceType::Spot => {
                 let requests: Vec<_> = self
@@ -167,9 +168,10 @@ impl AwsAppInterface {
                 if requests.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send(
-                    format!("---\nSpot Instance Requests:\n{}", requests.join("\n")).into(),
-                )?;
+                self.stdout.send(format!(
+                    "---\nSpot Instance Requests:\n{}",
+                    requests.join("\n")
+                ));
             }
             ResourceType::Ami => {
                 let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
@@ -195,7 +197,7 @@ impl AwsAppInterface {
                     })
                     .collect();
                 self.stdout
-                    .send(format!("---\nAMI's:\n{}", ami_tags.join("\n")).into())?;
+                    .send(format!("---\nAMI's:\n{}", ami_tags.join("\n")));
             }
             ResourceType::Key => {
                 let keys: Vec<_> = self
@@ -205,8 +207,7 @@ impl AwsAppInterface {
                     .into_iter()
                     .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
                     .collect();
-                self.stdout
-                    .send(format!("---\nKeys:\n{}", keys.join("\n")).into())?;
+                self.stdout.send(format!("---\nKeys:\n{}", keys.join("\n")));
             }
             ResourceType::Volume => {
                 let volumes: Vec<_> = self
@@ -230,7 +231,7 @@ impl AwsAppInterface {
                     return Ok(());
                 }
                 self.stdout
-                    .send(format!("---\nVolumes:\n{}", volumes.join("\n")).into())?;
+                    .send(format!("---\nVolumes:\n{}", volumes.join("\n")));
             }
             ResourceType::Snapshot => {
                 let snapshots: Vec<_> = self
@@ -253,7 +254,7 @@ impl AwsAppInterface {
                     return Ok(());
                 }
                 self.stdout
-                    .send(format!("---\nSnapshots:\n{}", snapshots.join("\n")).into())?;
+                    .send(format!("---\nSnapshots:\n{}", snapshots.join("\n")));
             }
             ResourceType::Ecr => {
                 let repos = self.ecr.get_all_repositories().await?;
@@ -283,12 +284,13 @@ impl AwsAppInterface {
                 let results: Result<Vec<_>, Error> = try_join_all(futures).await;
                 let results: Vec<_> = results?.into_iter().flatten().collect();
                 self.stdout
-                    .send(format!("---\nECR images:\n{}", results.join("\n")).into())?;
+                    .send(format!("---\nECR images:\n{}", results.join("\n")));
             }
             ResourceType::Script => {
-                self.stdout.send(
-                    format!("---\nScripts:\n{}", self.get_all_scripts()?.join("\n")).into(),
-                )?;
+                self.stdout.send(format!(
+                    "---\nScripts:\n{}",
+                    self.get_all_scripts()?.join("\n")
+                ));
             }
         };
         Ok(())
@@ -349,7 +351,7 @@ impl AwsAppInterface {
         let id_host_map = get_id_host_map().await?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(inst_id) {
-            self.stdout.send(format!("ssh ubuntu@{}", host).into())?;
+            self.stdout.send(format!("ssh ubuntu@{}", host));
         }
         Ok(())
     }
@@ -482,7 +484,8 @@ impl AwsAppInterface {
         prices.sort();
 
         let outstrings: Vec<_> = prices.into_iter().map(|(_, _, line)| line).collect();
-        self.stdout.send(outstrings.join("\n").into())
+        self.stdout.send(outstrings.join("\n"));
+        Ok(())
     }
 
     pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
