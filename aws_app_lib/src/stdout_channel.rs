@@ -34,18 +34,14 @@ impl StdoutChannel {
     pub fn new() -> Self {
         let stdout_queue = Arc::new(Queue::new());
         let stderr_queue = Arc::new(Queue::new());
-        let stdout_task = {
+        let stdout_task = Arc::new(Mutex::new(Some(spawn({
             let queue = stdout_queue.clone();
-            Arc::new(Mutex::new(Some(spawn(async move {
-                Self::stdout_task(&queue).await
-            }))))
-        };
-        let stderr_task = {
+            async move { Self::stdout_task(&queue).await }
+        }))));
+        let stderr_task = Arc::new(Mutex::new(Some(spawn({
             let queue = stderr_queue.clone();
-            Arc::new(Mutex::new(Some(spawn(async move {
-                Self::stderr_task(&queue).await
-            }))))
-        };
+            async move { Self::stderr_task(&queue).await }
+        }))));
         Self {
             stdout_queue,
             stderr_queue,
