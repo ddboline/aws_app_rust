@@ -14,13 +14,14 @@ enum MessageType {
 }
 
 type ChanType = Queue<MessageType>;
+type TaskType = JoinHandle<Result<(), Error>>;
 
 #[derive(Clone)]
 pub struct StdoutChannel {
     stdout_queue: Arc<ChanType>,
     stderr_queue: Arc<ChanType>,
-    stdout_task: Arc<Mutex<Option<JoinHandle<Result<(), Error>>>>>,
-    stderr_task: Arc<Mutex<Option<JoinHandle<Result<(), Error>>>>>,
+    stdout_task: Arc<Mutex<Option<TaskType>>>,
+    stderr_task: Arc<Mutex<Option<TaskType>>>,
 }
 
 impl Default for StdoutChannel {
