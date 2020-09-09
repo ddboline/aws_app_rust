@@ -1,12 +1,12 @@
 use anyhow::Error;
 use deadqueue::unlimited::Queue;
+use stack_string::StackString;
 use std::sync::Arc;
 use tokio::{
     io::{stderr, stdout, AsyncWriteExt},
     sync::Mutex,
     task::{spawn, JoinHandle},
 };
-use stack_string::StackString;
 
 enum MessageType {
     Mesg(StackString),

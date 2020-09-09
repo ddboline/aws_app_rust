@@ -9,14 +9,14 @@ use log::debug;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::{collections::HashMap, fmt::Display, path::Path, process::Stdio};
+use std::{
+    collections::HashMap, fmt::Display, future::Future, ops::Deref, path::Path, process::Stdio,
+};
 use tokio::{
     process::{Child, Command},
     sync::{Mutex, RwLock},
     try_join,
 };
-use std::ops::Deref;
-use std::future::Future;
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
@@ -48,7 +48,8 @@ impl Deref for InfoCache {
 
 impl InfoCache {
     async fn get_cached<F>(&self, hash: &str, call: F) -> Result<Option<AmiInfo>, Error>
-    where F: Future<Output=Result<Option<AmiInfo>, Error>>,
+    where
+        F: Future<Output = Result<Option<AmiInfo>, Error>>,
     {
         let mut has_cache = false;
         let d = match self.lock().await.cache_get(&hash.into()) {
@@ -63,8 +64,7 @@ impl InfoCache {
             None => call.await?,
         };
         if !has_cache {
-            self
-                .lock()
+            self.lock()
                 .await
                 .cache_set(hash.into(), (Utc::now(), d.clone()));
         }
@@ -178,7 +178,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
             ResourceType::Ami => {
                 let ubuntu_ami = async {
                     let hash = self.config.ubuntu_release.as_str();
-                    CACHE_UBUNTU_AMI.get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash)).await
+                    CACHE_UBUNTU_AMI
+                        .get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash))
+                        .await
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
