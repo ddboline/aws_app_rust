@@ -1,15 +1,15 @@
 [package]
 name = "aws_app_http"
-version = "0.6.12"
+version = "0.6.13"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "2.0"
-actix = "0.9"
-actix-identity = "0.2"
+actix-web = "3.0"
+actix = "0.10"
+actix-identity = "0.3"
 actix-rt = "1.1"
 aws_app_lib = {path = "../aws_app_lib"}
 chrono = "0.4"
@@ -29,5 +29,5 @@ async-trait = "0.1"
 cached = "0.19"
 dirs = "3.0"
 itertools = "0.9"
-rust_auth_server = { git = "https://github.com/ddboline/rust-auth-server.git", tag="0.5.15" }
+rust_auth_server = { git = "https://github.com/ddboline/rust-auth-server.git", tag="0.6.0" }
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.1.6", features=["diesel_types"] }
