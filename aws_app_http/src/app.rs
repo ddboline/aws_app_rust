@@ -46,7 +46,7 @@ pub async fn start_app() {
                     .name("auth")
                     .path("/")
                     .domain(aws.config.domain.as_str())
-                    .max_age(24*3600)
+                    .max_age(24 * 3600)
                     .secure(false),
             ))
             .service(
