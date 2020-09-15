@@ -8,7 +8,7 @@ use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::Pg
 
 use super::{
     errors::ServiceError as Error,
-    logged_user::{fill_from_db, TRIGGER_DB_UPDATE, SECRET_KEY, JWT_SECRET},
+    logged_user::{fill_from_db, JWT_SECRET, SECRET_KEY, TRIGGER_DB_UPDATE},
     routes::{
         build_spot_request, cancel_spot, cleanup_ecr_images, command, create_snapshot,
         delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_volume, edit_script,
@@ -112,5 +112,6 @@ pub async fn start_app() -> Result<(), Error> {
     .bind(&format!("127.0.0.1:{}", port))
     .unwrap_or_else(|_| panic!("Failed to bind to port {}", port))
     .run()
-    .await.map_err(Into::into)
+    .await
+    .map_err(Into::into)
 }

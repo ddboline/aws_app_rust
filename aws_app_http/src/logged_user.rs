@@ -1,5 +1,7 @@
 use anyhow::Error;
-pub use auth_server_rust::logged_user::{LoggedUser, AUTHORIZED_USERS, TRIGGER_DB_UPDATE, SECRET_KEY, JWT_SECRET};
+pub use auth_server_rust::logged_user::{
+    LoggedUser, AUTHORIZED_USERS, JWT_SECRET, SECRET_KEY, TRIGGER_DB_UPDATE,
+};
 use log::debug;
 use std::env::var;
 
@@ -11,9 +13,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
         AuthorizedUsersDB::get_authorized_users(&pool)
             .await?
             .into_iter()
-            .map(|user| LoggedUser {
-                email: user.email.into(),
-            })
+            .map(|user| LoggedUser { email: user.email })
             .collect()
     } else {
         AUTHORIZED_USERS.get_users()
