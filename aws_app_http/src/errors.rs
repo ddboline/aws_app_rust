@@ -1,8 +1,8 @@
 use crate::logged_user::TRIGGER_DB_UPDATE;
 use actix_web::{error::ResponseError, HttpResponse};
 use anyhow::Error as AnyhowError;
+use auth_server_rust::static_files;
 use log::error;
-use rust_auth_server::static_files;
 use stack_string::StackString;
 use std::fmt::Debug;
 use thiserror::Error;

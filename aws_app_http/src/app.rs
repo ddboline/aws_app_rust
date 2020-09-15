@@ -1,12 +1,14 @@
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{web, App, HttpServer};
+use lazy_static::lazy_static;
 use std::time::Duration;
 use tokio::time::interval;
 
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
 use super::{
-    logged_user::{fill_from_db, TRIGGER_DB_UPDATE},
+    errors::ServiceError as Error,
+    logged_user::{fill_from_db, TRIGGER_DB_UPDATE, SECRET_KEY, JWT_SECRET},
     routes::{
         build_spot_request, cancel_spot, cleanup_ecr_images, command, create_snapshot,
         delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_volume, edit_script,
@@ -16,23 +18,36 @@ use super::{
     },
 };
 
+lazy_static! {
+    pub static ref CONFIG: Config = Config::init_config().expect("Failed to init config");
+}
+
+async fn get_secrets() -> Result<(), Error> {
+    SECRET_KEY.read_from_file(&CONFIG.secret_path).await?;
+    JWT_SECRET.read_from_file(&CONFIG.jwt_secret_path).await?;
+    Ok(())
+}
+
 pub struct AppState {
     pub aws: AwsAppInterface,
 }
 
-pub async fn start_app() {
+pub async fn start_app() -> Result<(), Error> {
     async fn _update_db(pool: PgPool) {
         let mut i = interval(Duration::from_secs(60));
         loop {
-            i.tick().await;
+            get_secrets().await.unwrap_or(());
             fill_from_db(&pool).await.unwrap_or(());
+            i.tick().await;
         }
     }
+
     TRIGGER_DB_UPDATE.set();
 
-    let config = Config::init_config().expect("Failed to load config");
-    let pool = PgPool::new(&config.database_url);
-    let aws = AwsAppInterface::new(config, pool);
+    get_secrets().await?;
+
+    let pool = PgPool::new(&CONFIG.database_url);
+    let aws = AwsAppInterface::new(CONFIG.clone(), pool);
 
     actix_rt::spawn(_update_db(aws.pool.clone()));
 
@@ -42,7 +57,7 @@ pub async fn start_app() {
         App::new()
             .data(AppState { aws: aws.clone() })
             .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(aws.config.secret_key.as_bytes())
+                CookieIdentityPolicy::new(&SECRET_KEY.load())
                     .name("auth")
                     .path("/")
                     .domain(aws.config.domain.as_str())
@@ -97,6 +112,5 @@ pub async fn start_app() {
     .bind(&format!("127.0.0.1:{}", port))
     .unwrap_or_else(|_| panic!("Failed to bind to port {}", port))
     .run()
-    .await
-    .expect("Failed to start app");
+    .await.map_err(Into::into)
 }

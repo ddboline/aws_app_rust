@@ -30,11 +30,11 @@ pub struct ConfigInner {
     pub ubuntu_release: StackString,
     #[serde(default = "default_port")]
     pub port: u32,
-    #[serde(default = "default_secret_key")]
-    pub secret_key: StackString,
     #[serde(default = "default_domain")]
     pub domain: StackString,
     pub novnc_path: Option<PathBuf>,
+    pub secret_path: PathBuf,
+    pub jwt_secret_path: PathBuf,
 }
 
 fn default_aws_region_name() -> StackString {
@@ -51,9 +51,6 @@ fn default_ubuntu_release() -> StackString {
 }
 fn default_port() -> u32 {
     3096
-}
-fn default_secret_key() -> StackString {
-    "0123".repeat(8).into()
 }
 fn default_domain() -> StackString {
     "localhost".into()

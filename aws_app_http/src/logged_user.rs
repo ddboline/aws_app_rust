@@ -1,6 +1,6 @@
 use anyhow::Error;
+pub use auth_server_rust::logged_user::{LoggedUser, AUTHORIZED_USERS, TRIGGER_DB_UPDATE, SECRET_KEY, JWT_SECRET};
 use log::debug;
-pub use rust_auth_server::logged_user::{LoggedUser, AUTHORIZED_USERS, TRIGGER_DB_UPDATE};
 use std::env::var;
 
 use aws_app_lib::{models::AuthorizedUsers as AuthorizedUsersDB, pgpool::PgPool};
@@ -20,7 +20,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
     };
     if let Ok("true") = var("TESTENV").as_ref().map(String::as_str) {
         let user = LoggedUser {
-            email: "user@test".to_string(),
+            email: "user@test".into(),
         };
         AUTHORIZED_USERS.merge_users(&[user])?;
     }
