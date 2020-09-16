@@ -8,7 +8,7 @@ use tokio::time::interval;
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
 use super::{
-    logged_user::{fill_from_db, JWT_SECRET, SECRET_KEY, TRIGGER_DB_UPDATE},
+    logged_user::{fill_from_db, get_secrets, SECRET_KEY, TRIGGER_DB_UPDATE},
     routes::{
         build_spot_request, cancel_spot, cleanup_ecr_images, command, create_snapshot,
         delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_volume, edit_script,
@@ -22,12 +22,6 @@ lazy_static! {
     pub static ref CONFIG: Config = Config::init_config().expect("Failed to init config");
 }
 
-async fn get_secrets() -> Result<(), Error> {
-    SECRET_KEY.read_from_file(&CONFIG.secret_path).await?;
-    JWT_SECRET.read_from_file(&CONFIG.jwt_secret_path).await?;
-    Ok(())
-}
-
 pub struct AppState {
     pub aws: AwsAppInterface,
 }
@@ -36,7 +30,6 @@ pub async fn start_app() -> Result<(), Error> {
     async fn _update_db(pool: PgPool) {
         let mut i = interval(Duration::from_secs(60));
         loop {
-            get_secrets().await.unwrap_or(());
             fill_from_db(&pool).await.unwrap_or(());
             i.tick().await;
         }
@@ -44,7 +37,7 @@ pub async fn start_app() -> Result<(), Error> {
 
     TRIGGER_DB_UPDATE.set();
 
-    get_secrets().await?;
+    get_secrets(&CONFIG.secret_path, &CONFIG.jwt_secret_path).await?;
 
     let pool = PgPool::new(&CONFIG.database_url);
     let aws = AwsAppInterface::new(CONFIG.clone(), pool);
