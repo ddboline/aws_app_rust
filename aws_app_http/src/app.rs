@@ -1,9 +1,9 @@
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{web, App, HttpServer};
+use anyhow::Error;
 use lazy_static::lazy_static;
 use std::time::Duration;
 use tokio::time::interval;
-use anyhow::Error;
 
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
