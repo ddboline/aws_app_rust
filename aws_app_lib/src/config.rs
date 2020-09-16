@@ -15,6 +15,7 @@ lazy_static! {
 
 #[derive(Default, Debug, Deserialize)]
 pub struct ConfigInner {
+    #[serde(default = "default_database_url")]
     pub database_url: StackString,
     #[serde(default = "default_aws_region_name")]
     pub aws_region_name: StackString,
@@ -30,13 +31,18 @@ pub struct ConfigInner {
     pub ubuntu_release: StackString,
     #[serde(default = "default_port")]
     pub port: u32,
-    #[serde(default = "default_secret_key")]
-    pub secret_key: StackString,
     #[serde(default = "default_domain")]
     pub domain: StackString,
     pub novnc_path: Option<PathBuf>,
+    #[serde(default = "default_secret_path")]
+    pub secret_path: PathBuf,
+    #[serde(default = "default_secret_path")]
+    pub jwt_secret_path: PathBuf,
 }
 
+fn default_database_url() -> StackString {
+    "postgresql://user:password@host:1234/test_db".into()
+}
 fn default_aws_region_name() -> StackString {
     "us-east-1".into()
 }
@@ -52,11 +58,11 @@ fn default_ubuntu_release() -> StackString {
 fn default_port() -> u32 {
     3096
 }
-fn default_secret_key() -> StackString {
-    "0123".repeat(8).into()
-}
 fn default_domain() -> StackString {
     "localhost".into()
+}
+fn default_secret_path() -> PathBuf {
+    CONFIG_DIR.join("aws_app_rust").join("secret.bin")
 }
 
 #[derive(Default, Debug, Clone)]
