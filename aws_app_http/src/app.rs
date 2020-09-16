@@ -3,11 +3,11 @@ use actix_web::{web, App, HttpServer};
 use lazy_static::lazy_static;
 use std::time::Duration;
 use tokio::time::interval;
+use anyhow::Error;
 
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
 use super::{
-    errors::ServiceError as Error,
     logged_user::{fill_from_db, JWT_SECRET, SECRET_KEY, TRIGGER_DB_UPDATE},
     routes::{
         build_spot_request, cancel_spot, cleanup_ecr_images, command, create_snapshot,
