@@ -50,7 +50,7 @@ pub async fn start_app() -> Result<(), Error> {
         App::new()
             .data(AppState { aws: aws.clone() })
             .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(&SECRET_KEY.load())
+                CookieIdentityPolicy::new(&SECRET_KEY.get())
                     .name("auth")
                     .path("/")
                     .domain(aws.config.domain.as_str())
