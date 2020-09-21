@@ -477,7 +477,10 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
 }
 
 async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<StackString>, Error> {
-    let lines: Vec<_> = app.ecr.get_all_images(&repo).await?
+    let lines: Vec<_> = app
+        .ecr
+        .get_all_images(&repo)
+        .await?
         .map(|image| {
             format!(
                 r#"<tr style="text-align: center;">

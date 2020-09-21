@@ -81,8 +81,10 @@ impl Ec2Instance {
         self.my_owner_id.replace(owner_id.into())
     }
 
-    pub async fn get_ami_tags(&self) -> Result<impl Iterator<Item=AmiInfo>, Error> {
-        let owner_id = self.my_owner_id.as_ref()
+    pub async fn get_ami_tags(&self) -> Result<impl Iterator<Item = AmiInfo>, Error> {
+        let owner_id = self
+            .my_owner_id
+            .as_ref()
             .map(ToString::to_string)
             .ok_or_else(|| format_err!("No owner id"))?;
         let req = DescribeImagesRequest {
@@ -183,7 +185,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_instances(&self) -> Result<impl Iterator<Item=Ec2InstanceInfo>, Error> {
+    pub async fn get_all_instances(&self) -> Result<impl Iterator<Item = Ec2InstanceInfo>, Error> {
         self.ec2_client
             .describe_instances(DescribeInstancesRequest::default())
             .await
@@ -194,33 +196,26 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|res| {
                         res.instances.map(|instances| {
-                            instances
-                                .into_iter()
-                                .filter_map(|inst| {
-                                    let tags: HashMap<_, _> = inst
-                                        .tags
-                                        .unwrap_or_else(Vec::new)
-                                        .into_iter()
-                                        .filter_map(|tag| {
-                                            Some((tag.key?.into(), tag.value?.into()))
-                                        })
-                                        .collect();
-                                    Some(Ec2InstanceInfo {
-                                        id: inst.instance_id?.into(),
-                                        dns_name: inst.public_dns_name?.into(),
-                                        state: inst.state?.name?.into(),
-                                        instance_type: inst.instance_type?.into(),
-                                        availability_zone: inst
-                                            .placement?
-                                            .availability_zone?
-                                            .into(),
-                                        launch_time: inst
-                                            .launch_time
-                                            .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
-                                            .map(|t| t.with_timezone(&Utc))?,
-                                        tags,
-                                    })
+                            instances.into_iter().filter_map(|inst| {
+                                let tags: HashMap<_, _> = inst
+                                    .tags
+                                    .unwrap_or_else(Vec::new)
+                                    .into_iter()
+                                    .filter_map(|tag| Some((tag.key?.into(), tag.value?.into())))
+                                    .collect();
+                                Some(Ec2InstanceInfo {
+                                    id: inst.instance_id?.into(),
+                                    dns_name: inst.public_dns_name?.into(),
+                                    state: inst.state?.name?.into(),
+                                    instance_type: inst.instance_type?.into(),
+                                    availability_zone: inst.placement?.availability_zone?.into(),
+                                    launch_time: inst
+                                        .launch_time
+                                        .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
+                                        .map(|t| t.with_timezone(&Utc))?,
+                                    tags,
                                 })
+                            })
                         })
                     })
                     .flatten()
@@ -228,7 +223,9 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_reserved_instances(&self) -> Result<impl Iterator<Item=ReservedInstanceInfo>, Error> {
+    pub async fn get_reserved_instances(
+        &self,
+    ) -> Result<impl Iterator<Item = ReservedInstanceInfo>, Error> {
         self.ec2_client
             .describe_reserved_instances(DescribeReservedInstancesRequest::default())
             .await
@@ -308,7 +305,9 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_spot_instance_requests(&self) -> Result<impl Iterator<Item=SpotInstanceRequestInfo>, Error> {
+    pub async fn get_spot_instance_requests(
+        &self,
+    ) -> Result<impl Iterator<Item = SpotInstanceRequestInfo>, Error> {
         self.ec2_client
             .describe_spot_instance_requests(DescribeSpotInstanceRequestsRequest::default())
             .await
@@ -335,7 +334,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_volumes(&self) -> Result<impl Iterator<Item=VolumeInfo>, Error> {
+    pub async fn get_all_volumes(&self) -> Result<impl Iterator<Item = VolumeInfo>, Error> {
         self.ec2_client
             .describe_volumes(DescribeVolumesRequest::default())
             .await
@@ -362,8 +361,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_snapshots(&self) -> Result<impl Iterator<Item=SnapshotInfo>, Error> {
-        let owner_id = self.my_owner_id.as_ref()
+    pub async fn get_all_snapshots(&self) -> Result<impl Iterator<Item = SnapshotInfo>, Error> {
+        let owner_id = self
+            .my_owner_id
+            .as_ref()
             .map(ToString::to_string)
             .ok_or_else(|| format_err!("No owner id"))?;
 
@@ -657,7 +658,9 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_key_pairs(&self) -> Result<impl Iterator<Item=(StackString, StackString)>, Error> {
+    pub async fn get_all_key_pairs(
+        &self,
+    ) -> Result<impl Iterator<Item = (StackString, StackString)>, Error> {
         self.ec2_client
             .describe_key_pairs(DescribeKeyPairsRequest::default())
             .await

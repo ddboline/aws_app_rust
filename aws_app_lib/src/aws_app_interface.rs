@@ -64,7 +64,7 @@ impl AwsAppInterface {
         self.ecr.set_region(region)
     }
 
-    pub async fn update(&self) -> Result<impl Iterator<Item=StackString>, Error> {
+    pub async fn update(&self) -> Result<impl Iterator<Item = StackString>, Error> {
         let (hvm, pv, res, ond) = try_join!(
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
             scrape_instance_info(AwsGeneration::PV, &self.pool),

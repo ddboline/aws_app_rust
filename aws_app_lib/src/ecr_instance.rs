@@ -52,7 +52,7 @@ impl EcrInstance {
         Ok(())
     }
 
-    pub async fn get_all_repositories(&self) -> Result<impl Iterator<Item=StackString>, Error> {
+    pub async fn get_all_repositories(&self) -> Result<impl Iterator<Item = StackString>, Error> {
         self.ecr_client
             .describe_repositories(DescribeRepositoriesRequest::default())
             .await
@@ -65,7 +65,10 @@ impl EcrInstance {
             })
     }
 
-    pub async fn get_all_images(&self, reponame: &str) -> Result<impl Iterator<Item=ImageInfo>, Error> {
+    pub async fn get_all_images(
+        &self,
+        reponame: &str,
+    ) -> Result<impl Iterator<Item = ImageInfo>, Error> {
         self.ecr_client
             .describe_images(DescribeImagesRequest {
                 repository_name: reponame.to_string(),
