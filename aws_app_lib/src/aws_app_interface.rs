@@ -257,7 +257,7 @@ impl AwsAppInterface {
                     .send(format!("---\nSnapshots:\n{}", snapshots.join("\n")));
             }
             ResourceType::Ecr => {
-                let repos = self.ecr.get_all_repositories().await?;
+                let repos: Vec<_> = self.ecr.get_all_repositories().await?.collect();
                 if repos.is_empty() {
                     return Ok(());
                 }

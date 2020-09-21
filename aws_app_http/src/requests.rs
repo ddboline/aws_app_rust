@@ -252,7 +252,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".into());
             }
             ResourceType::Volume => {
-                let volumes = self.ec2.get_all_volumes().await?;
+                let volumes: Vec<_> = self.ec2.get_all_volumes().await?.collect();
                 if volumes.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -316,7 +316,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".into());
             }
             ResourceType::Snapshot => {
-                let mut snapshots = self.ec2.get_all_snapshots().await?;
+                let mut snapshots: Vec<_> = self.ec2.get_all_snapshots().await?.collect();
                 if snapshots.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -365,7 +365,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".into());
             }
             ResourceType::Ecr => {
-                let repos = self.ecr.get_all_repositories().await?;
+                let repos: Vec<_> = self.ecr.get_all_repositories().await?.collect();
                 if repos.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -477,9 +477,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
 }
 
 async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<StackString>, Error> {
-    let images = app.ecr.get_all_images(&repo).await?;
-    let lines: Vec<_> = images
-        .iter()
+    let lines: Vec<_> = app.ecr.get_all_images(&repo).await?
         .map(|image| {
             format!(
                 r#"<tr style="text-align: center;">

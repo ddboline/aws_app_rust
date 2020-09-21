@@ -52,7 +52,7 @@ impl EcrInstance {
         Ok(())
     }
 
-    pub async fn get_all_repositories(&self) -> Result<Vec<StackString>, Error> {
+    pub async fn get_all_repositories(&self) -> Result<impl Iterator<Item=StackString>, Error> {
         self.ecr_client
             .describe_repositories(DescribeRepositoriesRequest::default())
             .await
@@ -62,11 +62,10 @@ impl EcrInstance {
                     .unwrap_or_else(Vec::new)
                     .into_iter()
                     .filter_map(|repo| repo.repository_name.map(Into::into))
-                    .collect()
             })
     }
 
-    pub async fn get_all_images(&self, reponame: &str) -> Result<Vec<ImageInfo>, Error> {
+    pub async fn get_all_images(&self, reponame: &str) -> Result<impl Iterator<Item=ImageInfo>, Error> {
         self.ecr_client
             .describe_images(DescribeImagesRequest {
                 repository_name: reponame.to_string(),
@@ -98,7 +97,6 @@ impl EcrInstance {
                             image_size,
                         })
                     })
-                    .collect()
             })
     }
 

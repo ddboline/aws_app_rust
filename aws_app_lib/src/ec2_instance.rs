@@ -335,7 +335,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_volumes(&self) -> Result<Vec<VolumeInfo>, Error> {
+    pub async fn get_all_volumes(&self) -> Result<impl Iterator<Item=VolumeInfo>, Error> {
         self.ec2_client
             .describe_volumes(DescribeVolumesRequest::default())
             .await
@@ -358,16 +358,14 @@ impl Ec2Instance {
                                 .collect(),
                         })
                     })
-                    .collect()
             })
             .map_err(Into::into)
     }
 
-    pub async fn get_all_snapshots(&self) -> Result<Vec<SnapshotInfo>, Error> {
-        let owner_id = match self.my_owner_id.as_ref() {
-            Some(x) => x.to_string(),
-            None => return Ok(Vec::new()),
-        };
+    pub async fn get_all_snapshots(&self) -> Result<impl Iterator<Item=SnapshotInfo>, Error> {
+        let owner_id = self.my_owner_id.as_ref()
+            .map(ToString::to_string)
+            .ok_or_else(|| format_err!("No owner id"))?;
 
         self.ec2_client
             .describe_snapshots(DescribeSnapshotsRequest {
@@ -396,7 +394,6 @@ impl Ec2Instance {
                                 .collect(),
                         })
                     })
-                    .collect()
             })
             .map_err(Into::into)
     }
@@ -660,7 +657,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_key_pairs(&self) -> Result<Vec<(StackString, StackString)>, Error> {
+    pub async fn get_all_key_pairs(&self) -> Result<impl Iterator<Item=(StackString, StackString)>, Error> {
         self.ec2_client
             .describe_key_pairs(DescribeKeyPairsRequest::default())
             .await
@@ -672,7 +669,6 @@ impl Ec2Instance {
                         let fingerprint = key.key_fingerprint.unwrap_or_else(|| "".to_string());
                         key.key_name.map(|x| (x.into(), fingerprint.into()))
                     })
-                    .collect()
             })
             .map_err(Into::into)
     }
