@@ -102,7 +102,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".into());
             }
             ResourceType::Reserved => {
-                let reserved = self.ec2.get_reserved_instances().await?;
+                let reserved: Vec<_> = self.ec2.get_reserved_instances().await?.collect();
                 if reserved.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -135,7 +135,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.push("</tbody></table>".into());
             }
             ResourceType::Spot => {
-                let requests = self.ec2.get_spot_instance_requests().await?;
+                let requests: Vec<_> = self.ec2.get_spot_instance_requests().await?.collect();
                 if requests.is_empty() {
                     return Ok(Vec::new());
                 }
@@ -184,7 +184,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
+                let (ubuntu_ami, ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
+                let mut ami_tags: Vec<_> = ami_tags.collect();
 
                 if ami_tags.is_empty() {
                     return Ok(Vec::new());

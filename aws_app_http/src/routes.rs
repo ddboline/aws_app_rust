@@ -489,7 +489,7 @@ pub async fn get_prices(
 }
 
 pub async fn update(_: LoggedUser, data: Data<AppState>) -> HttpResult {
-    let entries = data.aws.update().await?;
+    let entries: Vec<_> = data.aws.update().await?.collect();
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"

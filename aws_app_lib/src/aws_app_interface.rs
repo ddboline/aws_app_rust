@@ -64,24 +64,23 @@ impl AwsAppInterface {
         self.ecr.set_region(region)
     }
 
-    pub async fn update(&self) -> Result<Vec<StackString>, Error> {
+    pub async fn update(&self) -> Result<impl Iterator<Item=StackString>, Error> {
         let (hvm, pv, res, ond) = try_join!(
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
             scrape_instance_info(AwsGeneration::PV, &self.pool),
             scrape_pricing_info(PricingType::Reserved, &self.pool),
             scrape_pricing_info(PricingType::OnDemand, &self.pool),
         )?;
-        let output: Vec<_> = hvm
+        let iter = hvm
             .into_iter()
             .chain(pv.into_iter())
             .chain(res.into_iter())
-            .chain(ond.into_iter())
-            .collect();
-        Ok(output)
+            .chain(ond.into_iter());
+        Ok(iter)
     }
 
     pub async fn fill_instance_list(&self) -> Result<(), Error> {
-        let mut instances = self.ec2.get_all_instances().await?;
+        let mut instances: Vec<_> = self.ec2.get_all_instances().await?.collect();
         if !instances.is_empty() {
             instances.sort_by_key(|inst| inst.launch_time);
             instances.sort_by_key(|inst| &inst.state != "running");
@@ -176,7 +175,8 @@ impl AwsAppInterface {
             ResourceType::Ami => {
                 let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, mut ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
+                let (ubuntu_ami, ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
+                let mut ami_tags: Vec<_> = ami_tags.collect();
 
                 if ami_tags.is_empty() {
                     return Ok(());
@@ -609,7 +609,7 @@ impl AwsAppInterface {
     }
 
     pub async fn get_all_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
-        let mut ami_tags = self.ec2.get_ami_tags().await?;
+        let mut ami_tags: Vec<_> = self.ec2.get_ami_tags().await?.collect();
         if ami_tags.is_empty() {
             return Ok(Vec::new());
         }

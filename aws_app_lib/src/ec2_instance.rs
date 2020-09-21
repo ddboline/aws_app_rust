@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{format_err, Error};
 use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
 use log::debug;
@@ -81,11 +81,10 @@ impl Ec2Instance {
         self.my_owner_id.replace(owner_id.into())
     }
 
-    pub async fn get_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
-        let owner_id = match self.my_owner_id.as_ref() {
-            Some(x) => x.to_string(),
-            None => return Ok(Vec::new()),
-        };
+    pub async fn get_ami_tags(&self) -> Result<impl Iterator<Item=AmiInfo>, Error> {
+        let owner_id = self.my_owner_id.as_ref()
+            .map(ToString::to_string)
+            .ok_or_else(|| format_err!("No owner id"))?;
         let req = DescribeImagesRequest {
             filters: Some(vec![Filter {
                 name: Some("owner-id".to_string()),
@@ -114,7 +113,6 @@ impl Ec2Instance {
                                 .collect(),
                         })
                     })
-                    .collect()
             })
             .map_err(Into::into)
     }
@@ -185,7 +183,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_all_instances(&self) -> Result<Vec<Ec2InstanceInfo>, Error> {
+    pub async fn get_all_instances(&self) -> Result<impl Iterator<Item=Ec2InstanceInfo>, Error> {
         self.ec2_client
             .describe_instances(DescribeInstancesRequest::default())
             .await
@@ -223,16 +221,14 @@ impl Ec2Instance {
                                         tags,
                                     })
                                 })
-                                .collect::<Vec<Ec2InstanceInfo>>()
                         })
                     })
                     .flatten()
-                    .collect::<Vec<Ec2InstanceInfo>>()
             })
             .map_err(Into::into)
     }
 
-    pub async fn get_reserved_instances(&self) -> Result<Vec<ReservedInstanceInfo>, Error> {
+    pub async fn get_reserved_instances(&self) -> Result<impl Iterator<Item=ReservedInstanceInfo>, Error> {
         self.ec2_client
             .describe_reserved_instances(DescribeReservedInstancesRequest::default())
             .await
@@ -253,7 +249,6 @@ impl Ec2Instance {
                             availability_zone: inst.availability_zone.map(Into::into),
                         })
                     })
-                    .collect()
             })
             .map_err(Into::into)
     }
@@ -313,7 +308,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_spot_instance_requests(&self) -> Result<Vec<SpotInstanceRequestInfo>, Error> {
+    pub async fn get_spot_instance_requests(&self) -> Result<impl Iterator<Item=SpotInstanceRequestInfo>, Error> {
         self.ec2_client
             .describe_spot_instance_requests(DescribeSpotInstanceRequestsRequest::default())
             .await
@@ -336,7 +331,6 @@ impl Ec2Instance {
                             instance_id: inst.instance_id.map(Into::into),
                         })
                     })
-                    .collect()
             })
             .map_err(Into::into)
     }
@@ -805,7 +799,7 @@ mod tests {
     async fn test_get_all_instances() -> Result<(), Error> {
         let config = Config::init_config()?;
         let ec2 = Ec2Instance::new(&config);
-        let instances = ec2.get_all_instances().await?;
+        let instances: Vec<_> = ec2.get_all_instances().await?.collect();
 
         assert!(instances.len() > 0);
 
