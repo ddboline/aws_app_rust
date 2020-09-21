@@ -3,6 +3,7 @@ use actix_web::{
     web::{Data, Json, Query},
     HttpResponse,
 };
+use itertools::Itertools;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
@@ -258,10 +259,10 @@ pub async fn build_spot_request(
         move_element_to_front(&mut amis, |ami| &ami.id == query_ami);
     }
 
-    let amis: Vec<_> = amis
+    let amis = amis
         .into_iter()
         .map(|ami| format!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
-        .collect();
+        .join("\n");
 
     let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
         .await?
@@ -275,17 +276,17 @@ pub async fn build_spot_request(
         move_element_to_front(&mut inst_fam, |fam| fam.family_name == "t3");
     }
 
-    let inst_fam: Vec<_> = inst_fam
+    let inst_fam = inst_fam
         .into_iter()
         .map(|fam| format!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
-        .collect();
+        .join("\n");
 
     let inst = query.inst.unwrap_or_else(|| "t3".into());
-    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
+    let instances = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-        .collect();
+        .join("\n");
 
     let mut files = data.aws.get_all_scripts()?;
 
@@ -293,19 +294,19 @@ pub async fn build_spot_request(
         move_element_to_front(&mut files, |f| f == script);
     }
 
-    let files: Vec<_> = files
+    let files = files
         .into_iter()
         .map(|f| format!(r#"<option value="{f}">{f}</option>"#, f = f))
-        .collect();
+        .join("\n");
 
-    let keys: Vec<_> = data
+    let keys = data
         .aws
         .ec2
         .get_all_key_pairs()
         .await?
         .into_iter()
         .map(|k| format!(r#"<option value="{k}">{k}</option>"#, k = k.0))
-        .collect();
+        .join("\n");
 
     let body = format!(
         r#"
@@ -323,17 +324,17 @@ pub async fn build_spot_request(
                 onclick="requestSpotInstance();"/><br>
             </form>
         "#,
-        ami = amis.join("\n"),
-        inst_fam = inst_fam.join("\n"),
-        inst = instances.join("\n"),
+        ami = amis,
+        inst_fam = inst_fam,
+        inst = instances,
         sec = data
             .aws
             .config
             .spot_security_group
             .as_ref()
             .unwrap_or_else(|| &data.aws.config.default_security_group),
-        script = files.join("\n"),
-        key = keys.join("\n"),
+        script = files,
+        key = keys,
         price = data.aws.config.max_spot_price,
     );
 
@@ -407,7 +408,7 @@ pub async fn get_prices(
     let mut inst_fam = InstanceFamily::get_all(&data.aws.pool).await?;
     move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
 
-    let inst_fam: Vec<_> = inst_fam
+    let inst_fam = inst_fam
         .into_iter()
         .map(|fam| {
             format!(
@@ -416,7 +417,7 @@ pub async fn get_prices(
                 t = fam.family_type,
             )
         })
-        .collect();
+        .join("\n");
 
     let prices = if let Some(search) = query.search {
         data.aws.get_ec2_prices(&[search])
@@ -465,7 +466,7 @@ pub async fn get_prices(
                 <select id="inst_fam" onchange="listPrices();">{}</select><br>
                 </form><br>
             "#,
-            inst_fam.join("\n"),
+            inst_fam,
         )
     } else {
         format!(
@@ -565,12 +566,12 @@ pub async fn get_instances(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> HttpResult {
-    let instances: Vec<_> = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
+    let instances = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-        .collect();
-    form_http_response(instances.join("\n"))
+        .join("\n");
+    form_http_response(instances)
 }
 
 async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Error> {

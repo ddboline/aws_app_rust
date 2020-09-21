@@ -8,6 +8,7 @@ use lazy_static::lazy_static;
 use log::debug;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use stack_string::StackString;
 use std::{
     collections::HashMap, fmt::Display, future::Future, ops::Deref, path::Path, process::Stdio,
@@ -507,8 +508,10 @@ async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<StackSt
 }
 
 fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
-    let results: Vec<_> = tags.iter().map(|(k, v)| format!("{} = {}", k, v)).collect();
-    results.join(", ").into()
+    tags.iter()
+        .map(|(k, v)| format!("{} = {}", k, v))
+        .join(", ")
+        .into()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -772,7 +775,7 @@ impl HandleRequest<NoVncStatusRequest> for AwsAppInterface {
     }
 }
 
-fn get_volumes(current_vol: i64) -> Vec<i64> {
+fn get_volumes(current_vol: i64) -> SmallVec<[i64; 8]> {
     [8, 16, 32, 64, 100, 200, 400, 500]
         .iter()
         .map(|x| if *x < current_vol { current_vol } else { *x })

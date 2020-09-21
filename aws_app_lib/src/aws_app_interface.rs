@@ -1,6 +1,7 @@
 use anyhow::{format_err, Error};
 use chrono::Local;
 use futures::future::try_join_all;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use stack_string::StackString;
 use std::{
@@ -94,7 +95,7 @@ impl AwsAppInterface {
             ResourceType::Instances => {
                 self.fill_instance_list().await?;
 
-                let result: Vec<_> = INSTANCE_LIST
+                let result = INSTANCE_LIST
                     .read()
                     .await
                     .iter()
@@ -112,15 +113,14 @@ impl AwsAppInterface {
                             inst.availability_zone,
                         )
                     })
-                    .collect();
+                    .join("\n");
 
                 if !result.is_empty() {
-                    self.stdout
-                        .send(format!("instances:\n{}", result.join("\n")));
+                    self.stdout.send(format!("instances:\n{}", result));
                 }
             }
             ResourceType::Reserved => {
-                let reserved: Vec<_> = self
+                let reserved = self
                     .ec2
                     .get_reserved_instances()
                     .await?
@@ -137,17 +137,15 @@ impl AwsAppInterface {
                                 .map_or_else(|| "", |s| s.as_ref())
                         )
                     })
-                    .collect();
+                    .join("\n");
                 if reserved.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send(format!(
-                    "---\nGet Reserved Instance\n---\n{}",
-                    reserved.join("\n")
-                ));
+                self.stdout
+                    .send(format!("---\nGet Reserved Instance\n---\n{}", reserved));
             }
             ResourceType::Spot => {
-                let requests: Vec<_> = self
+                let requests = self
                     .ec2
                     .get_spot_instance_requests()
                     .await?
@@ -163,14 +161,12 @@ impl AwsAppInterface {
                             req.status
                         )
                     })
-                    .collect();
+                    .join("\n");
                 if requests.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send(format!(
-                    "---\nSpot Instance Requests:\n{}",
-                    requests.join("\n")
-                ));
+                self.stdout
+                    .send(format!("---\nSpot Instance Requests:\n{}", requests));
             }
             ResourceType::Ami => {
                 let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
@@ -184,7 +180,7 @@ impl AwsAppInterface {
                 if let Some(ami) = ubuntu_ami {
                     ami_tags.push(ami);
                 }
-                let ami_tags: Vec<_> = ami_tags
+                let ami_tags = ami_tags
                     .into_iter()
                     .map(|ami| {
                         format!(
@@ -195,22 +191,21 @@ impl AwsAppInterface {
                             ami.snapshot_ids.join(" ")
                         )
                     })
-                    .collect();
-                self.stdout
-                    .send(format!("---\nAMI's:\n{}", ami_tags.join("\n")));
+                    .join("\n");
+                self.stdout.send(format!("---\nAMI's:\n{}", ami_tags));
             }
             ResourceType::Key => {
-                let keys: Vec<_> = self
+                let keys = self
                     .ec2
                     .get_all_key_pairs()
                     .await?
                     .into_iter()
                     .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
-                    .collect();
-                self.stdout.send(format!("---\nKeys:\n{}", keys.join("\n")));
+                    .join("\n");
+                self.stdout.send(format!("---\nKeys:\n{}", keys));
             }
             ResourceType::Volume => {
-                let volumes: Vec<_> = self
+                let volumes = self
                     .ec2
                     .get_all_volumes()
                     .await?
@@ -226,15 +221,14 @@ impl AwsAppInterface {
                             print_tags(&vol.tags)
                         )
                     })
-                    .collect();
+                    .join("\n");
                 if volumes.is_empty() {
                     return Ok(());
                 }
-                self.stdout
-                    .send(format!("---\nVolumes:\n{}", volumes.join("\n")));
+                self.stdout.send(format!("---\nVolumes:\n{}", volumes));
             }
             ResourceType::Snapshot => {
-                let snapshots: Vec<_> = self
+                let snapshots = self
                     .ec2
                     .get_all_snapshots()
                     .await?
@@ -249,42 +243,42 @@ impl AwsAppInterface {
                             print_tags(&snap.tags)
                         )
                     })
-                    .collect();
+                    .join("\n");
                 if snapshots.is_empty() {
                     return Ok(());
                 }
-                self.stdout
-                    .send(format!("---\nSnapshots:\n{}", snapshots.join("\n")));
+                self.stdout.send(format!("---\nSnapshots:\n{}", snapshots));
             }
             ResourceType::Ecr => {
-                let repos: Vec<_> = self.ecr.get_all_repositories().await?.collect();
-                if repos.is_empty() {
+                let futures = self
+                    .ecr
+                    .get_all_repositories()
+                    .await?
+                    .map(|repo| async move {
+                        let lines = self
+                            .ecr
+                            .get_all_images(repo.as_ref())
+                            .await?
+                            .into_iter()
+                            .map(|image| {
+                                format!(
+                                    "{} {} {} {} {:0.2} MB",
+                                    repo,
+                                    image.tags.get(0).map_or_else(|| "None", |s| s.as_ref()),
+                                    image.digest,
+                                    image.pushed_at,
+                                    image.image_size,
+                                )
+                            })
+                            .join("\n");
+                        Ok(lines)
+                    });
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let results = results?.join("\n");
+                if results.is_empty() {
                     return Ok(());
                 }
-
-                let futures = repos.into_iter().map(|repo| async move {
-                    let lines: Vec<_> = self
-                        .ecr
-                        .get_all_images(repo.as_ref())
-                        .await?
-                        .into_iter()
-                        .map(|image| {
-                            format!(
-                                "{} {} {} {} {:0.2} MB",
-                                repo,
-                                image.tags.get(0).map_or_else(|| "None", |s| s.as_ref()),
-                                image.digest,
-                                image.pushed_at,
-                                image.image_size,
-                            )
-                        })
-                        .collect();
-                    Ok(lines)
-                });
-                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-                let results: Vec<_> = results?.into_iter().flatten().collect();
-                self.stdout
-                    .send(format!("---\nECR images:\n{}", results.join("\n")));
+                self.stdout.send(format!("---\nECR images:\n{}", results));
             }
             ResourceType::Script => {
                 self.stdout.send(format!(
@@ -319,14 +313,11 @@ impl AwsAppInterface {
 
     pub async fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
         let mut visited_resources = HashSet::new();
-        let resources: Vec<_> = [ResourceType::Instances]
+
+        let futures = [ResourceType::Instances]
             .iter()
             .chain(resources.iter())
             .filter(|x| visited_resources.insert(*x))
-            .collect();
-
-        let futures = resources
-            .into_iter()
             .map(|resource| self.process_resource(*resource));
 
         let result: Result<Vec<_>, Error> = try_join_all(futures).await;
