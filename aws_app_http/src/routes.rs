@@ -304,7 +304,6 @@ pub async fn build_spot_request(
         .ec2
         .get_all_key_pairs()
         .await?
-        .into_iter()
         .map(|k| format!(r#"<option value="{k}">{k}</option>"#, k = k.0))
         .join("\n");
 

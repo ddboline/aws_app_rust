@@ -124,7 +124,6 @@ impl AwsAppInterface {
                     .ec2
                     .get_reserved_instances()
                     .await?
-                    .into_iter()
                     .map(|res| {
                         format!(
                             "{} {} {} {} {}",
@@ -149,7 +148,6 @@ impl AwsAppInterface {
                     .ec2
                     .get_spot_instance_requests()
                     .await?
-                    .into_iter()
                     .map(|req| {
                         format!(
                             "{} {} {} {} {} {}",
@@ -199,7 +197,6 @@ impl AwsAppInterface {
                     .ec2
                     .get_all_key_pairs()
                     .await?
-                    .into_iter()
                     .map(|(key, fingerprint)| format!("{} {}", key, fingerprint))
                     .join("\n");
                 self.stdout.send(format!("---\nKeys:\n{}", keys));
@@ -209,7 +206,6 @@ impl AwsAppInterface {
                     .ec2
                     .get_all_volumes()
                     .await?
-                    .into_iter()
                     .map(|vol| {
                         format!(
                             "{} {} {} {} {} {}",
@@ -232,7 +228,6 @@ impl AwsAppInterface {
                     .ec2
                     .get_all_snapshots()
                     .await?
-                    .into_iter()
                     .map(|snap| {
                         format!(
                             "{} {} GB {} {} {}",
@@ -259,7 +254,6 @@ impl AwsAppInterface {
                             .ecr
                             .get_all_images(repo.as_ref())
                             .await?
-                            .into_iter()
                             .map(|image| {
                                 format!(
                                     "{} {} {} {} {:0.2} MB",
@@ -317,8 +311,16 @@ impl AwsAppInterface {
         let futures = [ResourceType::Instances]
             .iter()
             .chain(resources.iter())
-            .filter(|x| visited_resources.insert(*x))
-            .map(|resource| self.process_resource(*resource));
+            .map(|resource| {
+                let resource = *resource;
+                let visit_resource = visited_resources.insert(resource);
+                async move {
+                    if visit_resource {
+                        self.process_resource(resource).await?;
+                    }
+                    Ok(())
+                }
+            });
 
         let result: Result<Vec<_>, Error> = try_join_all(futures).await;
         result?;
@@ -523,7 +525,6 @@ impl AwsAppInterface {
             .ec2
             .get_all_snapshots()
             .await?
-            .into_iter()
             .filter_map(|snap| snap.tags.get("Name").map(|n| (n.clone(), snap.id.clone())))
             .collect();
         Ok(snapshot_map)
@@ -545,7 +546,6 @@ impl AwsAppInterface {
             .ec2
             .get_all_volumes()
             .await?
-            .into_iter()
             .filter_map(|vol| vol.tags.get("Name").map(|n| (n.clone(), vol.id.clone())))
             .collect();
         Ok(volume_map)

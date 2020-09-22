@@ -240,7 +240,6 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .into(),
                 );
                 let result: Vec<_> = keys
-                    .into_iter()
                     .map(|(key, fingerprint)| {
                         format!(
                             r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,

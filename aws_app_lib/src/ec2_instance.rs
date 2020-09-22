@@ -166,7 +166,7 @@ impl Ec2Instance {
 
     pub async fn get_ami_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
         let req = self.get_ami_tags().await?;
-        Ok(req.into_iter().map(|ami| (ami.name, ami.id)).collect())
+        Ok(req.map(|ami| (ami.name, ami.id)).collect())
     }
 
     pub async fn get_all_regions(&self) -> Result<HashMap<StackString, StackString>, Error> {
@@ -444,7 +444,6 @@ impl Ec2Instance {
                     let reqs: HashMap<_, _> = self
                         .get_spot_instance_requests()
                         .await?
-                        .into_iter()
                         .map(|r| (r.id, r.instance_id))
                         .collect();
                     if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id.as_str()) {

@@ -129,12 +129,10 @@ impl EcrInstance {
         let futures = self
             .get_all_repositories()
             .await?
-            .into_iter()
             .map(|repo| async move {
                 let imageids: Vec<_> = self
                     .get_all_images(repo.as_ref())
                     .await?
-                    .into_iter()
                     .filter_map(|i| {
                         if i.tags.is_empty() {
                             Some(i.digest.to_string())
