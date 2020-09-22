@@ -126,26 +126,23 @@ impl EcrInstance {
     }
 
     pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
-        let futures = self
-            .get_all_repositories()
-            .await?
-            .map(|repo| async move {
-                let imageids: Vec<_> = self
-                    .get_all_images(repo.as_ref())
-                    .await?
-                    .filter_map(|i| {
-                        if i.tags.is_empty() {
-                            Some(i.digest.to_string())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                if !imageids.is_empty() {
-                    self.delete_ecr_images(repo.as_ref(), &imageids).await?;
-                }
-                Ok(())
-            });
+        let futures = self.get_all_repositories().await?.map(|repo| async move {
+            let imageids: Vec<_> = self
+                .get_all_images(repo.as_ref())
+                .await?
+                .filter_map(|i| {
+                    if i.tags.is_empty() {
+                        Some(i.digest.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if !imageids.is_empty() {
+                self.delete_ecr_images(repo.as_ref(), &imageids).await?;
+            }
+            Ok(())
+        });
         let results: Result<Vec<_>, Error> = try_join_all(futures).await;
         results?;
         Ok(())
