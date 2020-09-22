@@ -31,8 +31,12 @@ pub struct SpotRequestOpt {
     key_name: Option<StackString>,
 }
 
-fn get_tags<T: AsRef<str>>(tags: &[T]) -> HashMap<StackString, StackString> {
-    tags.iter()
+fn get_tags<T, U>(tags: T) -> HashMap<StackString, StackString>
+where
+    T: IntoIterator<Item = U>,
+    U: AsRef<str>,
+{
+    tags.into_iter()
         .map(|tag| {
             let mut key = "Name";
             let mut val = tag.as_ref();

@@ -399,9 +399,13 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn terminate_instance<T: AsRef<str>>(&self, instance_ids: &[T]) -> Result<(), Error> {
+    pub async fn terminate_instance<T, U>(&self, instance_ids: T) -> Result<(), Error>
+    where
+        T: IntoIterator<Item = U>,
+        U: AsRef<str>,
+    {
         let instance_ids: Vec<_> = instance_ids
-            .iter()
+            .into_iter()
             .map(|s| s.as_ref().to_string())
             .collect();
         self.ec2_client
@@ -459,11 +463,15 @@ impl Ec2Instance {
         Ok(())
     }
 
-    pub async fn cancel_spot_instance_request<T: AsRef<str>>(
-        &self,
-        inst_ids: &[T],
-    ) -> Result<(), Error> {
-        let inst_ids: Vec<_> = inst_ids.iter().map(|s| s.as_ref().to_string()).collect();
+    pub async fn cancel_spot_instance_request<T, U>(&self, inst_ids: T) -> Result<(), Error>
+    where
+        T: IntoIterator<Item = U>,
+        U: AsRef<str>,
+    {
+        let inst_ids: Vec<_> = inst_ids
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect();
         self.ec2_client
             .cancel_spot_instance_requests(CancelSpotInstanceRequestsRequest {
                 spot_instance_request_ids: inst_ids,

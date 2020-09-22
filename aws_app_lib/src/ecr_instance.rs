@@ -103,16 +103,16 @@ impl EcrInstance {
             })
     }
 
-    pub async fn delete_ecr_images<T: AsRef<str>>(
-        &self,
-        reponame: &str,
-        imageids: &[T],
-    ) -> Result<(), Error> {
+    pub async fn delete_ecr_images<T, U>(&self, reponame: &str, imageids: T) -> Result<(), Error>
+    where
+        T: IntoIterator<Item = U>,
+        U: AsRef<str>,
+    {
         self.ecr_client
             .batch_delete_image(BatchDeleteImageRequest {
                 repository_name: reponame.to_string(),
                 image_ids: imageids
-                    .iter()
+                    .into_iter()
                     .map(|i| ImageIdentifier {
                         image_digest: Some(i.as_ref().into()),
                         ..ImageIdentifier::default()

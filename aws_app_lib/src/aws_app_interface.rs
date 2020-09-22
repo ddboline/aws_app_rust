@@ -328,11 +328,15 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub async fn terminate<T: AsRef<str>>(&self, instance_ids: &[T]) -> Result<(), Error> {
+    pub async fn terminate<'a, T, U>(&self, instance_ids: T) -> Result<(), Error>
+    where
+        T: IntoIterator<Item = U>,
+        U: AsRef<str>,
+    {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let mapped_inst_ids: Vec<_> = instance_ids
-            .iter()
+            .into_iter()
             .map(|id| map_or_val(&name_map, id.as_ref()).to_string())
             .collect();
         self.ec2.terminate_instance(&mapped_inst_ids).await
