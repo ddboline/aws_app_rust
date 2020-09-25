@@ -500,8 +500,10 @@ impl AwsAppInterface {
         if let Some(a) = ami_map.get(&req.ami) {
             req.ami = a.clone();
         }
-
-        self.ec2.request_spot_instance(&req).await
+        if let Some(spot_id) = self.ec2.request_spot_instance(&req).await?.pop() {
+            self.ec2.tag_spot_instance(&spot_id, &req.tags, 20).await?;
+        }
+        Ok(())
     }
 
     pub async fn run_ec2_instance(&self, req: &mut InstanceRequest) -> Result<(), Error> {

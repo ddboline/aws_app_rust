@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
+    task::spawn,
 };
 
 use aws_app_lib::{
@@ -371,7 +372,10 @@ pub async fn request_spot(
     data: Data<AppState>,
 ) -> HttpResult {
     let req = req.into_inner().into();
-    data.aws.ec2.request_spot_instance(&req).await?;
+    if let Some(spot_id) = data.aws.ec2.request_spot_instance(&req).await?.pop() {
+        let ec2 = data.aws.ec2.clone();
+        spawn(async move { ec2.tag_spot_instance(&spot_id, &req.tags, 1000).await });
+    }
     form_http_response("done".to_string())
 }
 
