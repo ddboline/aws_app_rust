@@ -418,7 +418,7 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<(), Error> {
+    pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<Vec<String>, Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
 
         let req = self
@@ -437,28 +437,41 @@ impl Ec2Instance {
                 ..RequestSpotInstancesRequest::default()
             })
             .await?;
+        let spot_ids: Vec<_> = req
+            .spot_instance_requests
+            .unwrap_or_else(Vec::new)
+            .into_iter()
+            .filter_map(|result| result.spot_instance_request_id)
+            .collect();
 
-        if spot.tags.is_empty() {
-            return Ok(());
-        }
+        Ok(spot_ids)
+    }
 
-        for result in req.spot_instance_requests.unwrap_or_else(Vec::new) {
-            if let Some(spot_instance_request_id) = result.spot_instance_request_id {
-                for _ in 0..20 {
-                    let reqs: HashMap<_, _> = self
-                        .get_spot_instance_requests()
-                        .await?
-                        .map(|r| (r.id, r.instance_id))
-                        .collect();
-                    if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id.as_str()) {
-                        debug!("tag {} with {:?}", instance_id, spot.tags);
-                        self.tag_ec2_instance(instance_id.as_ref(), &spot.tags)
-                            .await?;
-                        break;
-                    }
-                    delay_for(time::Duration::from_secs(2)).await;
-                }
+    pub async fn tag_spot_instance(
+        &self,
+        spot_instance_request_id: &str,
+        tags: &HashMap<StackString, StackString>,
+        iterations: usize,
+    ) -> Result<(), Error> {
+        let mut secs = 2;
+        for i in 0..iterations {
+            let reqs: HashMap<_, _> = self
+                .get_spot_instance_requests()
+                .await?
+                .map(|r| (r.id, r.instance_id))
+                .collect();
+            if !reqs.contains_key(spot_instance_request_id) {
+                return Ok(());
             }
+            if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id) {
+                debug!("tag {} with {:?}", instance_id, tags);
+                self.tag_ec2_instance(instance_id.as_ref(), tags).await?;
+                return Ok(());
+            }
+            if i > 20 {
+                secs = 60;
+            }
+            delay_for(time::Duration::from_secs(secs)).await;
         }
         Ok(())
     }
