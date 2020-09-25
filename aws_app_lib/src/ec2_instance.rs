@@ -453,7 +453,7 @@ impl Ec2Instance {
         tags: &HashMap<StackString, StackString>,
         iterations: usize,
     ) -> Result<(), Error> {
-        let mut secs = 2;
+        delay_for(time::Duration::from_secs(2)).await;
         for i in 0..iterations {
             let reqs: HashMap<_, _> = self
                 .get_spot_instance_requests()
@@ -468,9 +468,13 @@ impl Ec2Instance {
                 self.tag_ec2_instance(instance_id.as_ref(), tags).await?;
                 return Ok(());
             }
-            if i > 20 {
-                secs = 60;
-            }
+            let secs = if i < 20 {
+                2
+            } else if i < 40 {
+                20
+            } else {
+                40
+            };
             delay_for(time::Duration::from_secs(secs)).await;
         }
         Ok(())
