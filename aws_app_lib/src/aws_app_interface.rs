@@ -103,7 +103,7 @@ impl AwsAppInterface {
                         let name = inst.tags.get("Name");
                         let name = name.as_ref().map_or_else(|| "", |x| x.as_ref());
                         format!(
-                            "{} {} {} {} {} {} {}",
+                            "{} {} {} {} {} {} {} {}",
                             inst.id,
                             inst.dns_name,
                             inst.state,
@@ -111,6 +111,7 @@ impl AwsAppInterface {
                             inst.instance_type,
                             inst.launch_time.with_timezone(&Local),
                             inst.availability_zone,
+                            inst.volumes.join(" "),
                         )
                     })
                     .join("\n");
