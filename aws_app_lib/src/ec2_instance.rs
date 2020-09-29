@@ -203,6 +203,15 @@ impl Ec2Instance {
                                     .into_iter()
                                     .filter_map(|tag| Some((tag.key?.into(), tag.value?.into())))
                                     .collect();
+                                let volumes: Vec<_> = inst
+                                    .block_device_mappings
+                                    .unwrap_or_else(Vec::new)
+                                    .into_iter()
+                                    .filter_map(|bm| {
+                                        let ebs = bm.ebs?.volume_id?;
+                                        Some(ebs.into())
+                                    })
+                                    .collect();
                                 Some(Ec2InstanceInfo {
                                     id: inst.instance_id?.into(),
                                     dns_name: inst.public_dns_name?.into(),
@@ -214,6 +223,7 @@ impl Ec2Instance {
                                         .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
                                         .map(|t| t.with_timezone(&Utc))?,
                                     tags,
+                                    volumes,
                                 })
                             })
                         })
@@ -463,9 +473,19 @@ impl Ec2Instance {
             if !reqs.contains_key(spot_instance_request_id) {
                 return Ok(());
             }
+            let instances: HashMap<_, _> = self
+                .get_all_instances()
+                .await?
+                .map(|inst| (inst.id.clone(), inst))
+                .collect();
             if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id) {
                 debug!("tag {} with {:?}", instance_id, tags);
                 self.tag_ec2_instance(instance_id.as_ref(), tags).await?;
+                if let Some(inst) = instances.get(instance_id) {
+                    for vol in &inst.volumes {
+                        self.tag_ec2_instance(vol.as_str(), tags).await?;
+                    }
+                }
                 return Ok(());
             }
             let secs = if i < 20 {
@@ -739,6 +759,7 @@ pub struct Ec2InstanceInfo {
     pub availability_zone: StackString,
     pub launch_time: DateTime<Utc>,
     pub tags: HashMap<StackString, StackString>,
+    pub volumes: Vec<StackString>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -825,18 +846,6 @@ mod tests {
         let instances: Vec<_> = ec2.get_all_instances().await?.collect();
 
         assert!(instances.len() > 0);
-
-        // use tokio::fs::write;
-        // let js = serde_json::to_string(&instances)?;
-        // let path = std::env::current_dir()?
-        //     .join("..")
-        //     .join("tests")
-        //     .join("data")
-        //     .join("ec2_instances.json");
-        // println!("{:?}", path);
-        // write(path, js.as_bytes()).await?;
-        // assert!(false);
-
         Ok(())
     }
 }
