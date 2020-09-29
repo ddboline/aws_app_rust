@@ -485,8 +485,8 @@ impl Ec2Instance {
                     for vol in &inst.volumes {
                         self.tag_ec2_instance(vol.as_str(), tags).await?;
                     }
+                    return Ok(());
                 }
-                return Ok(());
             }
             let secs = if i < 20 {
                 2
