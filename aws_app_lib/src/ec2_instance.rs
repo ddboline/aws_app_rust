@@ -482,10 +482,12 @@ impl Ec2Instance {
                 debug!("tag {} with {:?}", instance_id, tags);
                 self.tag_ec2_instance(instance_id.as_ref(), tags).await?;
                 if let Some(inst) = instances.get(instance_id) {
-                    for vol in &inst.volumes {
-                        self.tag_ec2_instance(vol.as_str(), tags).await?;
+                    if !inst.volumes.is_empty() {
+                        for vol in &inst.volumes {
+                            self.tag_ec2_instance(vol.as_str(), tags).await?;
+                        }
+                        return Ok(());
                     }
-                    return Ok(());
                 }
             }
             let secs = if i < 20 {
