@@ -155,6 +155,8 @@ struct PricingJson {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+    use flate2::read::GzDecoder;
     use anyhow::Error;
 
     use crate::{
@@ -179,13 +181,14 @@ mod tests {
 
     #[test]
     fn test_parse_json() -> Result<(), Error> {
-        let reserved = include_str!("../../tests/data/reserved_instance.json");
-        let js: PricingJson = serde_json::from_str(reserved)?;
+        let gz = GzDecoder::new(File::open("../../tests/data/reserved_instance.json.gz")?);
+        let js: PricingJson = serde_json::from_reader(gz)?;
         let ptype = PricingType::Reserved;
         let results = parse_json(js, ptype)?;
         assert_eq!(results.len(), 263);
-        let ondemand = include_str!("../../tests/data/ondemand.json");
-        let js: PricingJson = serde_json::from_str(ondemand)?;
+
+        let gz = GzDecoder::new(File::open("../../tests/data/ondemand.json.gz")?);
+        let js: PricingJson = serde_json::from_str(gz)?;
         let ptype = PricingType::OnDemand;
         let results = parse_json(js, ptype)?;
         assert_eq!(results.len(), 263);
