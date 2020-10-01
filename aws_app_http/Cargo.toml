@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.6.18"
+version = "0.6.19"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
-actix-web = "3.0"
+actix-web = "3.1"
 actix-identity = "0.3"
 actix-rt = "1.1"
 chrono = "0.4"
@@ -29,5 +29,5 @@ cached = "0.19"
 dirs = "3.0"
 itertools = "0.9"
 smallvec = "1.4"
-auth_server_rust = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.1.15"}
+auth_server_rust = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.1.18"}
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.1.6", features=["diesel_types"] }
