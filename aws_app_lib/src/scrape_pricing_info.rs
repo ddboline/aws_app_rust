@@ -155,8 +155,8 @@ struct PricingJson {
 
 #[cfg(test)]
 mod tests {
-    use flate2::read::GzDecoder;
     use anyhow::Error;
+    use flate2::read::GzDecoder;
 
     use crate::{
         models::PricingType,
