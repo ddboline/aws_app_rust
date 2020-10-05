@@ -105,12 +105,12 @@ impl EcrInstance {
             })
     }
 
-    pub async fn delete_ecr_images<T, U>(&self, reponame: &str, imageids: T) -> Result<(), Error>
-    where
-        T: IntoIterator<Item = U>,
-        U: AsRef<str>,
-    {
-        let image_ids: Vec<_> = imageids
+    pub async fn delete_ecr_images(
+        &self,
+        reponame: &str,
+        image_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<(), Error> {
+        let image_ids: Vec<_> = image_ids
             .into_iter()
             .map(|i| ImageIdentifier {
                 image_digest: Some(i.as_ref().into()),

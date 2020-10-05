@@ -267,7 +267,7 @@ impl Ec2Instance {
                 name: Some("region-name".into()),
                 values: Some(vec![self.region.name().into()]),
             }]),
-            ..Default::default()
+            ..DescribeAvailabilityZonesRequest::default()
         };
         let zones = self
             .ec2_client
