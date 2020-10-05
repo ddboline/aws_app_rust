@@ -271,13 +271,13 @@ impl AwsAppOpts {
                         let resources = resources.clone();
                         async move {
                             app_.set_region(&region)?;
-                            app_.list(&resources).await
+                            app_.list(resources.iter()).await
                         }
                     });
                     try_join_all(futures).await?;
                     Ok(())
                 } else {
-                    app.list(&resources).await
+                    app.list(resources.iter()).await
                 }
             }
             Self::Terminate { instance_ids } => app.terminate(&instance_ids).await,

@@ -306,12 +306,15 @@ impl AwsAppInterface {
         Ok(files)
     }
 
-    pub async fn list(&self, resources: &[ResourceType]) -> Result<(), Error> {
+    pub async fn list(
+        &self,
+        resources: impl IntoIterator<Item = &ResourceType>,
+    ) -> Result<(), Error> {
         let mut visited_resources = HashSet::new();
 
         let futures = [ResourceType::Instances]
             .iter()
-            .chain(resources.iter())
+            .chain(resources.into_iter())
             .map(|resource| {
                 let resource = *resource;
                 let visit_resource = visited_resources.insert(resource);
@@ -329,11 +332,10 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub async fn terminate<'a, T, U>(&self, instance_ids: T) -> Result<(), Error>
-    where
-        T: IntoIterator<Item = U>,
-        U: AsRef<str>,
-    {
+    pub async fn terminate(
+        &self,
+        instance_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<(), Error> {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let mapped_inst_ids: Vec<_> = instance_ids
@@ -380,9 +382,9 @@ impl AwsAppInterface {
         }
     }
 
-    pub async fn get_ec2_prices<T: AsRef<str>>(
+    pub async fn get_ec2_prices(
         &self,
-        search: &[T],
+        search: &[impl AsRef<str>],
     ) -> Result<Vec<AwsInstancePrice>, Error> {
         let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)
             .await?
@@ -452,7 +454,7 @@ impl AwsAppInterface {
         Ok(prices)
     }
 
-    pub async fn print_ec2_prices<T: AsRef<str>>(&self, search: &[T]) -> Result<(), Error> {
+    pub async fn print_ec2_prices(&self, search: &[impl AsRef<str>]) -> Result<(), Error> {
         let mut prices: Vec<_> = self
             .get_ec2_prices(search)
             .await?
@@ -537,11 +539,11 @@ impl AwsAppInterface {
         Ok(snapshot_map)
     }
 
-    pub async fn create_ebs_volume<T: AsRef<str>>(
+    pub async fn create_ebs_volume(
         &self,
         zoneid: &str,
         size: Option<i64>,
-        snapid: Option<T>,
+        snapid: Option<impl AsRef<str>>,
     ) -> Result<Option<StackString>, Error> {
         let snap_map = self.get_snapshot_map().await?;
         let snapid = snapid.map(|s| map_or_val(&snap_map, s.as_ref()).to_string());
@@ -622,7 +624,7 @@ impl AwsAppInterface {
     }
 }
 
-fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
+fn print_tags(tags: &HashMap<impl Display, impl Display>) -> StackString {
     let results: Vec<_> = tags.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
     results.join(", ").into()
 }

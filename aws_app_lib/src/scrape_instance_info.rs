@@ -180,8 +180,8 @@ fn extract_instance_types_pv(
     Ok((Vec::new(), Vec::new()))
 }
 
-fn extract_instance_family_object_pv<T: AsRef<str>>(
-    row: &[T],
+fn extract_instance_family_object_pv(
+    row: &[impl AsRef<str>],
     indicies: ColumnIndicies,
 ) -> Result<InstanceFamilyInsert, Error> {
     let family_type = row[indicies.instance_family].as_ref().into();
@@ -296,8 +296,8 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
     }
 }
 
-fn extract_instance_type_object_hvm<T: AsRef<str>>(
-    row: &[T],
+fn extract_instance_type_object_hvm(
+    row: &[impl AsRef<str>],
     indicies: ColumnIndicies,
 ) -> Result<InstanceList, Error> {
     let idx = if row[indicies.instance_type]
@@ -332,8 +332,8 @@ fn extract_instance_type_object_hvm<T: AsRef<str>>(
     })
 }
 
-fn extract_instance_type_object_pv<T: AsRef<str>>(
-    row: &[T],
+fn extract_instance_type_object_pv(
+    row: &[impl AsRef<str>],
     indicies: ColumnIndicies,
 ) -> Result<InstanceList, Error> {
     let idx = if row[indicies.instance_type].as_ref().parse::<i32>().is_ok() {

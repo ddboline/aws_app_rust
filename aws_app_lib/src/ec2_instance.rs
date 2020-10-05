@@ -6,12 +6,13 @@ use rusoto_core::Region;
 use rusoto_ec2::{
     AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
     CreateSnapshotRequest, CreateTagsRequest, CreateVolumeRequest, DeleteSnapshotRequest,
-    DeleteVolumeRequest, DeregisterImageRequest, DescribeImagesRequest, DescribeInstancesRequest,
-    DescribeKeyPairsRequest, DescribeRegionsRequest, DescribeReservedInstancesRequest,
-    DescribeSnapshotsRequest, DescribeSpotInstanceRequestsRequest, DescribeSpotPriceHistoryRequest,
-    DescribeVolumesRequest, DetachVolumeRequest, Ec2, Ec2Client, Filter, ModifyVolumeRequest,
-    RequestSpotInstancesRequest, RequestSpotLaunchSpecification, RunInstancesRequest, Tag,
-    TagSpecification, TerminateInstancesRequest,
+    DeleteVolumeRequest, DeregisterImageRequest, DescribeAvailabilityZonesRequest,
+    DescribeImagesRequest, DescribeInstancesRequest, DescribeKeyPairsRequest,
+    DescribeRegionsRequest, DescribeReservedInstancesRequest, DescribeSnapshotsRequest,
+    DescribeSpotInstanceRequestsRequest, DescribeSpotPriceHistoryRequest, DescribeVolumesRequest,
+    DetachVolumeRequest, Ec2, Ec2Client, Filter, ModifyVolumeRequest, RequestSpotInstancesRequest,
+    RequestSpotLaunchSpecification, RunInstancesRequest, Tag, TagSpecification,
+    TerminateInstancesRequest,
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
@@ -203,7 +204,7 @@ impl Ec2Instance {
                                     .into_iter()
                                     .filter_map(|tag| Some((tag.key?.into(), tag.value?.into())))
                                     .collect();
-                                let volumes: Vec<_> = inst
+                                let volumes = inst
                                     .block_device_mappings
                                     .unwrap_or_else(Vec::new)
                                     .into_iter()
@@ -260,22 +261,32 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn get_latest_spot_inst_prices<T: AsRef<str>>(
+    pub async fn get_availability_zones(&self) -> Result<Vec<String>, Error> {
+        let req = DescribeAvailabilityZonesRequest {
+            filters: Some(vec![Filter {
+                name: Some("region-name".into()),
+                values: Some(vec![self.region.name().into()]),
+            }]),
+            ..Default::default()
+        };
+        let zones = self
+            .ec2_client
+            .describe_availability_zones(req)
+            .await?
+            .availability_zones
+            .unwrap_or_else(Vec::new)
+            .into_iter()
+            .filter_map(|zone| zone.zone_name)
+            .collect();
+        Ok(zones)
+    }
+
+    pub async fn get_latest_spot_inst_prices(
         &self,
-        inst_list: &[T],
+        inst_list: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<HashMap<StackString, f32>, Error> {
-        // TODO: Generalize this beyond us-east-1...
-        let zones: Vec<_> = [
-            "us-east-1a",
-            "us-east-1b",
-            "us-east-1c",
-            "us-east-1d",
-            "us-east-1e",
-            "us-east-1f",
-        ]
-        .iter()
-        .map(|s| (*s).to_string())
-        .collect();
+        let inst_list: Vec<_> = inst_list.into_iter().map(|x| x.as_ref().into()).collect();
+        let zones = self.get_availability_zones().await?;
         let filters = vec![
             Filter {
                 name: Some("product-description".to_string()),
@@ -294,7 +305,7 @@ impl Ec2Instance {
                 instance_types: if inst_list.is_empty() {
                     None
                 } else {
-                    Some(inst_list.iter().map(|x| x.as_ref().into()).collect())
+                    Some(inst_list)
                 },
                 ..DescribeSpotPriceHistoryRequest::default()
             })
@@ -414,7 +425,7 @@ impl Ec2Instance {
         T: IntoIterator<Item = U>,
         U: AsRef<str>,
     {
-        let instance_ids: Vec<_> = instance_ids
+        let instance_ids = instance_ids
             .into_iter()
             .map(|s| s.as_ref().to_string())
             .collect();
@@ -447,13 +458,12 @@ impl Ec2Instance {
                 ..RequestSpotInstancesRequest::default()
             })
             .await?;
-        let spot_ids: Vec<_> = req
+        let spot_ids = req
             .spot_instance_requests
             .unwrap_or_else(Vec::new)
             .into_iter()
             .filter_map(|result| result.spot_instance_request_id)
             .collect();
-
         Ok(spot_ids)
     }
 
@@ -507,7 +517,7 @@ impl Ec2Instance {
         T: IntoIterator<Item = U>,
         U: AsRef<str>,
     {
-        let inst_ids: Vec<_> = inst_ids
+        let inst_ids = inst_ids
             .into_iter()
             .map(|s| s.as_ref().to_string())
             .collect();
@@ -848,6 +858,16 @@ mod tests {
         let instances: Vec<_> = ec2.get_all_instances().await?.collect();
 
         assert!(instances.len() > 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_get_availability_zones() -> Result<(), Error> {
+        let config = Config::init_config()?;
+        let ec2 = Ec2Instance::new(&config);
+        let result = ec2.get_availability_zones().await?;
+        assert_eq!(result[0].as_str(), "us-east-1a");
         Ok(())
     }
 }

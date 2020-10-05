@@ -7,7 +7,7 @@ use rusoto_ecr::{
     ImageIdentifier,
 };
 use stack_string::StackString;
-use std::fmt;
+use std::{fmt, sync::Arc};
 use sts_profile_auth::get_client_sts;
 
 use crate::config::Config;
@@ -69,6 +69,7 @@ impl EcrInstance {
         &self,
         reponame: &str,
     ) -> Result<impl Iterator<Item = ImageInfo>, Error> {
+        let reponame: Arc<StackString> = Arc::new(reponame.into());
         self.ecr_client
             .describe_images(DescribeImagesRequest {
                 repository_name: reponame.to_string(),
@@ -76,24 +77,25 @@ impl EcrInstance {
             })
             .await
             .map_err(Into::into)
-            .map(|i| {
+            .map(move |i| {
                 i.image_details
                     .unwrap_or_else(Vec::new)
                     .into_iter()
-                    .filter_map(|image| {
+                    .filter_map(move |image| {
                         let pushed_at = image.image_pushed_at.map_or_else(Utc::now, |p| {
                             let s = p as i64;
                             let ns = p.fract() * 1.0e9;
                             Utc.timestamp(s, ns as u32)
                         });
                         let image_size = image.image_size_in_bytes.map_or(0.0, |s| s as f64 / 1e6);
-                        let tags: Vec<_> = image
+                        let tags = image
                             .image_tags
                             .unwrap_or_else(Vec::new)
                             .into_iter()
                             .map(|s| s.into())
                             .collect();
                         Some(ImageInfo {
+                            repo: (*reponame).clone(),
                             digest: image.image_digest?.into(),
                             tags,
                             pushed_at,
@@ -108,16 +110,20 @@ impl EcrInstance {
         T: IntoIterator<Item = U>,
         U: AsRef<str>,
     {
+        let image_ids: Vec<_> = imageids
+            .into_iter()
+            .map(|i| ImageIdentifier {
+                image_digest: Some(i.as_ref().into()),
+                ..ImageIdentifier::default()
+            })
+            .collect();
+        if image_ids.is_empty() {
+            return Ok(());
+        }
         self.ecr_client
             .batch_delete_image(BatchDeleteImageRequest {
                 repository_name: reponame.to_string(),
-                image_ids: imageids
-                    .into_iter()
-                    .map(|i| ImageIdentifier {
-                        image_digest: Some(i.as_ref().into()),
-                        ..ImageIdentifier::default()
-                    })
-                    .collect(),
+                image_ids,
                 ..BatchDeleteImageRequest::default()
             })
             .await
@@ -127,20 +133,14 @@ impl EcrInstance {
 
     pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
         let futures = self.get_all_repositories().await?.map(|repo| async move {
-            let imageids: Vec<_> = self
-                .get_all_images(repo.as_ref())
-                .await?
-                .filter_map(|i| {
-                    if i.tags.is_empty() {
-                        Some(i.digest.to_string())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            if !imageids.is_empty() {
-                self.delete_ecr_images(repo.as_ref(), &imageids).await?;
-            }
+            let imageids = self.get_all_images(repo.as_ref()).await?.filter_map(|i| {
+                if i.tags.is_empty() {
+                    Some(i.digest.to_string())
+                } else {
+                    None
+                }
+            });
+            self.delete_ecr_images(repo.as_ref(), imageids).await?;
             Ok(())
         });
         let results: Result<Vec<_>, Error> = try_join_all(futures).await;
@@ -151,8 +151,30 @@ impl EcrInstance {
 
 #[derive(Debug)]
 pub struct ImageInfo {
+    pub repo: StackString,
     pub digest: StackString,
     pub tags: Vec<StackString>,
     pub pushed_at: DateTime<Utc>,
     pub image_size: f64,
+}
+
+impl ImageInfo {
+    pub fn get_html_string(&self) -> StackString {
+        format!(
+            r#"<tr style="text-align: center;">
+            <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{:0.2} MB</td>
+            </tr>"#,
+            format!(
+                r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
+                    onclick="deleteEcrImage('{}', '{}')">"#,
+                self.repo, self.digest,
+            ),
+            self.repo,
+            self.tags.get(0).map_or_else(|| "None", StackString::as_str),
+            self.digest,
+            self.pushed_at,
+            self.image_size,
+        )
+        .into()
+    }
 }

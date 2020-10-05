@@ -476,34 +476,15 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
     Ok(result)
 }
 
-async fn get_ecr_images(app: &AwsAppInterface, repo: &str) -> Result<Vec<StackString>, Error> {
-    let lines: Vec<_> = app
-        .ecr
+async fn get_ecr_images(
+    app: &AwsAppInterface,
+    repo: &str,
+) -> Result<impl Iterator<Item = StackString>, Error> {
+    app.ecr
         .get_all_images(&repo)
-        .await?
-        .map(|image| {
-            format!(
-                r#"<tr style="text-align: center;">
-                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{:0.2} MB</td>
-                </tr>"#,
-                format!(
-                    r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
-                        onclick="deleteEcrImage('{}', '{}')">"#,
-                    repo, image.digest,
-                ),
-                repo,
-                image
-                    .tags
-                    .get(0)
-                    .map_or_else(|| "None", StackString::as_str),
-                image.digest,
-                image.pushed_at,
-                image.image_size,
-            )
-            .into()
-        })
-        .collect();
-    Ok(lines)
+        .await
+        .map_err(Into::into)
+        .map(|it| it.map(|image| image.get_html_string()))
 }
 
 fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
