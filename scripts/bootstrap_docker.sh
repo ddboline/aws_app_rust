@@ -5,16 +5,17 @@ if [ -z "$PASSWORD" ]; then
 fi
 DB=aws_app_cache
 
-sudo apt-get install -y postgresql
+docker run --name $DB -p 12345:5432 -e POSTGRES_PASSWORD=$PASSWORD -d postgres
+sleep 10
+DATABASE_URL="postgresql://postgres:$PASSWORD@localhost:12345/postgres"
 
-sudo -u postgres createuser -E -e $USER
-sudo -u postgres psql -c "CREATE ROLE $USER PASSWORD '$PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN;"
-sudo -u postgres psql -c "ALTER ROLE $USER PASSWORD '$PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN;"
-sudo -u postgres createdb $DB
+psql $DATABASE_URL -c "CREATE DATABASE $DB"
+
+DATABASE_URL="postgresql://postgres:$PASSWORD@localhost:12345/$DB"
 
 mkdir -p ${HOME}/.config/aws_app_rust
-cat > ${HOME}/.config/aws_app_rust/config.env <<EOL
-DATABASE_URL=postgresql://$USER:$PASSWORD@localhost:5432/$DB
+cat > ${HOME}/.config/sync_app_rust/config.env <<EOL
+DATABASE_URL=$DATABASE_URL
 MY_OWNER_ID=8675309
 DEFAULT_SECURITY_GROUP=sg-0
 SPOT_SECURITY_GROUP=sg-0
