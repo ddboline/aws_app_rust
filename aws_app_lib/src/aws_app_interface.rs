@@ -490,11 +490,7 @@ impl AwsAppInterface {
 
     pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
         let ami_map = self.ec2.get_ami_map().await?;
-        let ami = if let Some(a) = ami_map.get(ami) {
-            a.as_ref()
-        } else {
-            ami
-        };
+        let ami = ami_map.get(ami).map_or(ami, |a| a.as_ref());
         self.ec2.delete_image(ami).await
     }
 
@@ -630,11 +626,7 @@ fn print_tags(tags: &HashMap<impl Display, impl Display>) -> StackString {
 }
 
 fn map_or_val<'a>(name_map: &'a HashMap<StackString, StackString>, id: &'a str) -> &'a str {
-    if let Some(id_) = name_map.get(id) {
-        id_.as_ref()
-    } else {
-        id
-    }
+    name_map.get(id).map_or(id, |id_| id_.as_ref())
 }
 
 async fn get_name_map() -> Result<HashMap<StackString, StackString>, Error> {
