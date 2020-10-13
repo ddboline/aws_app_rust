@@ -851,7 +851,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
     async fn test_get_all_instances() -> Result<(), Error> {
         let config = Config::init_config()?;
         let ec2 = Ec2Instance::new(&config);
@@ -862,7 +861,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
     async fn test_get_availability_zones() -> Result<(), Error> {
         let config = Config::init_config()?;
         let ec2 = Ec2Instance::new(&config);
