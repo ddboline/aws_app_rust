@@ -332,7 +332,12 @@ pub async fn build_spot_request(
             .config
             .spot_security_group
             .as_ref()
-            .unwrap_or_else(|| &data.aws.config.default_security_group),
+            .unwrap_or_else(|| data
+                .aws
+                .config
+                .default_security_group
+                .as_ref()
+                .expect("NO DEFAULT_SECURITY_GROUP")),
         script = files,
         key = keys,
         price = data.aws.config.max_spot_price,

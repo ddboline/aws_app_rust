@@ -58,19 +58,29 @@ where
 
 impl SpotRequestOpt {
     pub fn into_spot_request(self, config: &Config) -> SpotRequest {
+        let security_group = self.security_group.unwrap_or_else(|| {
+            config.spot_security_group.as_ref().map_or_else(
+                || {
+                    config
+                        .default_security_group
+                        .clone()
+                        .expect("DEFAULT_SECURITY_GROUP NOT SET")
+                },
+                Clone::clone,
+            )
+        });
+        let key_name = self.key_name.unwrap_or_else(|| {
+            config
+                .default_key_name
+                .clone()
+                .expect("NO DEFAULT_KEY_NAME")
+        });
         SpotRequest {
             ami: self.ami,
             instance_type: self.instance_type,
-            security_group: self.security_group.unwrap_or_else(|| {
-                config
-                    .spot_security_group
-                    .as_ref()
-                    .map_or_else(|| config.default_security_group.clone(), Clone::clone)
-            }),
+            security_group,
             script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
-            key_name: self
-                .key_name
-                .unwrap_or_else(|| config.default_key_name.clone()),
+            key_name,
             price: self.price,
             tags: get_tags(&self.tags),
         }
@@ -95,16 +105,24 @@ pub struct InstanceOpt {
 
 impl InstanceOpt {
     pub fn into_instance_request(self, config: &Config) -> InstanceRequest {
+        let security_group = self.security_group.unwrap_or_else(|| {
+            config
+                .default_security_group
+                .clone()
+                .expect("NO DEFAULT_SECURITY_GROUP")
+        });
+        let key_name = self.key_name.unwrap_or_else(|| {
+            config
+                .default_key_name
+                .clone()
+                .expect("NO DEFAULT_KEY_NAME")
+        });
         InstanceRequest {
             ami: self.ami,
             instance_type: self.instance_type,
-            security_group: self
-                .security_group
-                .unwrap_or_else(|| config.default_security_group.clone()),
+            security_group,
             script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
-            key_name: self
-                .key_name
-                .unwrap_or_else(|| config.default_key_name.clone()),
+            key_name,
             tags: get_tags(&self.tags),
         }
     }

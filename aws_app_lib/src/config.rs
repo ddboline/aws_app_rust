@@ -22,9 +22,9 @@ pub struct ConfigInner {
     pub my_owner_id: Option<StackString>,
     #[serde(default = "default_max_spot_price")]
     pub max_spot_price: f32,
-    pub default_security_group: StackString,
+    pub default_security_group: Option<StackString>,
     pub spot_security_group: Option<StackString>,
-    pub default_key_name: StackString,
+    pub default_key_name: Option<StackString>,
     #[serde(default = "default_script_directory")]
     pub script_directory: PathBuf,
     #[serde(default = "default_ubuntu_release")]
