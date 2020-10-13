@@ -43,6 +43,7 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
         AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
         AWS_DEFAULT_REGION: us-east-1
+        DEFAULT_SECURITY_GROUP: sg-61a56505
 
     - name: Upload to codecov.io
       uses: codecov/codecov-action@v1.0.2
