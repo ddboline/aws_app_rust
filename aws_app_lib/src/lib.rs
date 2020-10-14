@@ -16,6 +16,7 @@ pub mod aws_app_opts;
 pub mod config;
 pub mod ec2_instance;
 pub mod ecr_instance;
+pub mod iam_instance;
 pub mod instance_family;
 pub mod models;
 pub mod pgpool;
@@ -25,7 +26,6 @@ pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
 pub mod ssh_instance;
 pub mod stdout_channel;
-pub mod iam_instance;
 
 #[cfg(test)]
 mod tests {
