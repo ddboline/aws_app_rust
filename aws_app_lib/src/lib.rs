@@ -25,6 +25,7 @@ pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
 pub mod ssh_instance;
 pub mod stdout_channel;
+pub mod iam_instance;
 
 #[cfg(test)]
 mod tests {
