@@ -11,11 +11,11 @@ use std::{
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
 
-use crate::iam_instance::IamInstance;
 use crate::{
     config::Config,
     ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
     ecr_instance::EcrInstance,
+    iam_instance::IamInstance,
     instance_family::InstanceFamilies,
     models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,

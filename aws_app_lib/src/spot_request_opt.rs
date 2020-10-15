@@ -2,8 +2,7 @@ use stack_string::StackString;
 use std::collections::HashMap;
 use structopt::StructOpt;
 
-use crate::config::Config;
-use crate::ec2_instance::SpotRequest;
+use crate::{config::Config, ec2_instance::SpotRequest};
 
 #[derive(Debug, Clone, StructOpt)]
 pub struct SpotRequestOpt {

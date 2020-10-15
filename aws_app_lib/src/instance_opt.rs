@@ -2,9 +2,7 @@ use stack_string::StackString;
 use std::string::ToString;
 use structopt::StructOpt;
 
-use crate::config::Config;
-use crate::ec2_instance::InstanceRequest;
-use crate::spot_request_opt::get_tags;
+use crate::{config::Config, ec2_instance::InstanceRequest, spot_request_opt::get_tags};
 
 #[derive(StructOpt, Debug, Clone)]
 pub struct InstanceOpt {
