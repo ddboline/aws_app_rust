@@ -39,9 +39,9 @@ jobs:
     - name: Run tests
       run: |
         diesel database setup && \
-        cargo test --all --verbose && \
+        cargo test -j 1 --all --verbose && \
         cargo install cargo-tarpaulin && \
-        cargo tarpaulin --verbose --all-features --workspace --out Xml
+        cargo tarpaulin --verbose --all-features --workspace --out Xml -- -j 1
       env:
         DATABASE_URL: postgresql://postgres:2UtcMAAvNuBHPqK9@localhost:5432/aws_app_cache
         AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
