@@ -2,9 +2,9 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use rusoto_core::Region;
 use rusoto_iam::{
-    AccessKey, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest,
+    AccessKey, AccessKeyMetadata, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest,
     DeleteAccessKeyRequest, DeleteUserRequest, GetUserRequest, Iam as _, IamClient,
-    ListGroupsRequest, ListUsersRequest, RemoveUserFromGroupRequest, User,
+    ListAccessKeysRequest, ListGroupsRequest, ListUsersRequest, RemoveUserFromGroupRequest, User,
 };
 use stack_string::StackString;
 use std::collections::HashMap;
@@ -12,6 +12,7 @@ use sts_profile_auth::get_client_sts;
 
 use crate::config::Config;
 
+#[derive(Clone)]
 pub struct IamInstance {
     iam_client: IamClient,
 }
@@ -37,15 +38,14 @@ impl IamInstance {
         }
     }
 
-    pub async fn list_users(&self) -> Result<Vec<IamUser>, Error> {
+    pub async fn list_users(&self) -> Result<impl Iterator<Item = IamUser>, Error> {
         let users = self
             .iam_client
             .list_users(ListUsersRequest::default())
             .await?
             .users
             .into_iter()
-            .map(Into::into)
-            .collect();
+            .map(Into::into);
         Ok(users)
     }
 
@@ -59,7 +59,7 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
-    pub async fn list_groups(&self) -> Result<Vec<IamGroup>, Error> {
+    pub async fn list_groups(&self) -> Result<impl Iterator<Item = IamGroup>, Error> {
         let groups = self
             .iam_client
             .list_groups(ListGroupsRequest::default())
@@ -74,8 +74,7 @@ impl IamInstance {
                     group_id: group.group_id.into(),
                     group_name: group.group_name.into(),
                 }
-            })
-            .collect();
+            });
         Ok(groups)
     }
 
@@ -120,6 +119,17 @@ impl IamInstance {
                 group_name: group_name.into(),
             })
             .await
+            .map_err(Into::into)
+    }
+
+    pub async fn list_access_keys(&self, user_name: &str) -> Result<Vec<AccessKeyMetadata>, Error> {
+        self.iam_client
+            .list_access_keys(ListAccessKeysRequest {
+                user_name: Some(user_name.into()),
+                ..ListAccessKeysRequest::default()
+            })
+            .await
+            .map(|x| x.access_key_metadata)
             .map_err(Into::into)
     }
 
@@ -202,12 +212,12 @@ mod tests {
 
         let config = Config::init_config()?;
         let iam = IamInstance::new(&config);
-        let users = iam.list_users().await?;
-        println!("{:?}", users);
-        let users_map: HashMap<_, _> = users
-            .into_iter()
+        let users_map: HashMap<_, _> = iam
+            .list_users()
+            .await?
             .map(|user| (user.user_id.clone(), user))
             .collect();
+        println!("{:?}", users_map);
         assert!(users_map.contains_key(current_user_id.as_str()));
         Ok(())
     }
@@ -230,7 +240,7 @@ mod tests {
     async fn test_list_groups() -> Result<(), Error> {
         let config = Config::init_config()?;
         let iam = IamInstance::new(&config);
-        let groups = iam.list_groups().await?;
+        let groups: Vec<_> = iam.list_groups().await?.collect();
         println!("{:?}", groups);
         assert!(groups.len() > 0);
         Ok(())

@@ -18,12 +18,14 @@ pub mod ec2_instance;
 pub mod ecr_instance;
 pub mod iam_instance;
 pub mod instance_family;
+pub mod instance_opt;
 pub mod models;
 pub mod pgpool;
 pub mod resource_type;
 pub mod schema;
 pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
+pub mod spot_request_opt;
 pub mod ssh_instance;
 pub mod stdout_channel;
 

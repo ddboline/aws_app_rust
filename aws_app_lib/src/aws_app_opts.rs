@@ -1,132 +1,18 @@
 use anyhow::Error;
 use futures::future::try_join_all;
 use stack_string::StackString;
-use std::{collections::HashMap, string::ToString, sync::Arc};
+use std::{string::ToString, sync::Arc};
 use structopt::StructOpt;
 
 use crate::{
     aws_app_interface::AwsAppInterface,
     config::Config,
-    ec2_instance::{InstanceRequest, SpotRequest},
+    instance_opt::InstanceOpt,
     models::{InstanceFamily, InstanceList},
     pgpool::PgPool,
     resource_type::ResourceType,
+    spot_request_opt::{get_tags, SpotRequestOpt},
 };
-
-#[derive(Debug, Clone, StructOpt)]
-pub struct SpotRequestOpt {
-    #[structopt(short, long)]
-    ami: StackString,
-    #[structopt(short, long)]
-    instance_type: StackString,
-    #[structopt(long)]
-    security_group: Option<StackString>,
-    #[structopt(short, long)]
-    script: Option<StackString>,
-    #[structopt(long)]
-    price: Option<f32>,
-    #[structopt(short, long, long = "tag")]
-    tags: Vec<StackString>,
-    #[structopt(short, long)]
-    key_name: Option<StackString>,
-}
-
-fn get_tags<T, U>(tags: T) -> HashMap<StackString, StackString>
-where
-    T: IntoIterator<Item = U>,
-    U: AsRef<str>,
-{
-    tags.into_iter()
-        .map(|tag| {
-            let mut key = "Name";
-            let mut val = tag.as_ref();
-
-            if let Some(idx) = tag.as_ref().find(':') {
-                let (k, v) = tag.as_ref().split_at(idx);
-                if val.len() > 1 {
-                    key = k;
-                    val = &v[1..];
-                } else {
-                    val = k;
-                }
-            }
-
-            (key.into(), val.into())
-        })
-        .collect()
-}
-
-impl SpotRequestOpt {
-    pub fn into_spot_request(self, config: &Config) -> SpotRequest {
-        let security_group = self.security_group.unwrap_or_else(|| {
-            config.spot_security_group.as_ref().map_or_else(
-                || {
-                    config
-                        .default_security_group
-                        .clone()
-                        .expect("DEFAULT_SECURITY_GROUP NOT SET")
-                },
-                Clone::clone,
-            )
-        });
-        let key_name = self.key_name.unwrap_or_else(|| {
-            config
-                .default_key_name
-                .clone()
-                .expect("NO DEFAULT_KEY_NAME")
-        });
-        SpotRequest {
-            ami: self.ami,
-            instance_type: self.instance_type,
-            security_group,
-            script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
-            key_name,
-            price: self.price,
-            tags: get_tags(&self.tags),
-        }
-    }
-}
-
-#[derive(StructOpt, Debug, Clone)]
-pub struct InstanceOpt {
-    #[structopt(short, long)]
-    ami: StackString,
-    #[structopt(short, long)]
-    instance_type: StackString,
-    #[structopt(long)]
-    security_group: Option<StackString>,
-    #[structopt(short, long)]
-    script: Option<StackString>,
-    #[structopt(short, long, long = "tag")]
-    tags: Vec<StackString>,
-    #[structopt(short, long)]
-    key_name: Option<StackString>,
-}
-
-impl InstanceOpt {
-    pub fn into_instance_request(self, config: &Config) -> InstanceRequest {
-        let security_group = self.security_group.unwrap_or_else(|| {
-            config
-                .default_security_group
-                .clone()
-                .expect("NO DEFAULT_SECURITY_GROUP")
-        });
-        let key_name = self.key_name.unwrap_or_else(|| {
-            config
-                .default_key_name
-                .clone()
-                .expect("NO DEFAULT_KEY_NAME")
-        });
-        InstanceRequest {
-            ami: self.ami,
-            instance_type: self.instance_type,
-            security_group,
-            script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
-            key_name,
-            tags: get_tags(&self.tags),
-        }
-    }
-}
 
 #[derive(StructOpt, Debug, Clone)]
 pub enum AwsAppOpts {

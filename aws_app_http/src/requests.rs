@@ -426,6 +426,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .collect();
                 output.extend_from_slice(&result);
             }
+            ResourceType::User => {}
+            ResourceType::Group => {}
+            ResourceType::AccessKey => {}
         };
         Ok(output)
     }

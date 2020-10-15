@@ -11,6 +11,7 @@ use std::{
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
 
+use crate::iam_instance::IamInstance;
 use crate::{
     config::Config,
     ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
@@ -46,6 +47,7 @@ pub struct AwsAppInterface {
     pub pool: PgPool,
     pub ec2: Ec2Instance,
     pub ecr: EcrInstance,
+    pub iam: IamInstance,
     pub stdout: StdoutChannel,
 }
 
@@ -54,6 +56,7 @@ impl AwsAppInterface {
         Self {
             ec2: Ec2Instance::new(&config),
             ecr: EcrInstance::new(&config),
+            iam: IamInstance::new(&config),
             config,
             pool,
             stdout: StdoutChannel::new(),
@@ -280,6 +283,58 @@ impl AwsAppInterface {
                     "---\nScripts:\n{}",
                     self.get_all_scripts()?.join("\n")
                 ));
+            }
+            ResourceType::User => {
+                let users = self
+                    .iam
+                    .list_users()
+                    .await?
+                    .map(|u| {
+                        format!(
+                            "{} {} {:30} {:60}",
+                            u.user_id, u.create_date, u.user_name, u.arn,
+                        )
+                    })
+                    .join("\n");
+                self.stdout.send(format!("---\nUsers:\n{}", users));
+            }
+            ResourceType::Group => {
+                let groups = self
+                    .iam
+                    .list_groups()
+                    .await?
+                    .map(|g| {
+                        format!(
+                            "{} {} {:30} {:60}",
+                            g.group_id, g.create_date, g.group_name, g.arn,
+                        )
+                    })
+                    .join("\n");
+                self.stdout.send(format!("---\nGroups:\n{}", groups));
+            }
+            ResourceType::AccessKey => {
+                let futures =
+                    self.iam.list_users().await?.map(|user| async move {
+                        self.iam.list_access_keys(&user.user_name).await
+                    });
+                let results: Result<Vec<Vec<_>>, Error> = try_join_all(futures).await;
+                let keys = results?
+                    .into_iter()
+                    .map(|keys| {
+                        keys.into_iter()
+                            .filter_map(|key| {
+                                Some(format!(
+                                    "{} {:30} {} {}",
+                                    key.access_key_id?,
+                                    key.user_name?,
+                                    key.create_date?,
+                                    key.status?
+                                ))
+                            })
+                            .join("\n")
+                    })
+                    .join("\n");
+                self.stdout.send(format!("---\nAccess Keys:\n{}", keys));
             }
         };
         Ok(())
