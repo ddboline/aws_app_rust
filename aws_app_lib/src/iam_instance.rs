@@ -219,27 +219,11 @@ mod tests {
             .collect();
         println!("{:?}", users_map);
         assert!(users_map.contains_key(current_user_id.as_str()));
-        Ok(())
-    }
 
-    #[tokio::test]
-    async fn test_get_user() -> Result<(), Error> {
-        let sts = StsInstance::new(None)?;
-        let current_user = sts.get_user_id().await?;
-        let current_user_id = current_user.user_id.expect("No User Id?");
-
-        let config = Config::init_config()?;
-        let iam = IamInstance::new(&config);
         let user_name: Option<&str> = None;
         let user = iam.get_user(user_name).await?;
         assert_eq!(user.user_id, current_user_id);
-        Ok(())
-    }
 
-    #[tokio::test]
-    async fn test_list_groups() -> Result<(), Error> {
-        let config = Config::init_config()?;
-        let iam = IamInstance::new(&config);
         let groups: Vec<_> = iam.list_groups().await?.collect();
         println!("{:?}", groups);
         assert!(groups.len() > 0);

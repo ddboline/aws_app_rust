@@ -910,13 +910,7 @@ mod tests {
         let instances: Vec<_> = ec2.get_all_instances().await?.collect();
 
         assert!(instances.len() > 0);
-        Ok(())
-    }
 
-    #[tokio::test]
-    async fn test_get_availability_zones() -> Result<(), Error> {
-        let config = Config::init_config()?;
-        let ec2 = Ec2Instance::new(&config);
         let result = ec2.get_availability_zones().await?;
         assert_eq!(result[0].as_str(), "us-east-1a");
         Ok(())
