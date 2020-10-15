@@ -2,7 +2,11 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use rusoto_core::Region;
-use rusoto_iam::{GetUserRequest, Iam as _, IamClient, ListGroupsRequest, ListUsersRequest, User};
+use rusoto_iam::{
+    AccessKey, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest, DeleteUserRequest,
+    GetUserRequest, Iam as _, IamClient, ListGroupsRequest, ListUsersRequest,
+    RemoveUserFromGroupRequest, User,
+};
 use stack_string::StackString;
 use std::collections::HashMap;
 use sts_profile_auth::get_client_sts;
@@ -78,6 +82,71 @@ impl IamInstance {
             })
             .collect();
         Ok(groups)
+    }
+
+    pub async fn create_user(&self, user_name: &str) -> Result<IamUser, Error> {
+        self.iam_client
+            .create_user(CreateUserRequest {
+                user_name: user_name.into(),
+            })
+            .await
+            .map(|r| r.user.into())
+            .map_err(Into::into)
+    }
+
+    pub async fn delete_user(&self, user_name: &str) -> Result<(), Error> {
+        self.iam_client
+            .delete_user(DeleteUserRequest {
+                user_name: user_name.into(),
+            })
+            .map_err(Into::into)
+    }
+
+    pub async fn add_user_to_group(&self, user_name: &str, group_name: &str) -> Result<(), Error> {
+        self.iam_client
+            .add_user_to_group(AddUserToGroupRequest {
+                user_name: user_name.into(),
+                group_name: group_name.into(),
+            })
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn remove_user_from_group(
+        self,
+        user_name: &str,
+        group_name: &str,
+    ) -> Result<(), Error> {
+        self.iam_client
+            .remove_user_from_group(RemoveUserFromGroupRequest {
+                user_name: user_name.into(),
+                group_name: group_name.into(),
+            })
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn create_access_key(&self, user_name: &str) -> Result<AccessKey, Error> {
+        self.iam_client
+            .create_access_key(CreateAccessKeyRequest {
+                user_name: user_name.into(),
+            })
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn delete_access_key(
+        &self,
+        user_name: &str,
+        access_key_id: &str,
+    ) -> Result<(), Error> {
+        self.iam_client
+            .delete_access_key(DeleteAccessKeyRequest {
+                access_key_id: access_key_id.into(),
+                user_name: user_name.into(),
+            })
+            .await
+            .map_err(Into::into)
     }
 }
 
