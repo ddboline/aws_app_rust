@@ -1,11 +1,10 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use itertools::Itertools;
 use rusoto_core::Region;
 use rusoto_iam::{
-    AccessKey, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest, DeleteUserRequest,
-    GetUserRequest, Iam as _, IamClient, ListGroupsRequest, ListUsersRequest,
-    RemoveUserFromGroupRequest, User,
+    AccessKey, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest,
+    DeleteAccessKeyRequest, DeleteUserRequest, GetUserRequest, Iam as _, IamClient,
+    ListGroupsRequest, ListUsersRequest, RemoveUserFromGroupRequest, User,
 };
 use stack_string::StackString;
 use std::collections::HashMap;
@@ -15,15 +14,12 @@ use crate::config::Config;
 
 pub struct IamInstance {
     iam_client: IamClient,
-    region: Region,
 }
 
 impl Default for IamInstance {
     fn default() -> Self {
-        let config = Config::new();
         Self {
             iam_client: get_client_sts!(IamClient, Region::UsEast1).expect("StsProfile failed"),
-            region: Region::UsEast1,
         }
     }
 }
@@ -37,8 +33,7 @@ impl IamInstance {
             .ok()
             .unwrap_or(Region::UsEast1);
         Self {
-            iam_client: get_client_sts!(IamClient, region.clone()).expect("StsProfile failed"),
-            region,
+            iam_client: get_client_sts!(IamClient, region).expect("StsProfile failed"),
         }
     }
 
@@ -84,13 +79,14 @@ impl IamInstance {
         Ok(groups)
     }
 
-    pub async fn create_user(&self, user_name: &str) -> Result<IamUser, Error> {
+    pub async fn create_user(&self, user_name: &str) -> Result<Option<IamUser>, Error> {
         self.iam_client
             .create_user(CreateUserRequest {
                 user_name: user_name.into(),
+                ..CreateUserRequest::default()
             })
             .await
-            .map(|r| r.user.into())
+            .map(|r| r.user.map(Into::into))
             .map_err(Into::into)
     }
 
@@ -99,6 +95,7 @@ impl IamInstance {
             .delete_user(DeleteUserRequest {
                 user_name: user_name.into(),
             })
+            .await
             .map_err(Into::into)
     }
 
@@ -129,9 +126,10 @@ impl IamInstance {
     pub async fn create_access_key(&self, user_name: &str) -> Result<AccessKey, Error> {
         self.iam_client
             .create_access_key(CreateAccessKeyRequest {
-                user_name: user_name.into(),
+                user_name: Some(user_name.into()),
             })
             .await
+            .map(|x| x.access_key)
             .map_err(Into::into)
     }
 
@@ -143,7 +141,8 @@ impl IamInstance {
         self.iam_client
             .delete_access_key(DeleteAccessKeyRequest {
                 access_key_id: access_key_id.into(),
-                user_name: user_name.into(),
+                user_name: Some(user_name.into()),
+                ..DeleteAccessKeyRequest::default()
             })
             .await
             .map_err(Into::into)
@@ -192,8 +191,7 @@ mod tests {
     use std::collections::HashMap;
     use sts_profile_auth::StsInstance;
 
-    use crate::config::Config;
-    use crate::iam_instance::IamInstance;
+    use crate::{config::Config, iam_instance::IamInstance};
 
     #[tokio::test]
     async fn test_list_users() -> Result<(), Error> {

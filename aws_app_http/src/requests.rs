@@ -299,8 +299,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 format!(
                                     r#"<input type="button" name="CreateSnapshot" value="CreateSnapshot"
-                                        onclick="createSnapshot('{}')">"#,
-                                    vol.id
+                                        onclick="createSnapshot('{}', '{}')">"#,
+                                    vol.id,
+                                    format!("dileptoninthecloud_backup_{}", Local::now().naive_local().date().format("%Y%m%d")),
                                 )
                             } else {
                                 format!(
@@ -438,7 +439,36 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
         .await
         .iter()
         .map(|inst| {
+            let status_button = if &inst.state == "running" {
+                format!(
+                    r#"<input type="button" name="Status" value="Status" {}>"#,
+                    format!(r#"onclick="getStatus('{}')""#, inst.id)
+                )
+            } else {
+                "".to_string()
+            };
             let name = inst.tags.get("Name").cloned().unwrap_or_else(|| "".into());
+            let name_button = if &inst.state == "running" && &name != "ddbolineinthecloud" {
+                format!(
+                    r#"<input type="button" name="CreateImage {name}" value="{name}" {button}>"#,
+                    name = name,
+                    button = format!(
+                        r#"onclick="createImage('{inst_id}', '{name}')""#,
+                        inst_id = inst.id,
+                        name = name
+                    )
+                )
+            } else {
+                name.to_string()
+            };
+            let terminate_button = if &inst.state == "running" && &name != "ddbolineinthecloud" {
+                format!(
+                    r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
+                    format!(r#"onclick="terminateInstance('{}')""#, inst.id)
+                )
+            } else {
+                "".to_string()
+            };
             format!(
                 r#"
                     <tr style="text-align: center;">
@@ -449,26 +479,12 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
                 inst.id,
                 inst.dns_name,
                 inst.state,
-                name,
+                name_button,
                 inst.instance_type,
                 inst.launch_time.with_timezone(&Local),
                 inst.availability_zone,
-                if &inst.state == "running" {
-                    format!(
-                        r#"<input type="button" name="Status" value="Status" {}>"#,
-                        format!(r#"onclick="getStatus('{}')""#, inst.id)
-                    )
-                } else {
-                    "".to_string()
-                },
-                if &inst.state == "running" && &name != "ddbolineinthecloud" {
-                    format!(
-                        r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
-                        format!(r#"onclick="terminateInstance('{}')""#, inst.id)
-                    )
-                } else {
-                    "".to_string()
-                }
+                status_button,
+                terminate_button,
             )
             .into()
         })
@@ -504,6 +520,20 @@ impl HandleRequest<TerminateRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: TerminateRequest) -> Self::Result {
         self.terminate(&[req.instance]).await
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateImageRequest {
+    pub inst_id: StackString,
+    pub name: StackString,
+}
+
+#[async_trait]
+impl HandleRequest<CreateImageRequest> for AwsAppInterface {
+    type Result = Result<Option<StackString>, Error>;
+    async fn handle(&self, req: CreateImageRequest) -> Self::Result {
+        self.create_image(&req.inst_id, &req.name).await
     }
 }
 
@@ -564,13 +594,19 @@ impl HandleRequest<DeleteSnapshotRequest> for AwsAppInterface {
 #[derive(Serialize, Deserialize)]
 pub struct CreateSnapshotRequest {
     pub volid: StackString,
+    pub name: Option<StackString>,
 }
 
 #[async_trait]
 impl HandleRequest<CreateSnapshotRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: CreateSnapshotRequest) -> Self::Result {
-        self.create_ebs_snapshot(req.volid.as_str(), &HashMap::new())
+        let tags = if let Some(name) = &req.name {
+            hashmap! {"Name".into() => name.clone()}
+        } else {
+            HashMap::new()
+        };
+        self.create_ebs_snapshot(req.volid.as_str(), &tags)
             .await
             .map(|_| ())
     }

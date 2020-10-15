@@ -100,6 +100,17 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function createImage( inst_id, name ) {
+        let url = "/aws/create_image?inst_id=" + inst_id + "&name=" + name;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('ami');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
     function deleteImage( ami ) {
         let url = "/aws/delete_image?ami=" + ami;
         let xmlhttp = new XMLHttpRequest();
@@ -122,8 +133,11 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
-    function createSnapshot( volid ) {
+    function createSnapshot( volid, name ) {
         let url = "/aws/create_snapshot?volid=" + volid;
+        if (name) {
+            url = url + "&name=" + name;
+        }
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";

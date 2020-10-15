@@ -10,11 +10,11 @@ use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::Pg
 use super::{
     logged_user::{fill_from_db, get_secrets, SECRET_KEY, TRIGGER_DB_UPDATE},
     routes::{
-        build_spot_request, cancel_spot, cleanup_ecr_images, command, create_snapshot,
-        delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_volume, edit_script,
-        get_instances, get_prices, list, modify_volume, novnc_launcher, novnc_shutdown,
-        novnc_status, replace_script, request_spot, status, sync_frontpage, tag_item, terminate,
-        update, user,
+        build_spot_request, cancel_spot, cleanup_ecr_images, command, create_image,
+        create_snapshot, delete_ecr_image, delete_image, delete_script, delete_snapshot,
+        delete_volume, edit_script, get_instances, get_prices, list, modify_volume, novnc_launcher,
+        novnc_shutdown, novnc_status, replace_script, request_spot, status, sync_frontpage,
+        tag_item, terminate, update, user,
     },
 };
 
@@ -63,6 +63,7 @@ pub async fn start_app() -> Result<(), Error> {
                     .service(web::resource("/index.html").route(web::get().to(sync_frontpage)))
                     .service(web::resource("/list").route(web::get().to(list)))
                     .service(web::resource("/terminate").route(web::get().to(terminate)))
+                    .service(web::resource("/create_image").route(web::get().to(create_image)))
                     .service(web::resource("/delete_image").route(web::get().to(delete_image)))
                     .service(web::resource("/delete_volume").route(web::get().to(delete_volume)))
                     .service(web::resource("/modify_volume").route(web::get().to(modify_volume)))

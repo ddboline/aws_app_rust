@@ -2,6 +2,7 @@ use anyhow::{format_err, Error};
 use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
 use log::debug;
+use maplit::hashmap;
 use rusoto_core::Region;
 use rusoto_ec2::{
     AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
@@ -25,7 +26,7 @@ use std::{
     time,
 };
 use sts_profile_auth::get_client_sts;
-use tokio::time::delay_for;
+use tokio::{task::spawn, time::delay_for};
 
 use crate::config::Config;
 
@@ -467,6 +468,38 @@ impl Ec2Instance {
         Ok(spot_ids)
     }
 
+    pub async fn tag_ami_snapshot(
+        &self,
+        inst_id: &str,
+        name: &str,
+        iterations: usize,
+    ) -> Result<(), Error> {
+        delay_for(time::Duration::from_secs(2)).await;
+        for i in 0..iterations {
+            if let Some(ami) = self
+                .get_ami_tags()
+                .await?
+                .filter(|ami| ami.id == inst_id || ami.name == inst_id)
+                .next()
+            {
+                if let Some(snapshot_id) = ami.snapshot_ids.iter().next() {
+                    let tags = hashmap! {"Name".into() => name.into()};
+                    self.tag_ec2_instance(snapshot_id, &tags).await?;
+                    break;
+                }
+            }
+            let secs = if i < 20 {
+                2
+            } else if i < 40 {
+                20
+            } else {
+                40
+            };
+            delay_for(time::Duration::from_secs(secs)).await;
+        }
+        Ok(())
+    }
+
     pub async fn tag_spot_instance(
         &self,
         spot_instance_request_id: &str,
@@ -590,7 +623,17 @@ impl Ec2Instance {
             })
             .await
             .map_err(Into::into)
-            .map(|r| r.image_id.map(Into::into))
+            .map(|r| {
+                r.image_id.map(|image_id| {
+                    {
+                        let image_id = image_id.clone();
+                        let name = name.to_string();
+                        let ec2 = self.clone();
+                        spawn(async move { ec2.tag_ami_snapshot(&image_id, &name, 100).await });
+                    }
+                    image_id.into()
+                })
+            })
     }
 
     pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
@@ -700,7 +743,17 @@ impl Ec2Instance {
                 ..CreateSnapshotRequest::default()
             })
             .await
-            .map(|s| s.snapshot_id.map(Into::into))
+            .map(|s| {
+                s.snapshot_id.map(|snapshot_id| {
+                    {
+                        let ec2 = self.clone();
+                        let tags = tags.clone();
+                        let snapshot_id = snapshot_id.clone();
+                        spawn(async move { ec2.tag_ec2_instance(&snapshot_id, &tags).await });
+                    }
+                    snapshot_id.into()
+                })
+            })
             .map_err(Into::into)
     }
 

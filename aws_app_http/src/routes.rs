@@ -25,10 +25,10 @@ use super::{
     errors::ServiceError as Error,
     logged_user::LoggedUser,
     requests::{
-        get_websock_pids, CleanupEcrImagesRequest, CommandRequest, CreateSnapshotRequest,
-        DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest,
-        HandleRequest, ModifyVolumeRequest, NoVncStartRequest, NoVncStatusRequest,
-        NoVncStopRequest, StatusRequest, TagItemRequest, TerminateRequest,
+        get_websock_pids, CleanupEcrImagesRequest, CommandRequest, CreateImageRequest,
+        CreateSnapshotRequest, DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest,
+        DeleteVolumeRequest, HandleRequest, ModifyVolumeRequest, NoVncStartRequest,
+        NoVncStatusRequest, NoVncStopRequest, StatusRequest, TagItemRequest, TerminateRequest,
     },
 };
 
@@ -77,6 +77,19 @@ pub async fn terminate(
     let query = query.into_inner();
     data.aws.handle(query).await?;
     form_http_response("finished".to_string())
+}
+
+pub async fn create_image(
+    query: Query<CreateImageRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> HttpResult {
+    let query = query.into_inner();
+    if let Some(ami_id) = data.aws.handle(query).await? {
+        form_http_response(ami_id.into())
+    } else {
+        form_http_response("failed to create ami".to_string())
+    }
 }
 
 pub async fn delete_image(
