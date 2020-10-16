@@ -85,11 +85,10 @@ pub async fn create_image(
     data: Data<AppState>,
 ) -> HttpResult {
     let query = query.into_inner();
-    if let Some(ami_id) = data.aws.handle(query).await? {
-        form_http_response(ami_id.into())
-    } else {
-        form_http_response("failed to create ami".to_string())
-    }
+    data.aws.handle(query).await?.map_or_else(
+        || form_http_response("failed to create ami".to_string()),
+        |ami_id| form_http_response(ami_id.into()),
+    )
 }
 
 pub async fn delete_image(
@@ -660,11 +659,13 @@ pub async fn create_user(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> HttpResult {
-    if let Some(user) = data.aws.create_user(query.user_name.as_str()).await? {
-        to_json(&user)
-    } else {
-        form_http_response("create user failed".into())
-    }
+    data.aws
+        .create_user(query.user_name.as_str())
+        .await?
+        .map_or_else(
+            || form_http_response("create user failed".into()),
+            |user| to_json(&user),
+        )
 }
 
 pub async fn delete_user(
@@ -673,7 +674,7 @@ pub async fn delete_user(
     data: Data<AppState>,
 ) -> HttpResult {
     data.aws.delete_user(query.user_name.as_str()).await?;
-    form_http_response(format!("{} deleted", query.user_name).into())
+    form_http_response(format!("{} deleted", query.user_name))
 }
 
 #[derive(Serialize, Deserialize)]

@@ -163,7 +163,6 @@ impl IamInstance {
             .delete_access_key(DeleteAccessKeyRequest {
                 access_key_id: access_key_id.into(),
                 user_name: Some(user_name.into()),
-                ..DeleteAccessKeyRequest::default()
             })
             .await
             .map_err(Into::into)
@@ -232,7 +231,7 @@ impl From<AccessKey> for IamAccessKey {
         let create_date = key
             .create_date
             .and_then(|dt| dt.parse().ok())
-            .unwrap_or_else(|| Utc::now());
+            .unwrap_or_else(Utc::now);
         Self {
             access_key_id: key.access_key_id.into(),
             create_date,
