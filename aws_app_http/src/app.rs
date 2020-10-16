@@ -10,11 +10,12 @@ use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::Pg
 use super::{
     logged_user::{fill_from_db, get_secrets, SECRET_KEY, TRIGGER_DB_UPDATE},
     routes::{
-        build_spot_request, cancel_spot, cleanup_ecr_images, command, create_image,
-        create_snapshot, delete_ecr_image, delete_image, delete_script, delete_snapshot,
-        delete_volume, edit_script, get_instances, get_prices, list, modify_volume, novnc_launcher,
-        novnc_shutdown, novnc_status, replace_script, request_spot, status, sync_frontpage,
-        tag_item, terminate, update, user,
+        add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
+        create_access_key, create_image, create_snapshot, create_user, delete_access_key,
+        delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_user, delete_volume,
+        edit_script, get_instances, get_prices, list, modify_volume, novnc_launcher,
+        novnc_shutdown, novnc_status, remove_user_from_group, replace_script, request_spot, status,
+        sync_frontpage, tag_item, terminate, update, user,
     },
 };
 
@@ -84,6 +85,21 @@ pub async fn start_app() -> Result<(), Error> {
                     .service(web::resource("/edit_script").route(web::get().to(edit_script)))
                     .service(web::resource("/replace_script").route(web::post().to(replace_script)))
                     .service(web::resource("/delete_script").route(web::get().to(delete_script)))
+                    .service(web::resource("/create_user").route(web::get().to(create_user)))
+                    .service(web::resource("/delete_user").route(web::get().to(delete_user)))
+                    .service(
+                        web::resource("/add_user_to_group").route(web::get().to(add_user_to_group)),
+                    )
+                    .service(
+                        web::resource("/remove_user_from_group")
+                            .route(web::get().to(remove_user_from_group)),
+                    )
+                    .service(
+                        web::resource("/create_access_key").route(web::get().to(create_access_key)),
+                    )
+                    .service(
+                        web::resource("/delete_access_key").route(web::get().to(delete_access_key)),
+                    )
                     .service(
                         web::resource("/build_spot_request")
                             .route(web::get().to(build_spot_request)),

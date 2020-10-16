@@ -649,3 +649,83 @@ pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> HttpResult {
 pub async fn user(user: LoggedUser, _: Data<AppState>) -> HttpResult {
     to_json(user)
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateUserRequest {
+    pub user_name: StackString,
+}
+
+pub async fn create_user(
+    query: Query<CreateUserRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> HttpResult {
+    if let Some(user) = data.aws.create_user(query.user_name.as_str()).await? {
+        to_json(&user)
+    } else {
+        form_http_response("create user failed".into())
+    }
+}
+
+pub async fn delete_user(
+    query: Query<CreateUserRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> HttpResult {
+    data.aws.delete_user(query.user_name.as_str()).await?;
+    form_http_response(format!("{} deleted", query.user_name).into())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddUserToGroupRequest {
+    pub user_name: StackString,
+    pub group_name: StackString,
+}
+
+pub async fn add_user_to_group(
+    query: Query<AddUserToGroupRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> HttpResult {
+    data.aws
+        .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
+        .await?;
+    form_http_response("".into())
+}
+
+pub async fn remove_user_from_group(
+    query: Query<AddUserToGroupRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> HttpResult {
+    data.aws
+        .remove_user_from_group(query.user_name.as_str(), query.group_name.as_str())
+        .await?;
+    form_http_response("".into())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DeleteAccesssKeyRequest {
+    pub user_name: StackString,
+    pub access_key_id: StackString,
+}
+
+pub async fn create_access_key(
+    query: Query<CreateUserRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> HttpResult {
+    let access_key = data.aws.create_access_key(query.user_name.as_str()).await?;
+    to_json(&access_key)
+}
+
+pub async fn delete_access_key(
+    query: Query<DeleteAccesssKeyRequest>,
+    _: LoggedUser,
+    data: Data<AppState>,
+) -> HttpResult {
+    data.aws
+        .delete_access_key(query.user_name.as_str(), query.access_key_id.as_str())
+        .await?;
+    form_http_response("".into())
+}

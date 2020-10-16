@@ -11,7 +11,12 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use stack_string::StackString;
 use std::{
-    collections::HashMap, fmt::Display, future::Future, ops::Deref, path::Path, process::Stdio,
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    future::Future,
+    ops::Deref,
+    path::Path,
+    process::Stdio,
 };
 use tokio::{
     process::{Child, Command},
@@ -427,34 +432,193 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 output.extend_from_slice(&result);
             }
             ResourceType::User => {
-                let users = self
-                    .iam
-                    .list_users()
-                    .await?
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th>User ID</th><th>Create Date</th>
+                    <th>User Name</th><th>Arn</th><th></th><th>Groups</th><th></th>
+                    </tr></thead><tbody>"#
+                        .into(),
+                );
+                let _user_name: Option<&str> = None;
+                let (current_user, users) =
+                    try_join!(self.iam.get_user(_user_name), self.iam.list_users())?;
+                let users: Vec<_> = users.collect();
+                let futures = users.iter().map(|u| async move {
+                    self.iam
+                        .list_groups_for_user(u.user_name.as_str())
+                        .await
+                        .map(|g| {
+                            let groups: Vec<_> = g.collect();
+                            (u.user_name.clone(), groups)
+                        })
+                });
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let group_map: HashMap<StackString, _> = results?.into_iter().collect();
+
+                let futures = users.iter().map(|u| async move {
+                    self.iam
+                        .list_access_keys(u.user_name.as_str())
+                        .await
+                        .map(|metadata| (u.user_name.clone(), metadata))
+                });
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let key_map: HashMap<StackString, _> = results?.into_iter().collect();
+
+                let users = users
+                    .into_iter()
                     .map(|u| {
+                        let group_select = if let Some(group_opts) =
+                            group_map.get(u.user_name.as_str()).map(|x| {
+                                x.iter()
+                                    .map(|group| {
+                                        format!(
+                                            r#"r#"<option value="{g}">{g}</option>"#,
+                                            g = group.group_name
+                                        )
+                                    })
+                                    .join("")
+                            }) {
+                            format!(r#"<select id="group_opt">{}</select>"#, group_opts)
+                        } else {
+                            "".to_string()
+                        };
+                        let group_remove_button = if group_select.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!(
+                                r#"
+                                    <input type="button" name="RemoveUser" value="Remove"
+                                     onclick="removeUserFromGroup('{}');">"#,
+                                u.user_name
+                            )
+                        };
+                        let delete_button = if u.user_id == current_user.user_id {
+                            "".to_string()
+                        } else {
+                            format!(
+                                r#"<input type="button" name="DeleteUser" value="DeleteUser"
+                                onclick="deleteUser('{}')">"#,
+                                u.user_name,
+                            )
+                        };
+                        let empty_vec = Vec::new();
+                        let access_keys = key_map
+                            .get(u.user_name.as_str())
+                            .unwrap_or_else(|| &empty_vec);
+                        let create_key_button = if access_keys.len() < 2 {
+                            format!(
+                                r#"<input type="button" name="CreateKey" value="CreateKey"
+                                onclick="createAccessKey('{}')">"#,
+                                u.user_name,
+                            )
+                        } else {
+                            "".to_string()
+                        };
                         format!(
-                            "{} {} {:30} {:60}",
-                            u.user_id, u.create_date, u.user_name, u.arn,
+                            r#"
+                                <tr style="text-align: left;">
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td>
+                                </tr>
+                            "#,
+                            u.user_id,
+                            u.create_date,
+                            u.user_name,
+                            u.arn,
+                            delete_button,
+                            group_select,
+                            group_remove_button,
+                            create_key_button,
                         )
                     })
-                    .join("\n");
+                    .join("");
                 output.push(users.into());
+                output.push(r#"</tbody></table>"#.into());
             }
             ResourceType::Group => {
-                let groups = self
-                    .iam
-                    .list_groups()
-                    .await?
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th>Group ID</th><th>Create Date</th>
+                    <th>Group Name</th><th>Arn</th><th></th>
+                    </tr></thead><tbody>"#
+                        .into(),
+                );
+                let (users, groups) = try_join!(self.iam.list_users(), self.iam.list_groups())?;
+                let users: HashSet<_> = users.map(|u| u.user_name).collect();
+                let futures = users.iter().map(|u| async move {
+                    self.iam
+                        .list_groups_for_user(u.as_str())
+                        .await
+                        .map(|g| g.map(|group| (u.clone(), group)).collect::<Vec<_>>())
+                });
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let user_map: HashMap<StackString, HashSet<StackString>> = results?
+                    .into_iter()
+                    .flatten()
+                    .fold(HashMap::new(), |mut h, (u, g)| {
+                        h.entry(g.group_name).or_default().insert(u);
+                        h
+                    });
+
+                let groups = groups
                     .map(|g| {
+                        let empty_set = HashSet::new();
+                        let group_users = user_map
+                            .get(g.group_name.as_str())
+                            .unwrap_or_else(|| &empty_set);
+
+                        let user_opts = users
+                            .iter()
+                            .filter_map(|u| {
+                                if group_users.contains(u) {
+                                    None
+                                } else {
+                                    Some(format!(r#"r#"<option value="{u}">{u}</option>"#, u = u))
+                                }
+                            })
+                            .join("");
+
+                        let user_select = if user_opts.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!(r#"<select id="user_opt">{}</select>"#, user_opts)
+                        };
+
+                        let user_remove_button = if user_select.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!(
+                                r#"
+                                    <input type="button" name="AddUser" value="Add"
+                                     onclick="addUserToGroup('{}');">"#,
+                                g.group_name
+                            )
+                        };
+
                         format!(
-                            "{} {} {:30} {:60}",
-                            g.group_id, g.create_date, g.group_name, g.arn,
+                            r#"
+                                <tr style="text-align: left;">
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td>
+                                </tr>
+                            "#,
+                            g.group_id,
+                            g.create_date,
+                            g.group_name,
+                            g.arn,
+                            user_select,
+                            user_remove_button,
                         )
                     })
-                    .join("\n");
+                    .join("");
                 output.push(groups.into());
+                output.push(r#"</tbody></table>"#.into());
             }
             ResourceType::AccessKey => {
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th>Key ID</th><th>User Name</th>
+                    <th>Create Date</th><th>Status</th><th></th>
+                    </tr></thead><tbody>"#
+                        .into(),
+                );
                 let futures =
                     self.iam.list_users().await?.map(|user| async move {
                         self.iam.list_access_keys(&user.user_name).await
@@ -465,18 +629,28 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .map(|keys| {
                         keys.into_iter()
                             .filter_map(|key| {
+                                let user_name = key.user_name?;
+                                let access_key_id = key.access_key_id?;
+                                let delete_key_button = format!(
+                                    r#"<input type="button" name="DeleteKey" value="Delete"
+                                        onclick="deleteAccessKey('{}', '{}');">"#,
+                                    user_name, access_key_id
+                                );
                                 Some(format!(
-                                    "{} {:30} {} {}",
-                                    key.access_key_id?,
-                                    key.user_name?,
+                                    r#"<tr style="text-align: left;">
+                                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
+                                    access_key_id,
+                                    user_name,
                                     key.create_date?,
-                                    key.status?
+                                    key.status?,
+                                    delete_key_button,
                                 ))
                             })
-                            .join("\n")
+                            .join("")
                     })
-                    .join("\n");
+                    .join("");
                 output.push(keys.into());
+                output.push(r#"</tbody></table>"#.into());
             }
         };
         Ok(output)

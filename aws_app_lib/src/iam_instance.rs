@@ -3,9 +3,11 @@ use chrono::{DateTime, Utc};
 use rusoto_core::Region;
 use rusoto_iam::{
     AccessKey, AccessKeyMetadata, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest,
-    DeleteAccessKeyRequest, DeleteUserRequest, GetUserRequest, Iam as _, IamClient,
-    ListAccessKeysRequest, ListGroupsRequest, ListUsersRequest, RemoveUserFromGroupRequest, User,
+    DeleteAccessKeyRequest, DeleteUserRequest, GetUserRequest, Group, Iam as _, IamClient,
+    ListAccessKeysRequest, ListGroupsForUserRequest, ListGroupsRequest, ListUsersRequest,
+    RemoveUserFromGroupRequest, User,
 };
+use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::collections::HashMap;
 use sts_profile_auth::get_client_sts;
@@ -66,15 +68,24 @@ impl IamInstance {
             .await?
             .groups
             .into_iter()
-            .map(|group| {
-                let create_date = group.create_date.parse().unwrap_or_else(|_| Utc::now());
-                IamGroup {
-                    arn: group.arn.into(),
-                    create_date,
-                    group_id: group.group_id.into(),
-                    group_name: group.group_name.into(),
-                }
-            });
+            .map(Into::into);
+        Ok(groups)
+    }
+
+    pub async fn list_groups_for_user(
+        &self,
+        user_name: &str,
+    ) -> Result<impl Iterator<Item = IamGroup>, Error> {
+        let groups = self
+            .iam_client
+            .list_groups_for_user(ListGroupsForUserRequest {
+                user_name: user_name.into(),
+                ..ListGroupsForUserRequest::default()
+            })
+            .await?
+            .groups
+            .into_iter()
+            .map(Into::into);
         Ok(groups)
     }
 
@@ -109,7 +120,7 @@ impl IamInstance {
     }
 
     pub async fn remove_user_from_group(
-        self,
+        &self,
         user_name: &str,
         group_name: &str,
     ) -> Result<(), Error> {
@@ -133,13 +144,13 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
-    pub async fn create_access_key(&self, user_name: &str) -> Result<AccessKey, Error> {
+    pub async fn create_access_key(&self, user_name: &str) -> Result<IamAccessKey, Error> {
         self.iam_client
             .create_access_key(CreateAccessKeyRequest {
                 user_name: Some(user_name.into()),
             })
             .await
-            .map(|x| x.access_key)
+            .map(|x| x.access_key.into())
             .map_err(Into::into)
     }
 
@@ -159,7 +170,7 @@ impl IamInstance {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct IamUser {
     pub arn: StackString,
     pub create_date: DateTime<Utc>,
@@ -193,6 +204,43 @@ pub struct IamGroup {
     pub create_date: DateTime<Utc>,
     pub group_id: StackString,
     pub group_name: StackString,
+}
+
+impl From<Group> for IamGroup {
+    fn from(group: Group) -> Self {
+        let create_date = group.create_date.parse().unwrap_or_else(|_| Utc::now());
+        Self {
+            arn: group.arn.into(),
+            create_date,
+            group_id: group.group_id.into(),
+            group_name: group.group_name.into(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct IamAccessKey {
+    pub access_key_id: StackString,
+    pub create_date: DateTime<Utc>,
+    pub access_key_secret: StackString,
+    pub status: StackString,
+    pub user_name: StackString,
+}
+
+impl From<AccessKey> for IamAccessKey {
+    fn from(key: AccessKey) -> Self {
+        let create_date = key
+            .create_date
+            .and_then(|dt| dt.parse().ok())
+            .unwrap_or_else(|| Utc::now());
+        Self {
+            access_key_id: key.access_key_id.into(),
+            create_date,
+            access_key_secret: key.secret_access_key.into(),
+            status: key.status.into(),
+            user_name: key.user_name.into(),
+        }
+    }
 }
 
 #[cfg(test)]

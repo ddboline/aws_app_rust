@@ -78,6 +78,11 @@ pub enum AwsAppOpts {
         #[structopt(long)]
         snapid: Option<StackString>,
     },
+    /// Create new User
+    CreateUser {
+        #[structopt(short, long)]
+        user_name: StackString,
+    },
     /// Delete EBS Volume
     DeleteVolume { volid: StackString },
     /// Attach EBS Volume
@@ -265,6 +270,12 @@ impl AwsAppOpts {
             }
             Self::DetachVolume { volid } => app.detach_ebs_volume(volid.as_ref()).await,
             Self::ModifyVolume { volid, size } => app.modify_ebs_volume(volid.as_ref(), size).await,
+            Self::CreateUser { user_name } => {
+                if let Some(user) = app.create_user(user_name.as_str()).await? {
+                    app.stdout.send(format!("{:?}", user));
+                }
+                Ok(())
+            }
             Self::CreateSnapshot { volid, tags } => {
                 if let Some(id) = app
                     .create_ebs_snapshot(volid.as_ref(), &get_tags(&tags))

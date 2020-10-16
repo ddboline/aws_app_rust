@@ -15,7 +15,7 @@ use crate::{
     config::Config,
     ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
     ecr_instance::EcrInstance,
-    iam_instance::IamInstance,
+    iam_instance::{IamAccessKey, IamInstance, IamUser},
     instance_family::InstanceFamilies,
     models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
@@ -672,6 +672,38 @@ impl AwsAppInterface {
             ami_tags.push(ami);
         }
         Ok(ami_tags)
+    }
+
+    pub async fn create_user(&self, user_name: &str) -> Result<Option<IamUser>, Error> {
+        self.iam.create_user(user_name).await
+    }
+
+    pub async fn delete_user(&self, user_name: &str) -> Result<(), Error> {
+        self.iam.delete_user(user_name).await
+    }
+
+    pub async fn add_user_to_group(&self, user_name: &str, group_name: &str) -> Result<(), Error> {
+        self.iam.add_user_to_group(user_name, group_name).await
+    }
+
+    pub async fn remove_user_from_group(
+        &self,
+        user_name: &str,
+        group_name: &str,
+    ) -> Result<(), Error> {
+        self.iam.remove_user_from_group(user_name, group_name).await
+    }
+
+    pub async fn create_access_key(&self, user_name: &str) -> Result<IamAccessKey, Error> {
+        self.iam.create_access_key(user_name).await
+    }
+
+    pub async fn delete_access_key(
+        &self,
+        user_name: &str,
+        access_key_id: &str,
+    ) -> Result<(), Error> {
+        self.iam.delete_access_key(user_name, access_key_id).await
     }
 }
 
