@@ -11,7 +11,12 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use stack_string::StackString;
 use std::{
-    collections::HashMap, fmt::Display, future::Future, ops::Deref, path::Path, process::Stdio,
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    future::Future,
+    ops::Deref,
+    path::Path,
+    process::Stdio,
 };
 use tokio::{
     process::{Child, Command},
@@ -299,8 +304,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 format!(
                                     r#"<input type="button" name="CreateSnapshot" value="CreateSnapshot"
-                                        onclick="createSnapshot('{}')">"#,
-                                    vol.id
+                                        onclick="createSnapshot('{}', '{}')">"#,
+                                    vol.id,
+                                    format!("dileptoninthecloud_backup_{}", Local::now().naive_local().date().format("%Y%m%d")),
                                 )
                             } else {
                                 format!(
@@ -425,6 +431,227 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .collect();
                 output.extend_from_slice(&result);
             }
+            ResourceType::User => {
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th>User ID</th><th>Create Date</th>
+                    <th>User Name</th><th>Arn</th><th></th><th>Groups</th><th></th>
+                    </tr></thead><tbody>"#
+                        .into(),
+                );
+                let _user_name: Option<&str> = None;
+                let (current_user, users) =
+                    try_join!(self.iam.get_user(_user_name), self.iam.list_users())?;
+                let users: Vec<_> = users.collect();
+                let futures = users.iter().map(|u| async move {
+                    self.iam
+                        .list_groups_for_user(u.user_name.as_str())
+                        .await
+                        .map(|g| {
+                            let groups: Vec<_> = g.collect();
+                            (u.user_name.clone(), groups)
+                        })
+                });
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let group_map: HashMap<StackString, _> = results?.into_iter().collect();
+
+                let futures = users.iter().map(|u| async move {
+                    self.iam
+                        .list_access_keys(u.user_name.as_str())
+                        .await
+                        .map(|metadata| (u.user_name.clone(), metadata))
+                });
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let key_map: HashMap<StackString, _> = results?.into_iter().collect();
+
+                let users = users
+                    .into_iter()
+                    .map(|u| {
+                        let group_select = if let Some(group_opts) =
+                            group_map.get(u.user_name.as_str()).map(|x| {
+                                x.iter()
+                                    .map(|group| {
+                                        format!(
+                                            r#"r#"<option value="{g}">{g}</option>"#,
+                                            g = group.group_name
+                                        )
+                                    })
+                                    .join("")
+                            }) {
+                            format!(r#"<select id="group_opt">{}</select>"#, group_opts)
+                        } else {
+                            "".to_string()
+                        };
+                        let group_remove_button = if group_select.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!(
+                                r#"
+                                    <input type="button" name="RemoveUser" value="Remove"
+                                     onclick="removeUserFromGroup('{}');">"#,
+                                u.user_name
+                            )
+                        };
+                        let delete_button = if u.user_id == current_user.user_id {
+                            "".to_string()
+                        } else {
+                            format!(
+                                r#"<input type="button" name="DeleteUser" value="DeleteUser"
+                                onclick="deleteUser('{}')">"#,
+                                u.user_name,
+                            )
+                        };
+                        let empty_vec = Vec::new();
+                        let access_keys = key_map
+                            .get(u.user_name.as_str())
+                            .unwrap_or_else(|| &empty_vec);
+                        let create_key_button = if access_keys.len() < 2 {
+                            format!(
+                                r#"<input type="button" name="CreateKey" value="CreateKey"
+                                onclick="createAccessKey('{}')">"#,
+                                u.user_name,
+                            )
+                        } else {
+                            "".to_string()
+                        };
+                        format!(
+                            r#"
+                                <tr style="text-align: left;">
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td>
+                                </tr>
+                            "#,
+                            u.user_id,
+                            u.create_date,
+                            u.user_name,
+                            u.arn,
+                            delete_button,
+                            group_select,
+                            group_remove_button,
+                            create_key_button,
+                        )
+                    })
+                    .join("");
+                output.push(users.into());
+                output.push(r#"</tbody></table>"#.into());
+            }
+            ResourceType::Group => {
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th>Group ID</th><th>Create Date</th>
+                    <th>Group Name</th><th>Arn</th><th></th>
+                    </tr></thead><tbody>"#
+                        .into(),
+                );
+                let (users, groups) = try_join!(self.iam.list_users(), self.iam.list_groups())?;
+                let users: HashSet<_> = users.map(|u| u.user_name).collect();
+                let futures = users.iter().map(|u| async move {
+                    self.iam
+                        .list_groups_for_user(u.as_str())
+                        .await
+                        .map(|g| g.map(|group| (u.clone(), group)).collect::<Vec<_>>())
+                });
+                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+                let user_map: HashMap<StackString, HashSet<StackString>> = results?
+                    .into_iter()
+                    .flatten()
+                    .fold(HashMap::new(), |mut h, (u, g)| {
+                        h.entry(g.group_name).or_default().insert(u);
+                        h
+                    });
+
+                let groups = groups
+                    .map(|g| {
+                        let empty_set = HashSet::new();
+                        let group_users = user_map
+                            .get(g.group_name.as_str())
+                            .unwrap_or_else(|| &empty_set);
+
+                        let user_opts = users
+                            .iter()
+                            .filter_map(|u| {
+                                if group_users.contains(u) {
+                                    None
+                                } else {
+                                    Some(format!(r#"r#"<option value="{u}">{u}</option>"#, u = u))
+                                }
+                            })
+                            .join("");
+
+                        let user_select = if user_opts.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!(r#"<select id="user_opt">{}</select>"#, user_opts)
+                        };
+
+                        let user_remove_button = if user_select.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!(
+                                r#"
+                                    <input type="button" name="AddUser" value="Add"
+                                     onclick="addUserToGroup('{}');">"#,
+                                g.group_name
+                            )
+                        };
+
+                        format!(
+                            r#"
+                                <tr style="text-align: left;">
+                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td>
+                                </tr>
+                            "#,
+                            g.group_id,
+                            g.create_date,
+                            g.group_name,
+                            g.arn,
+                            user_select,
+                            user_remove_button,
+                        )
+                    })
+                    .join("");
+                output.push(groups.into());
+                output.push(r#"</tbody></table>"#.into());
+            }
+            ResourceType::AccessKey => {
+                output.push(
+                    r#"<table border="1" class="dataframe"><thead><tr><th>Key ID</th><th>User Name</th>
+                    <th>Create Date</th><th>Status</th><th></th>
+                    </tr></thead><tbody>"#
+                        .into(),
+                );
+                let futures =
+                    self.iam.list_users().await?.map(|user| async move {
+                        self.iam.list_access_keys(&user.user_name).await
+                    });
+                let results: Result<Vec<Vec<_>>, Error> = try_join_all(futures).await;
+                let keys = results?
+                    .into_iter()
+                    .map(|keys| {
+                        keys.into_iter()
+                            .filter_map(|key| {
+                                let user_name = key.user_name?;
+                                let access_key_id = key.access_key_id?;
+                                let delete_key_button = format!(
+                                    r#"<input type="button" name="DeleteKey" value="Delete"
+                                        onclick="deleteAccessKey('{}', '{}');">"#,
+                                    user_name, access_key_id
+                                );
+                                Some(format!(
+                                    r#"<tr style="text-align: left;">
+                                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
+                                    access_key_id,
+                                    user_name,
+                                    key.create_date?,
+                                    key.status?,
+                                    delete_key_button,
+                                ))
+                            })
+                            .join("")
+                    })
+                    .join("");
+                output.push(keys.into());
+                output.push(r#"</tbody></table>"#.into());
+            }
         };
         Ok(output)
     }
@@ -438,7 +665,36 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
         .await
         .iter()
         .map(|inst| {
+            let status_button = if &inst.state == "running" {
+                format!(
+                    r#"<input type="button" name="Status" value="Status" {}>"#,
+                    format!(r#"onclick="getStatus('{}')""#, inst.id)
+                )
+            } else {
+                "".to_string()
+            };
             let name = inst.tags.get("Name").cloned().unwrap_or_else(|| "".into());
+            let name_button = if &inst.state == "running" && &name != "ddbolineinthecloud" {
+                format!(
+                    r#"<input type="button" name="CreateImage {name}" value="{name}" {button}>"#,
+                    name = name,
+                    button = format!(
+                        r#"onclick="createImage('{inst_id}', '{name}')""#,
+                        inst_id = inst.id,
+                        name = name
+                    )
+                )
+            } else {
+                name.to_string()
+            };
+            let terminate_button = if &inst.state == "running" && &name != "ddbolineinthecloud" {
+                format!(
+                    r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
+                    format!(r#"onclick="terminateInstance('{}')""#, inst.id)
+                )
+            } else {
+                "".to_string()
+            };
             format!(
                 r#"
                     <tr style="text-align: center;">
@@ -449,26 +705,12 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
                 inst.id,
                 inst.dns_name,
                 inst.state,
-                name,
+                name_button,
                 inst.instance_type,
                 inst.launch_time.with_timezone(&Local),
                 inst.availability_zone,
-                if &inst.state == "running" {
-                    format!(
-                        r#"<input type="button" name="Status" value="Status" {}>"#,
-                        format!(r#"onclick="getStatus('{}')""#, inst.id)
-                    )
-                } else {
-                    "".to_string()
-                },
-                if &inst.state == "running" && &name != "ddbolineinthecloud" {
-                    format!(
-                        r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
-                        format!(r#"onclick="terminateInstance('{}')""#, inst.id)
-                    )
-                } else {
-                    "".to_string()
-                }
+                status_button,
+                terminate_button,
             )
             .into()
         })
@@ -504,6 +746,20 @@ impl HandleRequest<TerminateRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: TerminateRequest) -> Self::Result {
         self.terminate(&[req.instance]).await
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateImageRequest {
+    pub inst_id: StackString,
+    pub name: StackString,
+}
+
+#[async_trait]
+impl HandleRequest<CreateImageRequest> for AwsAppInterface {
+    type Result = Result<Option<StackString>, Error>;
+    async fn handle(&self, req: CreateImageRequest) -> Self::Result {
+        self.create_image(&req.inst_id, &req.name).await
     }
 }
 
@@ -564,13 +820,19 @@ impl HandleRequest<DeleteSnapshotRequest> for AwsAppInterface {
 #[derive(Serialize, Deserialize)]
 pub struct CreateSnapshotRequest {
     pub volid: StackString,
+    pub name: Option<StackString>,
 }
 
 #[async_trait]
 impl HandleRequest<CreateSnapshotRequest> for AwsAppInterface {
     type Result = Result<(), Error>;
     async fn handle(&self, req: CreateSnapshotRequest) -> Self::Result {
-        self.create_ebs_snapshot(req.volid.as_str(), &HashMap::new())
+        let tags = if let Some(name) = &req.name {
+            hashmap! {"Name".into() => name.clone()}
+        } else {
+            HashMap::new()
+        };
+        self.create_ebs_snapshot(req.volid.as_str(), &tags)
             .await
             .map(|_| ())
     }

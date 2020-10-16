@@ -14,6 +14,9 @@ pub enum ResourceType {
     Ecr,
     Key,
     Script,
+    User,
+    Group,
+    AccessKey,
 }
 
 impl fmt::Display for ResourceType {
@@ -31,6 +34,9 @@ impl fmt::Display for ResourceType {
                 Self::Ecr => "ecr",
                 Self::Key => "key",
                 Self::Script => "script",
+                Self::User => "user",
+                Self::Group => "group",
+                Self::AccessKey => "access-key",
             }
         )
     }
@@ -50,6 +56,9 @@ impl FromStr for ResourceType {
             "ecr" => Ok(Self::Ecr),
             "key" => Ok(Self::Key),
             "script" => Ok(Self::Script),
+            "user" => Ok(Self::User),
+            "group" => Ok(Self::Group),
+            "access-key" | "access_key" => Ok(Self::AccessKey),
             _ => Err(format_err!("{} is not a ResourceType", s)),
         }
     }

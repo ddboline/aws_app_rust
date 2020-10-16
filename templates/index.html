@@ -63,6 +63,10 @@ footer {
 <input type="button" name="list_reserved" value="ReservedInstances" onclick="listResource('reserved');"/>
 <input type="button" name="list_requests" value="SpotRequests" onclick="listResource('spot');"/>
 <input type="button" name="list_scripts" value="Scripts" onclick="listResource('script');"/>
+<br>
+<input type="button" name="list_users" value="Users" onclick="listResource('user');"/>
+<input type="button" name="list_groups" value="Groups" onclick="listResource('group');"/>
+<input type="button" name="list_access_keys" value="AccessKey" onclick="listResource('access-key');"/>
 <input type="button" name="list_price" value="Price" onclick="listAllPrices()"/>
 <input type="button" name="novnc" value="NoVNC" onclick="noVncTab('/aws/novnc/status')"/>
 <input type="button" name="update" value="Update" onclick="updateMetadata()"/>
@@ -100,6 +104,17 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function createImage( inst_id, name ) {
+        let url = "/aws/create_image?inst_id=" + inst_id + "&name=" + name;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('ami');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
     function deleteImage( ami ) {
         let url = "/aws/delete_image?ami=" + ami;
         let xmlhttp = new XMLHttpRequest();
@@ -122,8 +137,11 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
-    function createSnapshot( volid ) {
+    function createSnapshot( volid, name ) {
         let url = "/aws/create_snapshot?volid=" + volid;
+        if (name) {
+            url = url + "&name=" + name;
+        }
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
@@ -399,6 +417,74 @@ DISPLAY_TEXT
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
             listResource('snapshot');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function createUser( user_name ) {
+        let url = "/aws/create_user?user_name=" + user_name;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('user');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function deleteUser( user_name ) {
+        let url = "/aws/delete_user?user_name=" + user_name;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('user');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function addUserToGroup( group_name ) {
+        let user_name = document.getElementById( 'user_opt' );
+        let url = "/aws/add_user_to_group?user_name=" + user_name + "&group_name=" + group_name;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('group');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function removeUserFromGroup( user_name ) {
+        let group = document.getElementById( 'group_opt' );
+        let url = "/aws/remove_user_from_group?user_name=" + user_name + "&group_name=" + group;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('user');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function createAccessKey( user_name ) {
+        let url = "/aws/create_access_key?user_name=" + user_name;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function deleteAccessKey( user_name, access_key_id ) {
+        let url = "/aws/delete_access_key?user_name=" + user_name + "&access_key_id=" + access_key_id;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('access-key');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);
