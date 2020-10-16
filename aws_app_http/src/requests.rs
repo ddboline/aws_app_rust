@@ -426,9 +426,58 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                     .collect();
                 output.extend_from_slice(&result);
             }
-            ResourceType::User => {}
-            ResourceType::Group => {}
-            ResourceType::AccessKey => {}
+            ResourceType::User => {
+                let users = self
+                    .iam
+                    .list_users()
+                    .await?
+                    .map(|u| {
+                        format!(
+                            "{} {} {:30} {:60}",
+                            u.user_id, u.create_date, u.user_name, u.arn,
+                        )
+                    })
+                    .join("\n");
+                output.push(users);
+            }
+            ResourceType::Group => {
+                let groups = self
+                    .iam
+                    .list_groups()
+                    .await?
+                    .map(|g| {
+                        format!(
+                            "{} {} {:30} {:60}",
+                            g.group_id, g.create_date, g.group_name, g.arn,
+                        )
+                    })
+                    .join("\n");
+                output.push(groups);
+            }
+            ResourceType::AccessKey => {
+                let futures =
+                    self.iam.list_users().await?.map(|user| async move {
+                        self.iam.list_access_keys(&user.user_name).await
+                    });
+                let results: Result<Vec<Vec<_>>, Error> = try_join_all(futures).await;
+                let keys = results?
+                    .into_iter()
+                    .map(|keys| {
+                        keys.into_iter()
+                            .filter_map(|key| {
+                                Some(format!(
+                                    "{} {:30} {} {}",
+                                    key.access_key_id?,
+                                    key.user_name?,
+                                    key.create_date?,
+                                    key.status?
+                                ))
+                            })
+                            .join("\n")
+                    })
+                    .join("\n");
+                output.push(keys);
+            }
         };
         Ok(output)
     }
