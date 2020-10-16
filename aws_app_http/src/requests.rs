@@ -438,7 +438,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         )
                     })
                     .join("\n");
-                output.push(users);
+                output.push(users.into());
             }
             ResourceType::Group => {
                 let groups = self
@@ -452,7 +452,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         )
                     })
                     .join("\n");
-                output.push(groups);
+                output.push(groups.into());
             }
             ResourceType::AccessKey => {
                 let futures =
@@ -476,7 +476,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             .join("\n")
                     })
                     .join("\n");
-                output.push(keys);
+                output.push(keys.into());
             }
         };
         Ok(output)
