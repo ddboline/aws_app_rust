@@ -457,7 +457,7 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function removeUserFromGroup( user_name ) {
-        let group = document.getElementById( 'group_opt' );
+        let group = document.getElementById( 'group_opt' ).value;
         let url = "/aws/remove_user_from_group?user_name=" + user_name + "&group_name=" + group;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
