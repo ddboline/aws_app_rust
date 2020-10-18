@@ -134,31 +134,54 @@ async fn run_app(config: &Config, port: u32, cookie_secret: [u8; KEY_LENGTH], do
 mod tests {
     use std::env::{set_var, remove_var};
     use anyhow::Error;
+    use maplit::hashmap;
+
+    use auth_server_rust::app::get_random_string;
 
     use aws_app_lib::config::Config;
 
-    use crate::logged_user::{get_random_key, KEY_LENGTH};
+    use crate::logged_user::{get_random_key, KEY_LENGTH, JWT_SECRET, SECRET_KEY};
     use crate::app::run_app;
 
     #[actix_rt::test]
     async fn test_app() -> Result<(), Error> {
         set_var("TESTENV", "true");
-        remove_var("TESTENV");
+
+        let email = format!("{}@localhost", get_random_string(32));
+        let password = get_random_string(32);
 
         let config = Config::init_config()?;
 
         let mut secret_key = [0u8; KEY_LENGTH];
         secret_key.copy_from_slice(&get_random_key());
 
+        JWT_SECRET.set(secret_key);
+        SECRET_KEY.set(secret_key);
+
+        let auth_port: u32 = 54321;
+        actix_rt::spawn(async move {auth_server_rust::app::run_test_app(auth_port, secret_key, "localhost".into()).await.unwrap()});
+
         let test_port: u32 = 12345;
         actix_rt::spawn(async move {run_app(&config, test_port, secret_key, "localhost".into()).await.unwrap()});
         actix_rt::time::delay_for(std::time::Duration::from_secs(10)).await;
 
+        let client = reqwest::Client::builder().cookie_store(true).build()?;
+        let url = format!("http://localhost:{}/api/auth", auth_port);
+        let data = hashmap! {
+            "email" => &email,
+            "password" => &password,
+        };
+        let result = client.post(&url).json(&data).send().await?.error_for_status()?.text().await?;
+        println!("{}", result);
+
         let url = format!("http://localhost:{}/aws/index.html", test_port);
-        let result = reqwest::get(&url).await?.error_for_status()?.text().await?;
+        let result = client.get(&url).send().await?.error_for_status()?.text().await?;
         println!("{}", result);
         assert!(result.len() > 0);
-        assert!(result.contains("InstanceId"));
+        assert!(result.contains("Instance Id"));
+
+        remove_var("TESTENV");
+
         Ok(())
     }
 }
