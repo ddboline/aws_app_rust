@@ -208,8 +208,8 @@ DISPLAY_TEXT
     }
     function submitFormData( filename ) {
         let url = '/aws/replace_script';
-        let text = document.getElementById( 'script_editor_form' );
-        let data = JSON.stringify({'filename': filename, 'text': text.value});
+        let text = document.getElementById( 'script_editor_form' ).value;
+        let data = JSON.stringify({'filename': filename, 'text': text});
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.open('POST', url, true);
         xmlhttp.onload = function see_result() {
@@ -221,8 +221,8 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function createScript() {
-        let filename = document.getElementById( 'script_filename' );
-        editScript( filename.value );
+        let filename = document.getElementById( 'script_filename' ).value;
+        editScript( filename );
     }
     function deleteScript( filename ) {
         let url = "/aws/delete_script?filename=" + filename;
@@ -256,8 +256,8 @@ DISPLAY_TEXT
     }
     function updateScriptAndBuildSpotRequest(script) {
         let url = '/aws/replace_script';
-        let text = document.getElementById( 'script_editor_form' );
-        let data = JSON.stringify({'filename': script, 'text': text.value});
+        let text = document.getElementById( 'script_editor_form' ).value;
+        let data = JSON.stringify({'filename': script, 'text': text});
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.open('POST', url, true);
         xmlhttp.onload = function see_result() {
@@ -324,9 +324,9 @@ DISPLAY_TEXT
     }
     function listPrices() {
         let url = "/aws/prices";
-        let search = document.getElementById('inst_fam');
+        let search = document.getElementById('inst_fam').value;
         if (search) {
-            url = url + "?search=" + search.value;
+            url = url + "?search=" + search;
         }
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
@@ -445,7 +445,7 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function addUserToGroup( group_name ) {
-        let user_name = document.getElementById( 'user_opt' );
+        let user_name = document.getElementById( 'user_opt' ).value;
         let url = "/aws/add_user_to_group?user_name=" + user_name + "&group_name=" + group_name;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
