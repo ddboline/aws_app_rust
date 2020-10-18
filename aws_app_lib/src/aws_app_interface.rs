@@ -8,6 +8,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
 };
+use stdout_channel::StdoutChannel;
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
 
@@ -23,7 +24,6 @@ use crate::{
     scrape_instance_info::scrape_instance_info,
     scrape_pricing_info::scrape_pricing_info,
     ssh_instance::SSHInstance,
-    stdout_channel::StdoutChannel,
 };
 
 lazy_static! {
