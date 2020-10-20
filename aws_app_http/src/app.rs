@@ -136,7 +136,7 @@ mod tests {
     use anyhow::Error;
     use maplit::hashmap;
 
-    use auth_server_rust::app::get_random_string;
+    use auth_server_rust::app::{run_test_app, get_random_string};
 
     use aws_app_lib::config::Config;
 
@@ -159,7 +159,7 @@ mod tests {
         SECRET_KEY.set(secret_key);
 
         let auth_port: u32 = 54321;
-        actix_rt::spawn(async move {auth_server_rust::app::run_test_app(auth_port, secret_key, "localhost".into()).await.unwrap()});
+        actix_rt::spawn(async move {run_test_app(auth_port, secret_key, "localhost".into()).await.unwrap()});
 
         let test_port: u32 = 12345;
         actix_rt::spawn(async move {run_app(&config, test_port, secret_key, "localhost".into()).await.unwrap()});
