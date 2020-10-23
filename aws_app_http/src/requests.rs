@@ -34,6 +34,7 @@ type AmiInfoValue = (DateTime<Utc>, Option<AmiInfo>);
 
 lazy_static! {
     static ref CACHE_UBUNTU_AMI: InfoCache = InfoCache::default();
+    static ref CACHE_UBUNTU_AMI_ARM64: InfoCache = InfoCache::default();
     static ref NOVNC_CHILDREN: RwLock<Vec<Child>> = RwLock::new(Vec::new());
 }
 
@@ -185,19 +186,25 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 let ubuntu_ami = async {
                     let hash = self.config.ubuntu_release.as_str();
                     CACHE_UBUNTU_AMI
-                        .get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash))
+                        .get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash, "amd64"))
+                        .await
+                };
+                let ubuntu_ami_arm64 = async {
+                    let hash = self.config.ubuntu_release.as_str();
+                    CACHE_UBUNTU_AMI_ARM64
+                        .get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash, "arm64"))
                         .await
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
+                let (ubuntu_ami, ubuntu_ami_arm64, ami_tags) = try_join!(ubuntu_ami, ubuntu_ami_arm64, ami_tags)?;
                 let mut ami_tags: Vec<_> = ami_tags.collect();
 
-                if ami_tags.is_empty() {
-                    return Ok(Vec::new());
-                }
                 ami_tags.sort_by(|x, y| x.name.cmp(&y.name));
                 if let Some(ami) = ubuntu_ami {
+                    ami_tags.push(ami);
+                }
+                if let Some(ami) = ubuntu_ami_arm64 {
                     ami_tags.push(ami);
                 }
                 output.push(

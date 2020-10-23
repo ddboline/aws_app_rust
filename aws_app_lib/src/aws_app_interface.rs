@@ -171,15 +171,19 @@ impl AwsAppInterface {
                     .send(format!("---\nSpot Instance Requests:\n{}", requests));
             }
             ResourceType::Ami => {
-                let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release);
+                let ubuntu_ami = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release, "amd64");
+                let ubuntu_ami_arm64 = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release, "arm64");
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, ami_tags) = try_join!(ubuntu_ami, ami_tags)?;
+                let (ubuntu_ami, ubuntu_ami_arm64, ami_tags) = try_join!(ubuntu_ami, ubuntu_ami_arm64, ami_tags)?;
                 let mut ami_tags: Vec<_> = ami_tags.collect();
 
                 if ami_tags.is_empty() {
                     return Ok(());
                 }
                 if let Some(ami) = ubuntu_ami {
+                    ami_tags.push(ami);
+                }
+                if let Some(ami) = ubuntu_ami_arm64 {
                     ami_tags.push(ami);
                 }
                 let ami_tags = ami_tags
@@ -660,15 +664,16 @@ impl AwsAppInterface {
     }
 
     pub async fn get_all_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
-        let mut ami_tags: Vec<_> = self.ec2.get_ami_tags().await?.collect();
-        if ami_tags.is_empty() {
-            return Ok(Vec::new());
-        }
-        let ubuntu_ami = self
-            .ec2
-            .get_latest_ubuntu_ami(&self.config.ubuntu_release)
-            .await?;
+        let ami_tag_task = self.ec2.get_ami_tags();
+        let ubuntu_ami_task = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release, "amd64");
+        let ubuntu_ami_arm64_task = self.ec2.get_latest_ubuntu_ami(&self.config.ubuntu_release, "arm64");
+
+        let (ami_tags, ubuntu_ami, ubuntu_ami_arm64) = try_join!(ami_tag_task, ubuntu_ami_task, ubuntu_ami_arm64_task)?;
+        let mut ami_tags: Vec<_> = ami_tags.collect();
         if let Some(ami) = ubuntu_ami {
+            ami_tags.push(ami);
+        }
+        if let Some(ami) = ubuntu_ami_arm64 {
             ami_tags.push(ami);
         }
         Ok(ami_tags)
