@@ -124,7 +124,7 @@ impl Ec2Instance {
     pub async fn get_latest_ubuntu_ami(
         &self,
         ubuntu_release: &str,
-        arch: &str
+        arch: &str,
     ) -> Result<Option<AmiInfo>, Error> {
         let request = DescribeImagesRequest {
             filters: Some(vec![
@@ -136,8 +136,7 @@ impl Ec2Instance {
                     name: Some("name".to_string()),
                     values: Some(vec![format!(
                         "ubuntu/images/hvm-ssd/ubuntu-{}-{}-server*",
-                        ubuntu_release,
-                        arch,
+                        ubuntu_release, arch,
                     )]),
                 },
             ]),

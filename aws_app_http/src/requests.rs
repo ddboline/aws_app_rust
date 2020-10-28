@@ -197,7 +197,8 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 };
 
                 let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, ubuntu_ami_arm64, ami_tags) = try_join!(ubuntu_ami, ubuntu_ami_arm64, ami_tags)?;
+                let (ubuntu_ami, ubuntu_ami_arm64, ami_tags) =
+                    try_join!(ubuntu_ami, ubuntu_ami_arm64, ami_tags)?;
                 let mut ami_tags: Vec<_> = ami_tags.collect();
 
                 ami_tags.sort_by(|x, y| x.name.cmp(&y.name));

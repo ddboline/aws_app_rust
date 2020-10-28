@@ -2,14 +2,14 @@ use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{middleware::Compress, web, App, HttpServer};
 use anyhow::Error;
 use lazy_static::lazy_static;
+use stack_string::StackString;
 use std::time::Duration;
 use tokio::time::interval;
-use stack_string::StackString;
 
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
 use super::{
-    logged_user::{fill_from_db, get_secrets, SECRET_KEY, TRIGGER_DB_UPDATE, KEY_LENGTH},
+    logged_user::{fill_from_db, get_secrets, KEY_LENGTH, SECRET_KEY, TRIGGER_DB_UPDATE},
     routes::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
         create_access_key, create_image, create_snapshot, create_user, delete_access_key,
@@ -34,7 +34,12 @@ pub async fn start_app() -> Result<(), Error> {
     run_app(&CONFIG, port, SECRET_KEY.get(), CONFIG.domain.clone()).await
 }
 
-async fn run_app(config: &Config, port: u32, cookie_secret: [u8; KEY_LENGTH], domain: StackString) -> Result<(), Error> {
+async fn run_app(
+    config: &Config,
+    port: u32,
+    cookie_secret: [u8; KEY_LENGTH],
+    domain: StackString,
+) -> Result<(), Error> {
     async fn _update_db(pool: PgPool) {
         let mut i = interval(Duration::from_secs(60));
         loop {
@@ -132,16 +137,17 @@ async fn run_app(config: &Config, port: u32, cookie_secret: [u8; KEY_LENGTH], do
 
 #[cfg(test)]
 mod tests {
-    use std::env::{set_var, remove_var};
     use anyhow::Error;
     use maplit::hashmap;
+    use std::env::{remove_var, set_var};
 
-    use auth_server_rust::app::{run_test_app, get_random_string};
+    use auth_server_http::app::run_test_app;
+    use auth_server_lib::get_random_string;
 
     use aws_app_lib::config::Config;
 
-    use crate::logged_user::{get_random_key, KEY_LENGTH, JWT_SECRET, SECRET_KEY};
     use crate::app::run_app;
+    use crate::logged_user::{get_random_key, JWT_SECRET, KEY_LENGTH, SECRET_KEY};
 
     #[actix_rt::test]
     async fn test_app() -> Result<(), Error> {
@@ -159,10 +165,18 @@ mod tests {
         SECRET_KEY.set(secret_key);
 
         let auth_port: u32 = 54321;
-        actix_rt::spawn(async move {run_test_app(auth_port, secret_key, "localhost".into()).await.unwrap()});
+        actix_rt::spawn(async move {
+            run_test_app(auth_port, secret_key, "localhost".into())
+                .await
+                .unwrap()
+        });
 
         let test_port: u32 = 12345;
-        actix_rt::spawn(async move {run_app(&config, test_port, secret_key, "localhost".into()).await.unwrap()});
+        actix_rt::spawn(async move {
+            run_app(&config, test_port, secret_key, "localhost".into())
+                .await
+                .unwrap()
+        });
         actix_rt::time::delay_for(std::time::Duration::from_secs(10)).await;
 
         let client = reqwest::Client::builder().cookie_store(true).build()?;
@@ -171,11 +185,24 @@ mod tests {
             "email" => &email,
             "password" => &password,
         };
-        let result = client.post(&url).json(&data).send().await?.error_for_status()?.text().await?;
+        let result = client
+            .post(&url)
+            .json(&data)
+            .send()
+            .await?
+            .error_for_status()?
+            .text()
+            .await?;
         println!("{}", result);
 
         let url = format!("http://localhost:{}/aws/index.html", test_port);
-        let result = client.get(&url).send().await?.error_for_status()?.text().await?;
+        let result = client
+            .get(&url)
+            .send()
+            .await?
+            .error_for_status()?
+            .text()
+            .await?;
         println!("{}", result);
         assert!(result.len() > 0);
         assert!(result.contains("Instance Id"));
