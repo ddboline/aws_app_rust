@@ -124,7 +124,7 @@ impl Ec2Instance {
     pub async fn get_latest_ubuntu_ami(
         &self,
         ubuntu_release: &str,
-        arch: &str
+        arch: &str,
     ) -> Result<Option<AmiInfo>, Error> {
         let request = DescribeImagesRequest {
             filters: Some(vec![
@@ -136,8 +136,7 @@ impl Ec2Instance {
                     name: Some("name".to_string()),
                     values: Some(vec![format!(
                         "ubuntu/images/hvm-ssd/ubuntu-{}-{}-server*",
-                        ubuntu_release,
-                        arch,
+                        ubuntu_release, arch,
                     )]),
                 },
             ]),
@@ -170,7 +169,20 @@ impl Ec2Instance {
 
     pub async fn get_ami_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
         let req = self.get_ami_tags().await?;
-        Ok(req.map(|ami| (ami.name, ami.id)).collect())
+        let mut latest_ami_name = None;
+        let mut ami_map: HashMap<_, _> = req.map(|ami| {
+            if ami.name.contains("_efs_") {
+                if latest_ami_name.is_none() || Some(&ami.name) > latest_ami_name.as_ref() {
+                    latest_ami_name = Some(ami.name.clone());
+                }
+            }
+            (ami.name, ami.id)
+        }).collect();
+        if let Some(latest_ami_name) = &latest_ami_name {
+            let latest_ami_id = ami_map.get(latest_ami_name).unwrap().clone();
+            ami_map.insert("latest".into(), latest_ami_id);
+        }
+        Ok(ami_map)
     }
 
     pub async fn get_all_regions(&self) -> Result<HashMap<StackString, StackString>, Error> {
