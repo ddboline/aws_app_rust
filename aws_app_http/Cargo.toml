@@ -29,10 +29,10 @@ cached = "0.19"
 dirs = "3.0"
 itertools = "0.9"
 smallvec = "1.4"
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.2.3"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.2.4"}
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.1.9", features=["diesel_types"] }
 
 [dev-dependencies]
 reqwest = {version = "0.10", features=["cookies", "rustls-tls", "gzip", "json"]}
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.2.3"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.2.3"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.2.4"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.2.4"}
