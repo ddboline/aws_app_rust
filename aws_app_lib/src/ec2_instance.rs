@@ -171,7 +171,7 @@ impl Ec2Instance {
         let req = self.get_ami_tags().await?;
         let mut latest_ami_name = None;
         let mut ami_map: HashMap<_, _> = req.map(|ami| {
-            if ami.name.contains("_efs_") {
+            if ami.name.contains("_tmpfs_") {
                 if latest_ami_name.is_none() || Some(&ami.name) > latest_ami_name.as_ref() {
                     latest_ami_name = Some(ami.name.clone());
                 }
