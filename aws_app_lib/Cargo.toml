@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_lib"
-version = "0.6.26"
+version = "0.6.27"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -28,7 +28,7 @@ parking_lot = "0.11"
 regex = {version = "1.4", default_features = false}
 walkdir = "2.3"
 log = "0.4"
-url = "2.1"
+url = "2.2"
 thiserror = "1.0"
 anyhow = "1.0"
 dirs = "3.0"
@@ -39,7 +39,7 @@ envy = "0.4"
 smartstring = "0.2"
 maplit = "1.0"
 itertools = "0.9"
-smallvec = "1.4"
+smallvec = "1.5"
 deadqueue = "0.1"
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.1.9", features=["diesel_types"] }
 stdout-channel = { git = "https://github.com/ddboline/stdout-channel-rs.git", branch="tokio_02" }
