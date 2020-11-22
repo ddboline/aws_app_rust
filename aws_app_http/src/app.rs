@@ -146,8 +146,10 @@ mod tests {
 
     use aws_app_lib::config::Config;
 
-    use crate::app::run_app;
-    use crate::logged_user::{get_random_key, JWT_SECRET, KEY_LENGTH, SECRET_KEY};
+    use crate::{
+        app::run_app,
+        logged_user::{get_random_key, JWT_SECRET, KEY_LENGTH, SECRET_KEY},
+    };
 
     #[actix_rt::test]
     async fn test_app() -> Result<(), Error> {

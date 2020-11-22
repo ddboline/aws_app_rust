@@ -509,9 +509,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             )
                         };
                         let empty_vec = Vec::new();
-                        let access_keys = key_map
-                            .get(u.user_name.as_str())
-                            .unwrap_or_else(|| &empty_vec);
+                        let access_keys = key_map.get(u.user_name.as_str()).unwrap_or(&empty_vec);
                         let create_key_button = if access_keys.len() < 2 {
                             format!(
                                 r#"<input type="button" name="CreateKey" value="CreateKey"
@@ -569,9 +567,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                 let groups = groups
                     .map(|g| {
                         let empty_set = HashSet::new();
-                        let group_users = user_map
-                            .get(g.group_name.as_str())
-                            .unwrap_or_else(|| &empty_set);
+                        let group_users = user_map.get(g.group_name.as_str()).unwrap_or(&empty_set);
 
                         let user_opts = users
                             .iter()

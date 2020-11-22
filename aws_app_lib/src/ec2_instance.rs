@@ -170,14 +170,16 @@ impl Ec2Instance {
     pub async fn get_ami_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
         let req = self.get_ami_tags().await?;
         let mut latest_ami_name = None;
-        let mut ami_map: HashMap<_, _> = req.map(|ami| {
-            if ami.name.contains("_tmpfs_") {
-                if latest_ami_name.is_none() || Some(&ami.name) > latest_ami_name.as_ref() {
+        let mut ami_map: HashMap<_, _> = req
+            .map(|ami| {
+                if ami.name.contains("_tmpfs_")
+                    && (latest_ami_name.is_none() || Some(&ami.name) > latest_ami_name.as_ref())
+                {
                     latest_ami_name = Some(ami.name.clone());
                 }
-            }
-            (ami.name, ami.id)
-        }).collect();
+                (ami.name, ami.id)
+            })
+            .collect();
         if let Some(latest_ami_name) = &latest_ami_name {
             let latest_ami_id = ami_map.get(latest_ami_name).unwrap().clone();
             ami_map.insert("latest".into(), latest_ami_id);
