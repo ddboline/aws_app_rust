@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_rust"
-version = "0.6.27"
+version = "0.6.28"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -10,6 +10,11 @@ description = "CLI and Web app frontend for aws, something simpler than aws-cli 
 
 [package.metadata.deb]
 name = "aws-app-rust"
+priority = "optional"
+section = "rust"
+provides = "auth-server-rust"
+extended-description = """\
+CLI and Web app frontend for aws"""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
