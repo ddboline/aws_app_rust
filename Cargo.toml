@@ -12,7 +12,7 @@ description = "CLI and Web app frontend for aws, something simpler than aws-cli 
 name = "aws-app-rust"
 priority = "optional"
 section = "rust"
-provides = "auth-server-rust"
+provides = "aws-app-rust"
 extended-description = """\
 CLI and Web app frontend for aws"""
 
