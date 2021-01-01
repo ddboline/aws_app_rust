@@ -452,7 +452,11 @@ pub async fn get_prices(
                         <td>{}</td>
                     </tr>
                     "#,
-                    price.instance_type,
+                    if let Some(data_url) = price.data_url {
+                        format!(r#"<a href="{}">{}</a>"#, data_url, price.instance_type)
+                    } else {
+                        price.instance_type.to_string()
+                    },
                     match price.ondemand_price {
                         Some(p) => format!("${:0.4}/hr", p),
                         None => "".to_string(),
@@ -490,11 +494,7 @@ pub async fn get_prices(
         )
     } else {
         format!(
-            r#"
-                <a href=></a>
-                <table border="1" class="dataframe">
-                <thead>{}</thead><tbody>{}</tbody></table>
-            "#,
+            r#"<table border="1" class="dataframe"><thead>{}</thead><tbody>{}</tbody></table>"#,
             r#"
                 <tr>
                 <th>Instance Type</th>
