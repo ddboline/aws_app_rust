@@ -39,7 +39,6 @@ jobs:
     - name: Run tests
       run: |
         diesel database setup && \
-        diesel migration run && \
         ./target/debug/aws-app-rust update && \
         cargo test --all --verbose && \
         cargo install cargo-tarpaulin && \
