@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     services:
       postgres:
@@ -39,6 +39,8 @@ jobs:
     - name: Run tests
       run: |
         diesel database setup && \
+        diesel migrations run && \
+        ./target/debug/aws-app-rust update && \
         cargo test --all --verbose && \
         cargo install cargo-tarpaulin && \
         cargo tarpaulin --verbose --all-features --workspace --out Xml
