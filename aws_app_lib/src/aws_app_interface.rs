@@ -39,6 +39,7 @@ pub struct AwsInstancePrice {
     pub ncpu: i32,
     pub memory: f64,
     pub instance_family: InstanceFamilies,
+    pub data_url: Option<StackString>,
 }
 
 #[derive(Clone)]
@@ -496,11 +497,10 @@ impl AwsAppInterface {
                     .split('.')
                     .next()
                     .ok_or_else(|| format_err!("invalid instance name {}", inst))?;
-                let instance_family = instance_families
+                let inst_fam = instance_families
                     .get(inst_fam)
-                    .ok_or_else(|| format_err!("inst_fam {} does not exist", inst_fam))?
-                    .family_type
-                    .parse()?;
+                    .ok_or_else(|| format_err!("inst_fam {} does not exist", inst_fam))?;
+                let instance_family = inst_fam.family_type.parse()?;
 
                 Ok(AwsInstancePrice {
                     instance_type: inst.into(),
@@ -510,6 +510,7 @@ impl AwsAppInterface {
                     ncpu: instance_metadata.n_cpu,
                     memory: instance_metadata.memory_gib,
                     instance_family,
+                    data_url: inst_fam.data_url.clone(),
                 })
             })
             .collect();
