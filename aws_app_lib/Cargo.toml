@@ -38,7 +38,7 @@ derive_more = "0.99"
 envy = "0.4"
 smartstring = "0.2"
 maplit = "1.0"
-itertools = "0.9"
+itertools = "0.10"
 smallvec = "1.5"
 deadqueue = "0.1"
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.1.10", features=["diesel_types"] }

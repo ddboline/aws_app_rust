@@ -490,7 +490,11 @@ pub async fn get_prices(
         )
     } else {
         format!(
-            r#"<table border="1" class="dataframe"><thead>{}</thead><tbody>{}</tbody></table>"#,
+            r#"
+                <a href=></a>
+                <table border="1" class="dataframe">
+                <thead>{}</thead><tbody>{}</tbody></table>
+            "#,
             r#"
                 <tr>
                 <th>Instance Type</th>

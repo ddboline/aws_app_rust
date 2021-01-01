@@ -10,6 +10,7 @@ table! {
         id -> Int4,
         family_name -> Text,
         family_type -> Text,
+        data_url -> Nullable<Text>,
     }
 }
 
