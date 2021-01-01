@@ -152,7 +152,8 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function modifyVolume( volid ) {
-        let vol_size = document.getElementById("vol_size").value;
+        let key = volid + '_vol_size';
+        let vol_size = document.getElementById(key).value;
         let url = "/aws/modify_volume?volid=" + volid + "&size=" + vol_size;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
@@ -399,7 +400,8 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function tagVolume(id) {
-        let tag = document.getElementById("tag_volume").value;
+        let key = id + '_tag_volume';
+        let tag = document.getElementById(key).value;
         let url = "/aws/tag_item?id=" + id + "&tag=" + tag;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
@@ -411,7 +413,8 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function tagSnapshot(id) {
-        let tag = document.getElementById("tag_snapshot").value;
+        let key = id + '_tag_snapshot';
+        let tag = document.getElementById(key).value;
         let url = "/aws/tag_item?id=" + id + "&tag=" + tag;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
@@ -445,7 +448,8 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function addUserToGroup( group_name ) {
-        let user_name = document.getElementById( 'user_opt' ).value;
+        let key = group_name + '_user_opt';
+        let user_name = document.getElementById( key ).value;
         let url = "/aws/add_user_to_group?user_name=" + user_name + "&group_name=" + group_name;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
@@ -457,7 +461,8 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function removeUserFromGroup( user_name ) {
-        let group = document.getElementById( 'group_opt' ).value;
+        let key = user_name + '_group_opt';
+        let group = document.getElementById( key ).value;
         let url = "/aws/remove_user_from_group?user_name=" + user_name + "&group_name=" + group;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {

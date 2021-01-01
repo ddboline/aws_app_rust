@@ -283,7 +283,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         }).collect();
                         format!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{}</td><td><select id="vol_size">{}</select></td><td>{}</td><td>{}</td>
+                                <td>{}</td><td>{}</td><td>{}</td>
+                                <td><select id="{}_vol_size">{}</select></td>
+                                <td>{}</td><td>{}</td>
                                 <td>{}</td><td>{}</td></tr>"#,
                             if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 "".to_string()
@@ -296,15 +298,16 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             },
                             vol.id,
                             vol.availability_zone,
+                            vol.id,
                             vol_sizes.join("\n"),
                             vol.iops,
                             vol.state,
                             if vol.tags.is_empty() {
                                 format!(
                                     r#"
-                                        <input type="text" name="tag_volume" id="tag_volume">
+                                        <input type="text" name="tag_volume" id="{}_tag_volume">
                                         <input type="button" name="tag_volume" value="Tag" onclick="tagVolume('{}');">
-                                    "#, vol.id
+                                    "#, vol.id, vol.id,
                                 )
                             } else {
                                 print_tags(&vol.tags).into()
@@ -364,9 +367,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             if snap.tags.is_empty() {
                                 format!(
                                     r#"
-                                        <input type="text" name="tag_snapshot" id="tag_snapshot">
+                                        <input type="text" name="tag_snapshot" id="{}_tag_snapshot">
                                         <input type="button" name="tag_snapshot" value="Tag" onclick="tagSnapshot('{}');">
-                                    "#, snap.id
+                                    "#, snap.id, snap.id,
                                 )
                             } else {
                                 print_tags(&snap.tags).into()
@@ -494,9 +497,9 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         } else {
                             format!(
                                 r#"
-                                    <input type="button" name="RemoveUser" value="Remove"
+                                    <input type="button" name="RemoveUser" value="Remove" id="{}_group_opt"
                                      onclick="removeUserFromGroup('{}');">"#,
-                                u.user_name
+                                u.user_name, u.user_name,
                             )
                         };
                         let delete_button = if u.user_id == current_user.user_id {
@@ -583,10 +586,10 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         let user_select = if user_opts.is_empty() {
                             "".to_string()
                         } else {
-                            format!(r#"<select id="user_opt">{}</select>"#, user_opts)
+                            format!(r#"<select id="{}_user_opt">{}</select>"#, g.group_name, user_opts)
                         };
 
-                        let user_remove_button = if user_select.is_empty() {
+                        let user_add_button = if user_select.is_empty() {
                             "".to_string()
                         } else {
                             format!(
@@ -609,7 +612,7 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             g.group_name,
                             g.arn,
                             user_select,
-                            user_remove_button,
+                            user_add_button,
                         )
                     })
                     .join("");
