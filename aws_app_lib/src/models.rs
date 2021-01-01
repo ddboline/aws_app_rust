@@ -18,6 +18,7 @@ pub struct InstanceFamily {
     pub id: i32,
     pub family_name: StackString,
     pub family_type: StackString,
+    pub data_url: Option<StackString>,
 }
 
 #[derive(Insertable, Clone, Debug)]
@@ -25,6 +26,7 @@ pub struct InstanceFamily {
 pub struct InstanceFamilyInsert {
     pub family_name: StackString,
     pub family_type: StackString,
+    pub data_url: Option<StackString>,
 }
 
 impl From<InstanceFamily> for InstanceFamilyInsert {
@@ -32,6 +34,7 @@ impl From<InstanceFamily> for InstanceFamilyInsert {
         InstanceFamilyInsert {
             family_name: item.family_name,
             family_type: item.family_type,
+            data_url: item.data_url,
         }
     }
 }
