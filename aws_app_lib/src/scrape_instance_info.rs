@@ -70,7 +70,10 @@ fn parse_result(
                         if url.contains("instance-types") {
                             let url = url.replace("https://aws.amazon.com", "");
                             if let Some(key) = url.split("/").nth(3) {
-                                data_urls.insert(key.to_string(), url);
+                                data_urls.insert(
+                                    key.to_string(),
+                                    format!("https://aws.amazon.com{}", url),
+                                );
                             }
                         }
                     }
