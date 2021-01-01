@@ -586,7 +586,10 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         let user_select = if user_opts.is_empty() {
                             "".to_string()
                         } else {
-                            format!(r#"<select id="{}_user_opt">{}</select>"#, g.group_name, user_opts)
+                            format!(
+                                r#"<select id="{}_user_opt">{}</select>"#,
+                                g.group_name, user_opts
+                            )
                         };
 
                         let user_add_button = if user_select.is_empty() {
