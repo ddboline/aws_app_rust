@@ -453,7 +453,7 @@ pub async fn get_prices(
                     </tr>
                     "#,
                     if let Some(data_url) = price.data_url {
-                        format!(r#"<a href="{}">{}</a>"#, data_url, price.instance_type)
+                        format!(r#"<a href="{}" target="_blank">{}</a>"#, data_url, price.instance_type)
                     } else {
                         price.instance_type.to_string()
                     },
