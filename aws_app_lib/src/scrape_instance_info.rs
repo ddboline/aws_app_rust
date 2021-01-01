@@ -8,6 +8,7 @@ use select::{
     predicate::{Class, Name},
 };
 use stack_string::StackString;
+use std::collections::HashMap;
 
 use crate::{
     models::{AwsGeneration, InstanceFamilyInsert, InstanceList},
@@ -39,6 +40,7 @@ fn parse_result(
 ) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
+    let mut data_urls = HashMap::new();
     let doc = Document::from(text);
 
     match generation {
@@ -58,12 +60,36 @@ fn parse_result(
                     let ifam = InstanceFamilyInsert {
                         family_name,
                         family_type: family_type.clone(),
+                        data_url: None,
                     };
                     instance_families.push(ifam);
+                }
+
+                for a in c.find(Name("a")) {
+                    if let Some(url) = a.attr("href") {
+                        if url.contains("instance-types") {
+                            let url = url.replace("https://aws.amazon.com", "");
+                            if let Some(key) = url.split("/").nth(3) {
+                                data_urls.insert(key.to_string(), url);
+                            }
+                        }
+                    }
                 }
             }
             for t in doc.find(Name("tbody")) {
                 instance_types.extend_from_slice(&extract_instance_types_hvm(&t)?);
+            }
+            for ifam in instance_families.iter_mut() {
+                if let Some(url) = data_urls.get(ifam.family_name.as_str()) {
+                    ifam.data_url.replace(url.into());
+                } else {
+                    for (key, url) in &data_urls {
+                        if ifam.family_name.contains(key) {
+                            ifam.data_url.replace(url.into());
+                            break;
+                        }
+                    }
+                }
             }
         }
         AwsGeneration::PV => {
@@ -194,6 +220,7 @@ fn extract_instance_family_object_pv(
     Ok(InstanceFamilyInsert {
         family_name,
         family_type,
+        data_url: None,
     })
 }
 
