@@ -166,14 +166,14 @@ fn extract_instance_types_pv(
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.iter().all(|x| x.is_empty()) {
+            if !row.is_empty() && !row.iter().all(String::is_empty) {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.iter().all(|x| x.is_empty()) {
+                if row.iter().all(String::is_empty) {
                     return None;
                 }
 
@@ -260,14 +260,14 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.iter().all(|x| x.is_empty()) {
+            if !row.is_empty() && !row.iter().all(String::is_empty) {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.iter().all(|x| x.is_empty()) {
+                if row.iter().all(String::is_empty) {
                     return None;
                 }
 
