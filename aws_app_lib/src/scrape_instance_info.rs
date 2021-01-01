@@ -69,7 +69,7 @@ fn parse_result(
                     if let Some(url) = a.attr("href") {
                         if url.contains("instance-types") {
                             let url = url.replace("https://aws.amazon.com", "");
-                            if let Some(key) = url.split("/").nth(3) {
+                            if let Some(key) = url.split('/').nth(3) {
                                 data_urls.insert(
                                     key.to_string(),
                                     format!("https://aws.amazon.com{}", url),
@@ -82,7 +82,7 @@ fn parse_result(
             for t in doc.find(Name("tbody")) {
                 instance_types.extend_from_slice(&extract_instance_types_hvm(&t)?);
             }
-            for ifam in instance_families.iter_mut() {
+            for ifam in &mut instance_families {
                 if let Some(url) = data_urls.get(ifam.family_name.as_str()) {
                     ifam.data_url.replace(url.into());
                 } else {
@@ -166,14 +166,14 @@ fn extract_instance_types_pv(
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.iter().all(|x| x == "") {
+            if !row.is_empty() && !row.iter().all(|x| x.is_empty()) {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.iter().all(|x| x == "") {
+                if row.iter().all(|x| x.is_empty()) {
                     return None;
                 }
 
@@ -260,14 +260,14 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
                 .find(Name("td"))
                 .map(|td| td.text().trim().to_string())
                 .collect();
-            if !row.is_empty() && !row.iter().all(|x| x == "") {
+            if !row.is_empty() && !row.iter().all(|x| x.is_empty()) {
                 Some(row)
             } else {
                 let row: Vec<_> = tr
                     .find(Name("th"))
                     .map(|th| th.text().trim().to_string())
                     .collect();
-                if row.iter().all(|x| x == "") {
+                if row.iter().all(|x| x.is_empty()) {
                     return None;
                 }
 
