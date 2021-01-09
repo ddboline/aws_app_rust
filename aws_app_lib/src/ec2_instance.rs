@@ -528,7 +528,7 @@ impl Ec2Instance {
                 .await?
                 .map(|r| (r.id, r.instance_id))
                 .collect();
-            if !reqs.contains_key(spot_instance_request_id) {
+            if !reqs.contains_key(spot_instance_request_id) && i > 10 {
                 return Ok(());
             }
             let instances: HashMap<_, _> = self
