@@ -388,10 +388,12 @@ pub async fn request_spot(
     _: LoggedUser,
     data: Data<AppState>,
 ) -> HttpResult {
-    let req = req.into_inner().into();
-    if let Some(spot_id) = data.aws.ec2.request_spot_instance(&req).await?.pop() {
+    let req: SpotRequest = req.into_inner().into();
+    let tags = Arc::new(req.tags.clone());
+    for spot_id in data.aws.ec2.request_spot_instance(&req).await? {
         let ec2 = data.aws.ec2.clone();
-        spawn(async move { ec2.tag_spot_instance(&spot_id, &req.tags, 1000).await });
+        let tags = tags.clone();
+        spawn(async move { ec2.tag_spot_instance(&spot_id, &tags, 1000).await });
     }
     form_http_response("done".to_string())
 }
