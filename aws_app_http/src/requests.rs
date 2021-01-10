@@ -971,7 +971,7 @@ impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
     async fn handle(&self, _: NoVncStopRequest) -> Self::Result {
         let mut children = NOVNC_CHILDREN.write().await;
         for child in children.iter_mut() {
-            if let Err(e) = child.kill() {
+            if let Err(e) = child.kill().await {
                 debug!("Failed to kill {}", e);
             }
         }
@@ -985,7 +985,7 @@ impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
 
         let mut output = Vec::new();
         while let Some(mut child) = children.pop() {
-            if let Err(e) = child.kill() {
+            if let Err(e) = child.kill().await {
                 debug!("Failed to kill {}", e);
             }
             let result = child.wait_with_output().await?;
