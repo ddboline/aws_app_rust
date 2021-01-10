@@ -142,7 +142,6 @@ mod tests {
     use std::env::{remove_var, set_var};
 
     use auth_server_http::app::run_test_app;
-    use auth_server_lib::get_random_string;
 
     use aws_app_lib::config::Config;
 
@@ -155,8 +154,8 @@ mod tests {
     async fn test_app() -> Result<(), Error> {
         set_var("TESTENV", "true");
 
-        let email = format!("{}@localhost", get_random_string(32));
-        let password = get_random_string(32);
+        let email = "test_aws_app_user@localhost";
+        let password = "abc123xyz8675309";
 
         let config = Config::init_config()?;
 
