@@ -26,7 +26,7 @@ use std::{
     time,
 };
 use sts_profile_auth::get_client_sts;
-use tokio::{task::spawn, time::delay_for};
+use tokio::{task::spawn, time::sleep};
 
 use crate::config::Config;
 
@@ -490,7 +490,7 @@ impl Ec2Instance {
         name: &str,
         iterations: usize,
     ) -> Result<(), Error> {
-        delay_for(time::Duration::from_secs(2)).await;
+        sleep(time::Duration::from_secs(2)).await;
         for i in 0..iterations {
             if let Some(ami) = self
                 .get_ami_tags()
@@ -510,7 +510,7 @@ impl Ec2Instance {
             } else {
                 40
             };
-            delay_for(time::Duration::from_secs(secs)).await;
+            sleep(time::Duration::from_secs(secs)).await;
         }
         Ok(())
     }
@@ -521,7 +521,7 @@ impl Ec2Instance {
         tags: &HashMap<StackString, StackString>,
         iterations: usize,
     ) -> Result<(), Error> {
-        delay_for(time::Duration::from_secs(2)).await;
+        sleep(time::Duration::from_secs(2)).await;
         for i in 0..iterations {
             let reqs: HashMap<_, _> = self
                 .get_spot_instance_requests()
@@ -555,7 +555,7 @@ impl Ec2Instance {
             } else {
                 40
             };
-            delay_for(time::Duration::from_secs(secs)).await;
+            sleep(time::Duration::from_secs(secs)).await;
         }
         Ok(())
     }
