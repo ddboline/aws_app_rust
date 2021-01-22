@@ -170,12 +170,17 @@ impl Ec2Instance {
     pub async fn get_ami_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
         let req = self.get_ami_tags().await?;
         let mut latest_ami_name = None;
+        let mut latest_arm64_name = None;
         let mut ami_map: HashMap<_, _> = req
             .map(|ami| {
                 if ami.name.contains("_tmpfs_")
                     && (latest_ami_name.is_none() || Some(&ami.name) > latest_ami_name.as_ref())
                 {
                     latest_ami_name = Some(ami.name.clone());
+                } else if ami.name.contains("_arm64_")
+                    && (latest_arm64_name.is_none() || Some(&ami.name) > latest_arm64_name.as_ref())
+                {
+                    latest_arm64_name = Some(ami.name.clone());
                 }
                 (ami.name, ami.id)
             })
@@ -183,6 +188,10 @@ impl Ec2Instance {
         if let Some(latest_ami_name) = &latest_ami_name {
             let latest_ami_id = ami_map.get(latest_ami_name).unwrap().clone();
             ami_map.insert("latest".into(), latest_ami_id);
+        }
+        if let Some(latest_arm64_name) = &latest_arm64_name {
+            let latest_arm64_id = ami_map.get(latest_arm64_name).unwrap().clone();
+            ami_map.insert("arm64".into(), latest_arm64_id);
         }
         Ok(ami_map)
     }
