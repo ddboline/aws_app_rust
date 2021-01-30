@@ -464,7 +464,7 @@ impl AwsAppInterface {
         let inst_list: Vec<_> = instance_list
             .keys()
             .filter_map(|inst| {
-                if search.iter().any(|s| inst.contains(s.as_ref())) {
+                if search.iter().any(|s| inst.starts_with(s.as_ref())) {
                     Some(inst.to_string())
                 } else {
                     None
