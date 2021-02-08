@@ -58,7 +58,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             sync_frontpage(user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let list_path = warp::path("list")
         .and(warp::path::end())
         .and(warp::get())
@@ -69,7 +69,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             list(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let terminate_path = warp::path("terminate")
         .and(warp::path::end())
         .and(warp::get())
@@ -80,7 +80,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             terminate(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let create_image_path = warp::path("create_image")
         .and(warp::path::end())
         .and(warp::get())
@@ -91,7 +91,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             create_image(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let delete_image_path = warp::path("delete_image")
         .and(warp::path::end())
         .and(warp::get())
@@ -102,7 +102,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             delete_image(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let delete_volume_path = warp::path("delete_volume")
         .and(warp::path::end())
         .and(warp::get())
@@ -113,7 +113,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             delete_volume(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let modify_volume_path = warp::path("modify_volume")
         .and(warp::path::end())
         .and(warp::get())
@@ -124,7 +124,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             modify_volume(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let delete_snapshot_path = warp::path("delete_snapshot")
         .and(warp::path::end())
         .and(warp::get())
@@ -135,7 +135,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             delete_snapshot(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let create_snapshot_path = warp::path("create_snapshot")
         .and(warp::path::end())
         .and(warp::get())
@@ -146,7 +146,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             create_snapshot(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let tag_item_path = warp::path("tag_item")
         .and(warp::path::end())
         .and(warp::get())
@@ -157,7 +157,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             tag_item(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let delete_ecr_image_path = warp::path("delete_ecr_image")
         .and(warp::path::end())
         .and(warp::get())
@@ -168,7 +168,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             delete_ecr_image(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let cleanup_ecr_images_path = warp::path("cleanup_ecr_images")
         .and(warp::path::end())
         .and(warp::get())
@@ -178,7 +178,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             cleanup_ecr_images(user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let edit_script_path = warp::path("edit_script")
         .and(warp::path::end())
         .and(warp::get())
@@ -189,7 +189,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             edit_script(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let replace_script_path = warp::path("replace_script")
         .and(warp::path::end())
         .and(warp::post())
@@ -200,7 +200,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             replace_script(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let delete_script_path = warp::path("delete_script")
         .and(warp::path::end())
         .and(warp::get())
@@ -211,7 +211,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             delete_script(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let create_user_path = warp::path("create_user")
         .and(warp::path::end())
         .and(warp::get())
@@ -222,7 +222,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             create_user(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let delete_user_path = warp::path("delete_user")
         .and(warp::path::end())
         .and(warp::get())
@@ -233,7 +233,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             delete_user(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let add_user_to_group_path = warp::path("add_user_to_group")
         .and(warp::path::end())
         .and(warp::get())
@@ -244,7 +244,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             add_user_to_group(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let remove_user_from_group_path = warp::path("remove_user_from_group")
         .and(warp::path::end())
         .and(warp::get())
@@ -255,7 +255,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             remove_user_from_group(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let create_access_key_path = warp::path("create_access_key")
         .and(warp::path::end())
         .and(warp::get())
@@ -266,7 +266,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             create_access_key(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let delete_access_key_path = warp::path("delete_access_key")
         .and(warp::path::end())
         .and(warp::get())
@@ -277,7 +277,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             delete_access_key(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let build_spot_request_path = warp::path("build_spot_request")
         .and(warp::path::end())
         .and(warp::get())
@@ -288,7 +288,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             build_spot_request(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let request_spot_path = warp::path("request_spot")
         .and(warp::path::end())
         .and(warp::post())
@@ -299,7 +299,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             request_spot(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let cancel_spot_path = warp::path("cancel_spot")
         .and(warp::path::end())
         .and(warp::get())
@@ -310,7 +310,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             cancel_spot(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let get_prices_path = warp::path("prices")
         .and(warp::path::end())
         .and(warp::get())
@@ -321,7 +321,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             get_prices(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let update_path = warp::path("update")
         .and(warp::path::end())
         .and(warp::get())
@@ -329,7 +329,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .and(warp::cookie("jwt"))
         .and_then(|data, user: LoggedUser| async move {
             update(user, data).await.map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let status_path = warp::path("status")
         .and(warp::path::end())
         .and(warp::get())
@@ -340,7 +340,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             status(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let command_path = warp::path("command")
         .and(warp::path::end())
         .and(warp::post())
@@ -351,7 +351,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             command(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let get_instances_path = warp::path("instances")
         .and(warp::path::end())
         .and(warp::get())
@@ -362,14 +362,14 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             get_instances(query, user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let user_path = warp::path("user")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::cookie("jwt"))
         .and_then(
             |user_: LoggedUser| async move { user(user_).await.map_err(Into::<Rejection>::into) },
-        );
+        ).boxed();
     let novnc_launcher_path = warp::path("start")
         .and(warp::path::end())
         .and(warp::get())
@@ -379,7 +379,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             novnc_launcher(user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let novnc_status_path = warp::path("status")
         .and(warp::path::end())
         .and(warp::get())
@@ -389,7 +389,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             novnc_status(user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
     let novnc_shutdown_path = warp::path("stop")
         .and(warp::path::end())
         .and(warp::get())
@@ -399,13 +399,13 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             novnc_shutdown(user, data)
                 .await
                 .map_err(Into::<Rejection>::into)
-        });
+        }).boxed();
 
     let novnc_scope = warp::path("novnc").and(
         novnc_launcher_path
             .or(novnc_status_path)
             .or(novnc_shutdown_path),
-    );
+    ).boxed();
 
     let aws_path = warp::path("aws")
         .and(
@@ -440,7 +440,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
                 .or(get_instances_path)
                 .or(user_path),
         )
-        .or(novnc_scope);
+        .or(novnc_scope).boxed();
     let routes = aws_path.recover(error_response);
     let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
     warp::serve(routes).bind(addr).await;
@@ -455,7 +455,7 @@ mod tests {
 
     use auth_server_http::app::run_test_app;
 
-    use aws_app_lib::config::Config;
+    use aws_app_lib::{config::Config, resource_type::ResourceType};
 
     use crate::{
         app::run_app,
@@ -481,13 +481,16 @@ mod tests {
         JWT_SECRET.set(secret_key);
         SECRET_KEY.set(secret_key);
 
+        println!("spawning auth");
         tokio::task::spawn(async move { run_test_app(config).await.unwrap() });
 
         let test_port: u32 = 12345;
         set_var("PORT", test_port.to_string());
         let config = Config::init_config()?;
 
+        println!("spawning aws");
         tokio::task::spawn(async move { run_app(&config).await.unwrap() });
+        println!("sleeping");
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
         let client = reqwest::Client::builder().cookie_store(true).build()?;
@@ -517,6 +520,27 @@ mod tests {
         println!("{}", result);
         assert!(result.len() > 0);
         assert!(result.contains("Instance Id"));
+
+        for rtype in &[
+            ResourceType::Instances,
+            ResourceType::Reserved,
+            ResourceType::Spot,
+            ResourceType::Ami,
+            ResourceType::Volume,
+            ResourceType::Snapshot,
+            ResourceType::Ecr,
+            ResourceType::Key,
+            ResourceType::Script,
+            ResourceType::User,
+            ResourceType::Group,
+            ResourceType::AccessKey,
+        ] {
+            let url = format!("http://localhost:{}/aws/list?resource={}", test_port, rtype);
+            let result = client.get(&url).send().await?.error_for_status()?.text().await?;
+            println!("{}", result);
+            assert!(result.len() > 0);
+            assert!(result.contains(&rtype.to_string()));
+        }
 
         remove_var("TESTENV");
 
