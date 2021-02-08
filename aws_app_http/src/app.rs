@@ -484,7 +484,7 @@ mod tests {
         tokio::task::spawn(async move { run_test_app(config).await.unwrap() });
 
         let test_port: u32 = 12345;
-        set_var("PORT", auth_port.to_string());
+        set_var("PORT", test_port.to_string());
         let config = Config::init_config()?;
 
         tokio::task::spawn(async move { run_app(&config).await.unwrap() });
