@@ -58,11 +58,11 @@ pub async fn terminate(query: TerminateRequest, _: LoggedUser, data: AppState) -
 }
 
 pub async fn create_image(query: CreateImageRequest, _: LoggedUser, data: AppState) -> HttpResult {
-    let body = if let Some(ami_id) = data.aws.handle(query).await? {
-        ami_id.into()
-    } else {
-        "failed to create ami".into()
-    };
+    let body = data
+        .aws
+        .handle(query)
+        .await?
+        .map_or_else(|| "failed to create ami".into(), |ami_id| ami_id.into());
     Ok(warp::reply::html(body))
 }
 
@@ -570,6 +570,7 @@ pub struct CreateUserRequest {
     pub user_name: StackString,
 }
 
+#[allow(clippy::option_if_let_else)]
 pub async fn create_user(
     query: CreateUserRequest,
     _: LoggedUser,
