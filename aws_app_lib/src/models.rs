@@ -74,11 +74,12 @@ impl InstanceFamily {
     }
 
     fn get_all_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        use crate::schema::instance_family::dsl::{instance_family, family_name, family_type};
+        use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
         let conn = pool.get()?;
         instance_family
             .order((family_type, family_name))
-            .load(&conn).map_err(Into::into)
+            .load(&conn)
+            .map_err(Into::into)
     }
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {

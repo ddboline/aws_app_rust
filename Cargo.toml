@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_rust"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -21,7 +21,6 @@ CLI and Web app frontend for aws"""
 [dependencies]
 aws_app_lib = {path="aws_app_lib"}
 aws_app_http = {path="aws_app_http"}
-actix-rt = "2.0.0-beta.2"
 log = "0.4"
 env_logger = "0.8"
 anyhow = "1.0"

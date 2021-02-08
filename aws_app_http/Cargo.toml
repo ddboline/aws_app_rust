@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -8,16 +8,15 @@ edition = "2018"
 
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
-actix-web = "4.0.0-beta.1"
-actix-rt = "2.0.0-beta.2"
-actix-identity = {git="https://github.com/ddboline/actix-extras", branch="update-dependencies"}
+warp = "0.3"
+http = "0.2"
 chrono = "0.4"
 futures = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 lazy_static = "1.4"
-tokio = {version="1.0", features=["time"]}
+tokio = {version="1.2", features=["time"]}
 log = "0.4"
 parking_lot = "0.11"
 maplit = "1.0"
@@ -25,14 +24,14 @@ walkdir = "2.3"
 anyhow = "1.0"
 thiserror = "1.0"
 async-trait = "0.1"
-cached = "0.22"
+cached = "0.23"
 dirs = "3.0"
 itertools = "0.10"
 smallvec = "1.6"
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.3.0"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", branch="replace_actix_with_warp"}
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", tag="0.2.0", features=["diesel_types"] }
 
 [dev-dependencies]
 reqwest = {version = "0.11", features=["cookies", "rustls-tls", "gzip", "json"]}
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.3.0"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.3.0"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", branch="replace_actix_with_warp"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", branch="replace_actix_with_warp"}

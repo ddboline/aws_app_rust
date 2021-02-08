@@ -1,15 +1,13 @@
-use actix_identity::{CookieIdentityPolicy, IdentityService};
-use actix_web::{middleware::Compress, web, App, HttpServer};
 use anyhow::Error;
-use lazy_static::lazy_static;
-use stack_string::StackString;
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 use tokio::time::interval;
+use warp::{Filter, Rejection};
 
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
 use super::{
-    logged_user::{fill_from_db, get_secrets, KEY_LENGTH, SECRET_KEY, TRIGGER_DB_UPDATE},
+    errors::error_response,
+    logged_user::{fill_from_db, get_secrets, LoggedUser, TRIGGER_DB_UPDATE},
     routes::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
         create_access_key, create_image, create_snapshot, create_user, delete_access_key,
@@ -20,26 +18,18 @@ use super::{
     },
 };
 
-lazy_static! {
-    pub static ref CONFIG: Config = Config::init_config().expect("Failed to init config");
-}
-
+#[derive(Clone)]
 pub struct AppState {
     pub aws: AwsAppInterface,
 }
 
 pub async fn start_app() -> Result<(), Error> {
-    let port = CONFIG.port;
-    get_secrets(&CONFIG.secret_path, &CONFIG.jwt_secret_path).await?;
-    run_app(&CONFIG, port, SECRET_KEY.get(), CONFIG.domain.clone()).await
+    let config = Config::init_config()?;
+    get_secrets(&config.secret_path, &config.jwt_secret_path).await?;
+    run_app(&config).await
 }
 
-async fn run_app(
-    config: &Config,
-    port: u32,
-    cookie_secret: [u8; KEY_LENGTH],
-    domain: StackString,
-) -> Result<(), Error> {
+async fn run_app(config: &Config) -> Result<(), Error> {
     async fn _update_db(pool: PgPool) {
         let mut i = interval(Duration::from_secs(60));
         loop {
@@ -51,88 +41,410 @@ async fn run_app(
     TRIGGER_DB_UPDATE.set();
 
     let pool = PgPool::new(&config.database_url);
-    let aws = AwsAppInterface::new(config.clone(), pool);
+    let app = AppState {
+        aws: AwsAppInterface::new(config.clone(), pool),
+    };
 
-    actix_rt::spawn(_update_db(aws.pool.clone()));
+    tokio::task::spawn(_update_db(app.aws.pool.clone()));
 
-    HttpServer::new(move || {
-        App::new()
-            .data(AppState { aws: aws.clone() })
-            .wrap(Compress::default())
-            .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(&cookie_secret)
-                    .name("auth")
-                    .path("/")
-                    .domain(domain.as_str())
-                    .max_age(24 * 3600)
-                    .secure(false),
-            ))
-            .service(
-                web::scope("/aws")
-                    .service(web::resource("/index.html").route(web::get().to(sync_frontpage)))
-                    .service(web::resource("/list").route(web::get().to(list)))
-                    .service(web::resource("/terminate").route(web::get().to(terminate)))
-                    .service(web::resource("/create_image").route(web::get().to(create_image)))
-                    .service(web::resource("/delete_image").route(web::get().to(delete_image)))
-                    .service(web::resource("/delete_volume").route(web::get().to(delete_volume)))
-                    .service(web::resource("/modify_volume").route(web::get().to(modify_volume)))
-                    .service(
-                        web::resource("/delete_snapshot").route(web::get().to(delete_snapshot)),
-                    )
-                    .service(
-                        web::resource("/create_snapshot").route(web::get().to(create_snapshot)),
-                    )
-                    .service(web::resource("/tag_item").route(web::get().to(tag_item)))
-                    .service(
-                        web::resource("/delete_ecr_image").route(web::get().to(delete_ecr_image)),
-                    )
-                    .service(
-                        web::resource("/cleanup_ecr_images")
-                            .route(web::get().to(cleanup_ecr_images)),
-                    )
-                    .service(web::resource("/edit_script").route(web::get().to(edit_script)))
-                    .service(web::resource("/replace_script").route(web::post().to(replace_script)))
-                    .service(web::resource("/delete_script").route(web::get().to(delete_script)))
-                    .service(web::resource("/create_user").route(web::get().to(create_user)))
-                    .service(web::resource("/delete_user").route(web::get().to(delete_user)))
-                    .service(
-                        web::resource("/add_user_to_group").route(web::get().to(add_user_to_group)),
-                    )
-                    .service(
-                        web::resource("/remove_user_from_group")
-                            .route(web::get().to(remove_user_from_group)),
-                    )
-                    .service(
-                        web::resource("/create_access_key").route(web::get().to(create_access_key)),
-                    )
-                    .service(
-                        web::resource("/delete_access_key").route(web::get().to(delete_access_key)),
-                    )
-                    .service(
-                        web::resource("/build_spot_request")
-                            .route(web::get().to(build_spot_request)),
-                    )
-                    .service(web::resource("/request_spot").route(web::post().to(request_spot)))
-                    .service(web::resource("/cancel_spot").route(web::get().to(cancel_spot)))
-                    .service(web::resource("/prices").route(web::get().to(get_prices)))
-                    .service(web::resource("/update").route(web::get().to(update)))
-                    .service(web::resource("/status").route(web::get().to(status)))
-                    .service(web::resource("/command").route(web::post().to(command)))
-                    .service(web::resource("/instances").route(web::get().to(get_instances)))
-                    .service(
-                        web::scope("/novnc")
-                            .service(web::resource("/start").route(web::get().to(novnc_launcher)))
-                            .service(web::resource("/status").route(web::get().to(novnc_status)))
-                            .service(web::resource("/stop").route(web::get().to(novnc_shutdown))),
-                    )
-                    .service(web::resource("/user").route(web::get().to(user))),
-            )
-    })
-    .bind(&format!("127.0.0.1:{}", port))
-    .unwrap_or_else(|_| panic!("Failed to bind to port {}", port))
-    .run()
-    .await
-    .map_err(Into::into)
+    let data = warp::any().map(move || app.clone());
+
+    let frontpage_path = warp::path("index.html")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|data, user: LoggedUser| async move {
+            sync_frontpage(user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let list_path = warp::path("list")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            list(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let terminate_path = warp::path("terminate")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            terminate(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let create_image_path = warp::path("create_image")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            create_image(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let delete_image_path = warp::path("delete_image")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            delete_image(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let delete_volume_path = warp::path("delete_volume")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            delete_volume(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let modify_volume_path = warp::path("modify_volume")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            modify_volume(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let delete_snapshot_path = warp::path("delete_snapshot")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            delete_snapshot(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let create_snapshot_path = warp::path("create_snapshot")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            create_snapshot(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let tag_item_path = warp::path("tag_item")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            tag_item(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let delete_ecr_image_path = warp::path("delete_ecr_image")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            delete_ecr_image(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let cleanup_ecr_images_path = warp::path("cleanup_ecr_images")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|data, user: LoggedUser| async move {
+            cleanup_ecr_images(user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let edit_script_path = warp::path("edit_script")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            edit_script(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let replace_script_path = warp::path("replace_script")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            replace_script(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let delete_script_path = warp::path("delete_script")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            delete_script(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let create_user_path = warp::path("create_user")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            create_user(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let delete_user_path = warp::path("delete_user")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            delete_user(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let add_user_to_group_path = warp::path("add_user_to_group")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            add_user_to_group(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let remove_user_from_group_path = warp::path("remove_user_from_group")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            remove_user_from_group(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let create_access_key_path = warp::path("create_access_key")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            create_access_key(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let delete_access_key_path = warp::path("delete_access_key")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            delete_access_key(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let build_spot_request_path = warp::path("build_spot_request")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            build_spot_request(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let request_spot_path = warp::path("request_spot")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            request_spot(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let cancel_spot_path = warp::path("cancel_spot")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            cancel_spot(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let get_prices_path = warp::path("prices")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            get_prices(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let update_path = warp::path("update")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|data, user: LoggedUser| async move {
+            update(user, data).await.map_err(Into::<Rejection>::into)
+        });
+    let status_path = warp::path("status")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            status(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let command_path = warp::path("command")
+        .and(warp::path::end())
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            command(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let get_instances_path = warp::path("instances")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|query, data, user: LoggedUser| async move {
+            get_instances(query, user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let user_path = warp::path("user")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::cookie("jwt"))
+        .and_then(
+            |user_: LoggedUser| async move { user(user_).await.map_err(Into::<Rejection>::into) },
+        );
+    let novnc_launcher_path = warp::path("start")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|data, user: LoggedUser| async move {
+            novnc_launcher(user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let novnc_status_path = warp::path("status")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|data, user: LoggedUser| async move {
+            novnc_status(user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+    let novnc_shutdown_path = warp::path("stop")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(data.clone())
+        .and(warp::cookie("jwt"))
+        .and_then(|data, user: LoggedUser| async move {
+            novnc_shutdown(user, data)
+                .await
+                .map_err(Into::<Rejection>::into)
+        });
+
+    let novnc_scope = warp::path("novnc").and(
+        novnc_launcher_path
+            .or(novnc_status_path)
+            .or(novnc_shutdown_path),
+    );
+
+    let aws_path = warp::path("aws")
+        .and(
+            frontpage_path
+                .or(list_path)
+                .or(terminate_path)
+                .or(create_image_path)
+                .or(delete_image_path)
+                .or(delete_volume_path)
+                .or(modify_volume_path)
+                .or(delete_snapshot_path)
+                .or(create_snapshot_path)
+                .or(tag_item_path)
+                .or(delete_ecr_image_path)
+                .or(cleanup_ecr_images_path)
+                .or(edit_script_path)
+                .or(replace_script_path)
+                .or(delete_script_path)
+                .or(create_user_path)
+                .or(delete_user_path)
+                .or(add_user_to_group_path)
+                .or(remove_user_from_group_path)
+                .or(create_access_key_path)
+                .or(delete_access_key_path)
+                .or(build_spot_request_path)
+                .or(request_spot_path)
+                .or(cancel_spot_path)
+                .or(get_prices_path)
+                .or(update_path)
+                .or(status_path)
+                .or(command_path)
+                .or(get_instances_path)
+                .or(user_path),
+        )
+        .or(novnc_scope);
+    let routes = aws_path.recover(error_response);
+    let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
+    warp::serve(routes).bind(addr).await;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -150,14 +462,18 @@ mod tests {
         logged_user::{get_random_key, JWT_SECRET, KEY_LENGTH, SECRET_KEY},
     };
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_app() -> Result<(), Error> {
         set_var("TESTENV", "true");
 
         let email = "test_aws_app_user@localhost";
         let password = "abc123xyz8675309";
 
-        let config = Config::init_config()?;
+        let auth_port: u32 = 54321;
+        set_var("PORT", auth_port.to_string());
+        set_var("DOMAIN", "localhost");
+
+        let config = auth_server_lib::config::Config::init_config()?;
 
         let mut secret_key = [0u8; KEY_LENGTH];
         secret_key.copy_from_slice(&get_random_key());
@@ -165,20 +481,14 @@ mod tests {
         JWT_SECRET.set(secret_key);
         SECRET_KEY.set(secret_key);
 
-        let auth_port: u32 = 54321;
-        actix_rt::spawn(async move {
-            run_test_app(auth_port, secret_key, "localhost".into())
-                .await
-                .unwrap()
-        });
+        tokio::task::spawn(async move { run_test_app(config).await.unwrap() });
 
         let test_port: u32 = 12345;
-        actix_rt::spawn(async move {
-            run_app(&config, test_port, secret_key, "localhost".into())
-                .await
-                .unwrap()
-        });
-        actix_rt::time::sleep(std::time::Duration::from_secs(10)).await;
+        set_var("PORT", auth_port.to_string());
+        let config = Config::init_config()?;
+
+        tokio::task::spawn(async move { run_app(&config).await.unwrap() });
+        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
         let client = reqwest::Client::builder().cookie_store(true).build()?;
         let url = format!("http://localhost:{}/api/auth", auth_port);
