@@ -525,7 +525,10 @@ mod tests {
         let config = Config::init_config()?;
 
         println!("spawning aws");
-        tokio::task::spawn(async move { run_app(&config).await.unwrap() });
+        tokio::task::spawn(async move {
+            env_logger::init();
+            run_app(&config).await.unwrap()
+        });
         println!("sleeping");
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
