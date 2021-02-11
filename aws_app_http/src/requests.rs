@@ -1,5 +1,4 @@
 use anyhow::Error;
-use async_trait::async_trait;
 use cached::{Cached, SizedCache};
 use chrono::{DateTime, Duration, Local, Utc};
 use futures::future::try_join_all;
@@ -26,6 +25,7 @@ use tokio::{
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
+    config::Config,
     ec2_instance::AmiInfo,
     resource_type::ResourceType,
 };
@@ -79,203 +79,197 @@ impl InfoCache {
     }
 }
 
-#[async_trait]
-pub trait HandleRequest<T> {
-    type Result;
-    async fn handle(&self, req: T) -> Self::Result;
-}
-
-#[async_trait]
-impl HandleRequest<ResourceType> for AwsAppInterface {
-    type Result = Result<Vec<StackString>, Error>;
-    async fn handle(&self, req: ResourceType) -> Self::Result {
-        let mut output: Vec<StackString> = Vec::new();
-        match req {
-            ResourceType::Instances => {
-                let result = list_instance(self).await?;
-                if result.is_empty() {
-                    return Ok(Vec::new());
-                }
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead>
+pub async fn get_frontpage(
+    resource_type: ResourceType,
+    app: &AwsAppInterface,
+) -> Result<Vec<StackString>, Error> {
+    let mut output: Vec<StackString> = Vec::new();
+    match resource_type {
+        ResourceType::Instances => {
+            let result = list_instance(app).await?;
+            if result.is_empty() {
+                return Ok(Vec::new());
+            }
+            output.push(
+                r#"<table border="1" class="dataframe"><thead>
                     <tr>
                     <th>Instance Id</th><th>Public Hostname</th><th>State</th><th>Name</th>
                     <th>Instance Type</th><th>Created At</th><th>Availability Zone</th>
                     </tr>
                     </thead><tbody>"#
-                        .into(),
-                );
-                output.extend_from_slice(&result);
-                output.push("</tbody></table>".into());
+                    .into(),
+            );
+            output.extend_from_slice(&result);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Reserved => {
+            let reserved: Vec<_> = app.ec2.get_reserved_instances().await?.collect();
+            if reserved.is_empty() {
+                return Ok(Vec::new());
             }
-            ResourceType::Reserved => {
-                let reserved: Vec<_> = self.ec2.get_reserved_instances().await?.collect();
-                if reserved.is_empty() {
-                    return Ok(Vec::new());
-                }
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead>
+            output.push(
+                r#"<table border="1" class="dataframe"><thead>
                     <tr><th>Reserved Instance Id</th><th>Price</th><th>Instance Type</th>
                     <th>State</th><th>Availability Zone</th></tr>
                     </thead><tbody>"#
-                        .into(),
-                );
-                let result: Vec<_> = reserved
-                    .iter()
-                    .map(|res| {
-                        format!(
-                            r#"<tr style="text-align: center;">
+                    .into(),
+            );
+            let result: Vec<_> = reserved
+                .iter()
+                .map(|res| {
+                    format!(
+                        r#"<tr style="text-align: center;">
                                 <td>{}</td><td>${:0.2}</td><td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
-                            res.id,
-                            res.price,
-                            res.instance_type,
-                            res.state,
-                            res.availability_zone
-                                .as_ref()
-                                .map_or_else(|| "", StackString::as_str)
-                        )
-                        .into()
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
-                output.push("</tbody></table>".into());
+                        res.id,
+                        res.price,
+                        res.instance_type,
+                        res.state,
+                        res.availability_zone
+                            .as_ref()
+                            .map_or_else(|| "", StackString::as_str)
+                    )
+                    .into()
+                })
+                .collect();
+            output.extend_from_slice(&result);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Spot => {
+            let requests: Vec<_> = app.ec2.get_spot_instance_requests().await?.collect();
+            if requests.is_empty() {
+                return Ok(Vec::new());
             }
-            ResourceType::Spot => {
-                let requests: Vec<_> = self.ec2.get_spot_instance_requests().await?.collect();
-                if requests.is_empty() {
-                    return Ok(Vec::new());
-                }
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead>
+            output.push(
+                r#"<table border="1" class="dataframe"><thead>
                     <tr><th>Spot Request Id</th><th>Price</th><th>AMI</th><th>Instance Type</th>
                     <th>Spot Type</th><th>Status</th></tr>
                     </thead><tbody>"#
-                        .into(),
-                );
-                let result: Vec<_> = requests
-                    .iter()
-                    .map(|req| {
-                        format!(
-                            r#"<tr style="text-align: center;">
+                    .into(),
+            );
+            let result: Vec<_> = requests
+                .iter()
+                .map(|req| {
+                    format!(
+                        r#"<tr style="text-align: center;">
                                 <td>{}</td><td>${}</td><td>{}</td><td>{}</td>
                                 <td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
-                            req.id,
-                            req.price,
-                            req.imageid,
-                            req.instance_type,
-                            req.spot_type,
-                            req.status,
-                            match req.status.as_str() {
-                                "pending" | "pending-fulfillment" => format!(
-                                    r#"<input type="button" name="cancel" value="Cancel"
+                        req.id,
+                        req.price,
+                        req.imageid,
+                        req.instance_type,
+                        req.spot_type,
+                        req.status,
+                        match req.status.as_str() {
+                            "pending" | "pending-fulfillment" => format!(
+                                r#"<input type="button" name="cancel" value="Cancel"
                                         onclick="cancelSpotRequest('{}')">"#,
-                                    req.id
-                                ),
-                                _ => "".to_string(),
-                            }
-                        )
-                        .into()
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
-                output.push("</tbody></table>".into());
+                                req.id
+                            ),
+                            _ => "".to_string(),
+                        }
+                    )
+                    .into()
+                })
+                .collect();
+            output.extend_from_slice(&result);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Ami => {
+            let ubuntu_ami = async {
+                let hash = app.config.ubuntu_release.as_str();
+                CACHE_UBUNTU_AMI
+                    .get_cached(hash, app.ec2.get_latest_ubuntu_ami(hash, "amd64"))
+                    .await
+            };
+            let ubuntu_ami_arm64 = async {
+                let hash = app.config.ubuntu_release.as_str();
+                CACHE_UBUNTU_AMI_ARM64
+                    .get_cached(hash, app.ec2.get_latest_ubuntu_ami(hash, "arm64"))
+                    .await
+            };
+
+            let ami_tags = app.ec2.get_ami_tags();
+            let (ubuntu_ami, ubuntu_ami_arm64, ami_tags) =
+                try_join!(ubuntu_ami, ubuntu_ami_arm64, ami_tags)?;
+            let mut ami_tags: Vec<_> = ami_tags.collect();
+
+            ami_tags.sort_by(|x, y| x.name.cmp(&y.name));
+            if let Some(ami) = ubuntu_ami {
+                ami_tags.push(ami);
             }
-            ResourceType::Ami => {
-                let ubuntu_ami = async {
-                    let hash = self.config.ubuntu_release.as_str();
-                    CACHE_UBUNTU_AMI
-                        .get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash, "amd64"))
-                        .await
-                };
-                let ubuntu_ami_arm64 = async {
-                    let hash = self.config.ubuntu_release.as_str();
-                    CACHE_UBUNTU_AMI_ARM64
-                        .get_cached(hash, self.ec2.get_latest_ubuntu_ami(hash, "arm64"))
-                        .await
-                };
-
-                let ami_tags = self.ec2.get_ami_tags();
-                let (ubuntu_ami, ubuntu_ami_arm64, ami_tags) =
-                    try_join!(ubuntu_ami, ubuntu_ami_arm64, ami_tags)?;
-                let mut ami_tags: Vec<_> = ami_tags.collect();
-
-                ami_tags.sort_by(|x, y| x.name.cmp(&y.name));
-                if let Some(ami) = ubuntu_ami {
-                    ami_tags.push(ami);
-                }
-                if let Some(ami) = ubuntu_ami_arm64 {
-                    ami_tags.push(ami);
-                }
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead>
+            if let Some(ami) = ubuntu_ami_arm64 {
+                ami_tags.push(ami);
+            }
+            output.push(
+                r#"<table border="1" class="dataframe"><thead>
                     <tr><th></th><th></th><th>AMI</th><th>Name</th><th>State</th>
                     <th>Snapshot ID</th>
                     </tr>
                     </thead><tbody>"#
-                        .into(),
-                );
-                let result: Vec<_> = ami_tags
-                    .iter()
-                    .map(|ami| {
-                        format!(
-                            r#"<tr style="text-align: center;">
+                    .into(),
+            );
+            let result: Vec<_> = ami_tags
+                .iter()
+                .map(|ami| {
+                    format!(
+                        r#"<tr style="text-align: center;">
                                 <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
                             </tr>"#,
-                            format!(
-                                r#"<input type="button" name="DeleteImage" value="DeleteImage"
+                        format!(
+                            r#"<input type="button" name="DeleteImage" value="DeleteImage"
                                     onclick="deleteImage('{}')">"#,
-                                ami.id
-                            ),
-                            format!(
-                                r#"<input type="button" name="Request" value="Request"
+                            ami.id
+                        ),
+                        format!(
+                            r#"<input type="button" name="Request" value="Request"
                                     onclick="buildSpotRequest('{}', null, null)">"#,
-                                ami.id,
-                            ),
                             ami.id,
-                            ami.name,
-                            ami.state,
-                            ami.snapshot_ids.join(" ")
-                        )
-                        .into()
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
-                output.push("</tbody></table>".into());
-            }
-            ResourceType::Key => {
-                let keys = self.ec2.get_all_key_pairs().await?;
-                output.push(
-                    r#"<table border="1" class="dataframe">
+                        ),
+                        ami.id,
+                        ami.name,
+                        ami.state,
+                        ami.snapshot_ids.join(" ")
+                    )
+                    .into()
+                })
+                .collect();
+            output.extend_from_slice(&result);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Key => {
+            let keys = app.ec2.get_all_key_pairs().await?;
+            output.push(
+                r#"<table border="1" class="dataframe">
                         <thead><tr><th>Key Name</th><th>Key Fingerprint</th></tr></thead>
                         <tbody>"#
-                        .into(),
-                );
-                let result: Vec<_> = keys
-                    .map(|(key, fingerprint)| {
-                        format!(
-                            r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
-                            key, fingerprint
-                        )
-                        .into()
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
-                output.push("</tbody></table>".into());
+                    .into(),
+            );
+            let result: Vec<_> = keys
+                .map(|(key, fingerprint)| {
+                    format!(
+                        r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
+                        key, fingerprint
+                    )
+                    .into()
+                })
+                .collect();
+            output.extend_from_slice(&result);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Volume => {
+            let volumes: Vec<_> = app.ec2.get_all_volumes().await?.collect();
+            if volumes.is_empty() {
+                return Ok(Vec::new());
             }
-            ResourceType::Volume => {
-                let volumes: Vec<_> = self.ec2.get_all_volumes().await?.collect();
-                if volumes.is_empty() {
-                    return Ok(Vec::new());
-                }
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead><tr><th></th><th>Volume ID</th>
+            output.push(
+                r#"<table border="1" class="dataframe"><thead><tr><th></th><th>Volume ID</th>
                     <th>Availability Zone</th><th>Size</th><th>IOPS</th><th>State</th><th>Tags</th>
                     </tr></thead><tbody>"#
-                        .into(),
-                );
-                let result: Vec<_> = volumes
+                    .into(),
+            );
+            let result: Vec<_> = volumes
                     .iter()
                     .map(|vol| {
                         let vol_sizes: Vec<_> = get_volumes(vol.size).into_iter().map(|s| {
@@ -329,26 +323,26 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         ).into()
                     })
                     .collect();
-                output.extend_from_slice(&result);
-                output.push("</tbody></table>".into());
+            output.extend_from_slice(&result);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Snapshot => {
+            let mut snapshots: Vec<_> = app.ec2.get_all_snapshots().await?.collect();
+            if snapshots.is_empty() {
+                return Ok(Vec::new());
             }
-            ResourceType::Snapshot => {
-                let mut snapshots: Vec<_> = self.ec2.get_all_snapshots().await?.collect();
-                if snapshots.is_empty() {
-                    return Ok(Vec::new());
-                }
-                snapshots.sort_by(|x, y| {
-                    let x = x.tags.get("Name").map_or("", StackString::as_str);
-                    let y = y.tags.get("Name").map_or("", StackString::as_str);
-                    x.cmp(&y)
-                });
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead><tr>
+            snapshots.sort_by(|x, y| {
+                let x = x.tags.get("Name").map_or("", StackString::as_str);
+                let y = y.tags.get("Name").map_or("", StackString::as_str);
+                x.cmp(&y)
+            });
+            output.push(
+                r#"<table border="1" class="dataframe"><thead><tr>
                         <th></th><th>Snapshot ID</th><th>Size</th><th>State</th><th>Progress</th>
                         <th>Tags</th></tr></thead><tbody>"#
-                        .into(),
-                );
-                let result: Vec<_> = snapshots
+                    .into(),
+            );
+            let result: Vec<_> = snapshots
                     .iter()
                     .map(|snap| {
                         format!(
@@ -378,103 +372,103 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         .into()
                     })
                     .collect();
-                output.extend_from_slice(&result);
-                output.push("</tbody></table>".into());
+            output.extend_from_slice(&result);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Ecr => {
+            let repos: Vec<_> = app.ecr.get_all_repositories().await?.collect();
+            if repos.is_empty() {
+                return Ok(Vec::new());
             }
-            ResourceType::Ecr => {
-                let repos: Vec<_> = self.ecr.get_all_repositories().await?.collect();
-                if repos.is_empty() {
-                    return Ok(Vec::new());
-                }
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead><tr>
+            output.push(
+                r#"<table border="1" class="dataframe"><thead><tr>
                         <th><input type="button" name="CleanupEcr" value="CleanupEcr"
                             onclick="cleanupEcrImages()"></th>
                             <th>ECR Repo</th><th>Tag</th><th>Digest</th><th>Pushed At</th>
                             <th>Image Size</th></tr></thead><tbody>"#
-                        .into(),
-                );
+                    .into(),
+            );
 
-                let futures = repos.iter().map(|repo| get_ecr_images(self, &repo));
-                let results: Vec<_> = try_join_all(futures)
-                    .await?
-                    .into_iter()
-                    .flatten()
-                    .map(Into::into)
-                    .collect();
-                output.extend_from_slice(&results);
-                output.push("</tbody></table>".into());
-            }
-            ResourceType::Script => {
-                output.push(
-                    r#"
+            let futures = repos.iter().map(|repo| get_ecr_images(app, &repo));
+            let results: Vec<_> = try_join_all(futures)
+                .await?
+                .into_iter()
+                .flatten()
+                .map(Into::into)
+                .collect();
+            output.extend_from_slice(&results);
+            output.push("</tbody></table>".into());
+        }
+        ResourceType::Script => {
+            output.push(
+                r#"
                         <form action="javascript:createScript()">
                         <input type="text" name="script_filename" id="script_filename"/>
                         <input type="button" name="create_script" value="New"
                             onclick="createScript();"/></form>"#
-                        .into(),
-                );
-                let result: Vec<_> = self
-                    .get_all_scripts()?
-                    .into_iter()
-                    .map(|fname| {
+                    .into(),
+            );
+            let result: Vec<_> = app
+                .get_all_scripts()?
+                .into_iter()
+                .map(|fname| {
+                    format!(
+                        "{} {} {} {}<br>",
                         format!(
-                            "{} {} {} {}<br>",
-                            format!(
-                                r#"<input type="button" name="Edit" value="Edit"
+                            r#"<input type="button" name="Edit" value="Edit"
                                 onclick="editScript('{}')">"#,
-                                fname,
-                            ),
-                            format!(
-                                r#"<input type="button" name="Rm" value="Rm"
+                            fname,
+                        ),
+                        format!(
+                            r#"<input type="button" name="Rm" value="Rm"
                                 onclick="deleteScript('{}')">"#,
-                                fname,
-                            ),
-                            format!(
-                                r#"<input type="button" name="Request" value="Request"
+                            fname,
+                        ),
+                        format!(
+                            r#"<input type="button" name="Request" value="Request"
                                 onclick="buildSpotRequest(null, null, '{}')">"#,
-                                fname,
-                            ),
-                            fname
-                        )
-                        .into()
-                    })
-                    .collect();
-                output.extend_from_slice(&result);
-            }
-            ResourceType::User => {
-                output.push(
+                            fname,
+                        ),
+                        fname
+                    )
+                    .into()
+                })
+                .collect();
+            output.extend_from_slice(&result);
+        }
+        ResourceType::User => {
+            output.push(
                     r#"<table border="1" class="dataframe"><thead><tr><th>User ID</th><th>Create Date</th>
                     <th>User Name</th><th>Arn</th><th></th><th>Groups</th><th></th>
                     </tr></thead><tbody>"#
                         .into(),
                 );
-                let _user_name: Option<&str> = None;
-                let (current_user, users) =
-                    try_join!(self.iam.get_user(_user_name), self.iam.list_users())?;
-                let users: Vec<_> = users.collect();
-                let futures = users.iter().map(|u| async move {
-                    self.iam
-                        .list_groups_for_user(u.user_name.as_str())
-                        .await
-                        .map(|g| {
-                            let groups: Vec<_> = g.collect();
-                            (u.user_name.clone(), groups)
-                        })
-                });
-                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-                let group_map: HashMap<StackString, _> = results?.into_iter().collect();
+            let _user_name: Option<&str> = None;
+            let (current_user, users) =
+                try_join!(app.iam.get_user(_user_name), app.iam.list_users())?;
+            let users: Vec<_> = users.collect();
+            let futures = users.iter().map(|u| async move {
+                app.iam
+                    .list_groups_for_user(u.user_name.as_str())
+                    .await
+                    .map(|g| {
+                        let groups: Vec<_> = g.collect();
+                        (u.user_name.clone(), groups)
+                    })
+            });
+            let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+            let group_map: HashMap<StackString, _> = results?.into_iter().collect();
 
-                let futures = users.iter().map(|u| async move {
-                    self.iam
-                        .list_access_keys(u.user_name.as_str())
-                        .await
-                        .map(|metadata| (u.user_name.clone(), metadata))
-                });
-                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-                let key_map: HashMap<StackString, _> = results?.into_iter().collect();
+            let futures = users.iter().map(|u| async move {
+                app.iam
+                    .list_access_keys(u.user_name.as_str())
+                    .await
+                    .map(|metadata| (u.user_name.clone(), metadata))
+            });
+            let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+            let key_map: HashMap<StackString, _> = results?.into_iter().collect();
 
-                let users = users
+            let users = users
                     .into_iter()
                     .map(|u| {
                         let group_select = if let Some(group_opts) =
@@ -540,101 +534,102 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                         )
                     })
                     .join("");
-                output.push(users.into());
-                output.push(r#"</tbody></table>"#.into());
-            }
-            ResourceType::Group => {
-                output.push(
+            output.push(users.into());
+            output.push(r#"</tbody></table>"#.into());
+        }
+        ResourceType::Group => {
+            output.push(
                     r#"<table border="1" class="dataframe"><thead><tr><th>Group ID</th><th>Create Date</th>
                     <th>Group Name</th><th>Arn</th><th></th>
                     </tr></thead><tbody>"#
                         .into(),
                 );
-                let (users, groups) = try_join!(self.iam.list_users(), self.iam.list_groups())?;
-                let users: HashSet<_> = users.map(|u| u.user_name).collect();
-                let futures = users.iter().map(|u| async move {
-                    self.iam
-                        .list_groups_for_user(u.as_str())
-                        .await
-                        .map(|g| g.map(|group| (u.clone(), group)).collect::<Vec<_>>())
+            let (users, groups) = try_join!(app.iam.list_users(), app.iam.list_groups())?;
+            let users: HashSet<_> = users.map(|u| u.user_name).collect();
+            let futures = users.iter().map(|u| async move {
+                app.iam
+                    .list_groups_for_user(u.as_str())
+                    .await
+                    .map(|g| g.map(|group| (u.clone(), group)).collect::<Vec<_>>())
+            });
+            let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+            let user_map: HashMap<StackString, HashSet<StackString>> = results?
+                .into_iter()
+                .flatten()
+                .fold(HashMap::new(), |mut h, (u, g)| {
+                    h.entry(g.group_name).or_default().insert(u);
+                    h
                 });
-                let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-                let user_map: HashMap<StackString, HashSet<StackString>> = results?
-                    .into_iter()
-                    .flatten()
-                    .fold(HashMap::new(), |mut h, (u, g)| {
-                        h.entry(g.group_name).or_default().insert(u);
-                        h
-                    });
 
-                let groups = groups
-                    .map(|g| {
-                        let empty_set = HashSet::new();
-                        let group_users = user_map.get(g.group_name.as_str()).unwrap_or(&empty_set);
+            let groups = groups
+                .map(|g| {
+                    let empty_set = HashSet::new();
+                    let group_users = user_map.get(g.group_name.as_str()).unwrap_or(&empty_set);
 
-                        let user_opts = users
-                            .iter()
-                            .filter_map(|u| {
-                                if group_users.contains(u) {
-                                    None
-                                } else {
-                                    Some(format!(r#"r#"<option value="{u}">{u}</option>"#, u = u))
-                                }
-                            })
-                            .join("");
+                    let user_opts = users
+                        .iter()
+                        .filter_map(|u| {
+                            if group_users.contains(u) {
+                                None
+                            } else {
+                                Some(format!(r#"r#"<option value="{u}">{u}</option>"#, u = u))
+                            }
+                        })
+                        .join("");
 
-                        let user_select = if user_opts.is_empty() {
-                            "".to_string()
-                        } else {
-                            format!(
-                                r#"<select id="{}_user_opt">{}</select>"#,
-                                g.group_name, user_opts
-                            )
-                        };
+                    let user_select = if user_opts.is_empty() {
+                        "".to_string()
+                    } else {
+                        format!(
+                            r#"<select id="{}_user_opt">{}</select>"#,
+                            g.group_name, user_opts
+                        )
+                    };
 
-                        let user_add_button = if user_select.is_empty() {
-                            "".to_string()
-                        } else {
-                            format!(
-                                r#"
-                                    <input type="button" name="AddUser" value="Add"
-                                     onclick="addUserToGroup('{}');">"#,
-                                g.group_name
-                            )
-                        };
-
+                    let user_add_button = if user_select.is_empty() {
+                        "".to_string()
+                    } else {
                         format!(
                             r#"
+                                    <input type="button" name="AddUser" value="Add"
+                                     onclick="addUserToGroup('{}');">"#,
+                            g.group_name
+                        )
+                    };
+
+                    format!(
+                        r#"
                                 <tr style="text-align: left;">
                                 <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
                                 <td>{}</td><td>{}</td>
                                 </tr>
                             "#,
-                            g.group_id,
-                            g.create_date,
-                            g.group_name,
-                            g.arn,
-                            user_select,
-                            user_add_button,
-                        )
-                    })
-                    .join("");
-                output.push(groups.into());
-                output.push(r#"</tbody></table>"#.into());
-            }
-            ResourceType::AccessKey => {
-                output.push(
-                    r#"<table border="1" class="dataframe"><thead><tr><th>Key ID</th><th>User Name</th>
+                        g.group_id,
+                        g.create_date,
+                        g.group_name,
+                        g.arn,
+                        user_select,
+                        user_add_button,
+                    )
+                })
+                .join("");
+            output.push(groups.into());
+            output.push(r#"</tbody></table>"#.into());
+        }
+        ResourceType::AccessKey => {
+            output.push(
+                r#"<table border="1" class="dataframe"><thead><tr><th>Key ID</th><th>User Name</th>
                     <th>Create Date</th><th>Status</th><th></th>
                     </tr></thead><tbody>"#
-                        .into(),
-                );
-                let futures =
-                    self.iam.list_users().await?.map(|user| async move {
-                        self.iam.list_access_keys(&user.user_name).await
-                    });
-                let results: Result<Vec<Vec<_>>, Error> = try_join_all(futures).await;
-                let keys = results?
+                    .into(),
+            );
+            let futures = app
+                .iam
+                .list_users()
+                .await?
+                .map(|user| async move { app.iam.list_access_keys(&user.user_name).await });
+            let results: Result<Vec<Vec<_>>, Error> = try_join_all(futures).await;
+            let keys = results?
                     .into_iter()
                     .map(|keys| {
                         keys.into_iter()
@@ -659,12 +654,11 @@ impl HandleRequest<ResourceType> for AwsAppInterface {
                             .join("")
                     })
                     .join("");
-                output.push(keys.into());
-                output.push(r#"</tbody></table>"#.into());
-            }
-        };
-        Ok(output)
-    }
+            output.push(keys.into());
+            output.push(r#"</tbody></table>"#.into());
+        }
+    };
+    Ok(output)
 }
 
 async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error> {
@@ -751,26 +745,10 @@ pub struct TerminateRequest {
     pub instance: StackString,
 }
 
-#[async_trait]
-impl HandleRequest<TerminateRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: TerminateRequest) -> Self::Result {
-        self.terminate(&[req.instance]).await
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct CreateImageRequest {
     pub inst_id: StackString,
     pub name: StackString,
-}
-
-#[async_trait]
-impl HandleRequest<CreateImageRequest> for AwsAppInterface {
-    type Result = Result<Option<StackString>, Error>;
-    async fn handle(&self, req: CreateImageRequest) -> Self::Result {
-        self.create_image(&req.inst_id, &req.name).await
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -778,53 +756,20 @@ pub struct DeleteImageRequest {
     pub ami: StackString,
 }
 
-#[async_trait]
-impl HandleRequest<DeleteImageRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: DeleteImageRequest) -> Self::Result {
-        self.delete_image(&req.ami).await
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct DeleteVolumeRequest {
     pub volid: StackString,
 }
 
-#[async_trait]
-impl HandleRequest<DeleteVolumeRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: DeleteVolumeRequest) -> Self::Result {
-        self.delete_ebs_volume(&req.volid).await
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct ModifyVolumeRequest {
-    volid: StackString,
-    size: i64,
-}
-
-#[async_trait]
-impl HandleRequest<ModifyVolumeRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: ModifyVolumeRequest) -> Self::Result {
-        self.modify_ebs_volume(&req.volid, req.size).await?;
-        Ok(())
-    }
+    pub volid: StackString,
+    pub size: i64,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct DeleteSnapshotRequest {
     pub snapid: StackString,
-}
-
-#[async_trait]
-impl HandleRequest<DeleteSnapshotRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: DeleteSnapshotRequest) -> Self::Result {
-        self.delete_ebs_snapshot(&req.snapid).await
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -833,16 +778,14 @@ pub struct CreateSnapshotRequest {
     pub name: Option<StackString>,
 }
 
-#[async_trait]
-impl HandleRequest<CreateSnapshotRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: CreateSnapshotRequest) -> Self::Result {
-        let tags = if let Some(name) = &req.name {
+impl CreateSnapshotRequest {
+    pub async fn handle(&self, app: &AwsAppInterface) -> Result<(), Error> {
+        let tags = if let Some(name) = &self.name {
             hashmap! {"Name".into() => name.clone()}
         } else {
             HashMap::new()
         };
-        self.create_ebs_snapshot(req.volid.as_str(), &tags)
+        app.create_ebs_snapshot(self.volid.as_str(), &tags)
             .await
             .map(|_| ())
     }
@@ -854,15 +797,13 @@ pub struct TagItemRequest {
     pub tag: StackString,
 }
 
-#[async_trait]
-impl HandleRequest<TagItemRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: TagItemRequest) -> Self::Result {
-        self.ec2
+impl TagItemRequest {
+    pub async fn handle(self, app: &AwsAppInterface) -> Result<(), Error> {
+        app.ec2
             .tag_ec2_instance(
-                req.id.as_str(),
+                self.id.as_str(),
                 &hashmap! {
-                    "Name".into() => req.tag,
+                    "Name".into() => self.tag,
                 },
             )
             .await
@@ -873,26 +814,6 @@ impl HandleRequest<TagItemRequest> for AwsAppInterface {
 pub struct DeleteEcrImageRequest {
     pub reponame: StackString,
     pub imageid: StackString,
-}
-
-#[async_trait]
-impl HandleRequest<DeleteEcrImageRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, req: DeleteEcrImageRequest) -> Self::Result {
-        self.ecr
-            .delete_ecr_images(&req.reponame, &[req.imageid])
-            .await
-    }
-}
-
-pub struct CleanupEcrImagesRequest {}
-
-#[async_trait]
-impl HandleRequest<CleanupEcrImagesRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, _: CleanupEcrImagesRequest) -> Self::Result {
-        self.ecr.cleanup_ecr_images().await
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -906,95 +827,83 @@ pub struct CommandRequest {
     pub command: StackString,
 }
 
-pub struct NoVncStartRequest {}
+pub async fn novnc_start(config: &Config) -> Result<(), Error> {
+    let home_dir = dirs::home_dir().expect("No home directory");
+    let x11vnc = Path::new("/usr/bin/x11vnc");
+    // let vncserver = Path::new("/usr/bin/vncserver");
+    let vncpwd = home_dir.join(".vnc/passwd");
+    let websockify = Path::new("/usr/bin/websockify");
+    let certdir = Path::new("/etc/letsencrypt/live/").join(&config.domain);
+    let cert = certdir.join("fullchain.pem");
+    let key = certdir.join("privkey.pem");
 
-#[async_trait]
-impl HandleRequest<NoVncStartRequest> for AwsAppInterface {
-    type Result = Result<(), Error>;
-    async fn handle(&self, _: NoVncStartRequest) -> Self::Result {
-        let home_dir = dirs::home_dir().expect("No home directory");
-        let x11vnc = Path::new("/usr/bin/x11vnc");
-        // let vncserver = Path::new("/usr/bin/vncserver");
-        let vncpwd = home_dir.join(".vnc/passwd");
-        let websockify = Path::new("/usr/bin/websockify");
-        let certdir = Path::new("/etc/letsencrypt/live/").join(&self.config.domain);
-        let cert = certdir.join("fullchain.pem");
-        let key = certdir.join("privkey.pem");
+    if x11vnc.exists() {
+        if let Some(novnc_path) = &config.novnc_path {
+            let x11vnc_command = Command::new(&x11vnc)
+                .args(&[
+                    "-safer",
+                    "-rfbauth",
+                    &vncpwd.to_string_lossy(),
+                    "-forever",
+                    "-display",
+                    ":0",
+                ])
+                .kill_on_drop(true)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
+            let websockify_command = Command::new("sudo")
+                .args(&[
+                    &websockify.to_string_lossy(),
+                    "8787",
+                    "--ssl-only",
+                    "--web",
+                    novnc_path.to_string_lossy().as_ref(),
+                    "--cert",
+                    &cert.to_string_lossy(),
+                    "--key",
+                    &key.to_string_lossy(),
+                    "localhost:5900",
+                ])
+                .kill_on_drop(true)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
 
-        if x11vnc.exists() {
-            if let Some(novnc_path) = &self.config.novnc_path {
-                let x11vnc_command = Command::new(&x11vnc)
-                    .args(&[
-                        "-safer",
-                        "-rfbauth",
-                        &vncpwd.to_string_lossy(),
-                        "-forever",
-                        "-display",
-                        ":0",
-                    ])
-                    .kill_on_drop(true)
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .spawn()?;
-                let websockify_command = Command::new("sudo")
-                    .args(&[
-                        &websockify.to_string_lossy(),
-                        "8787",
-                        "--ssl-only",
-                        "--web",
-                        novnc_path.to_string_lossy().as_ref(),
-                        "--cert",
-                        &cert.to_string_lossy(),
-                        "--key",
-                        &key.to_string_lossy(),
-                        "localhost:5900",
-                    ])
-                    .kill_on_drop(true)
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .spawn()?;
-
-                let mut children = NOVNC_CHILDREN.write().await;
-                children.push(x11vnc_command);
-                children.push(websockify_command);
-            }
+            let mut children = NOVNC_CHILDREN.write().await;
+            children.push(x11vnc_command);
+            children.push(websockify_command);
         }
-        Ok(())
     }
+    Ok(())
 }
 
-pub struct NoVncStopRequest {}
-
-#[async_trait]
-impl HandleRequest<NoVncStopRequest> for AwsAppInterface {
-    type Result = Result<Vec<StackString>, Error>;
-    async fn handle(&self, _: NoVncStopRequest) -> Self::Result {
-        let mut children = NOVNC_CHILDREN.write().await;
-        for child in children.iter_mut() {
-            if let Err(e) = child.kill().await {
-                debug!("Failed to kill {}", e);
-            }
+pub async fn novnc_stop_request() -> Result<Vec<StackString>, Error> {
+    let mut children = NOVNC_CHILDREN.write().await;
+    for child in children.iter_mut() {
+        if let Err(e) = child.kill().await {
+            debug!("Failed to kill {}", e);
         }
-
-        let mut kill = Command::new("sudo");
-        kill.args(&["kill", "-9"]);
-        let ids = get_websock_pids().await?.into_iter().map(|x| x.to_string());
-        kill.args(ids);
-        let kill = kill.spawn()?;
-        kill.wait_with_output().await?;
-
-        let mut output = Vec::new();
-        while let Some(mut child) = children.pop() {
-            if let Err(e) = child.kill().await {
-                debug!("Failed to kill {}", e);
-            }
-            let result = child.wait_with_output().await?;
-            output.push(StackString::from_utf8(result.stdout)?);
-            output.push(StackString::from_utf8(result.stderr)?);
-        }
-        children.clear();
-        Ok(output)
     }
+
+    let mut kill = Command::new("sudo");
+    kill.args(&["kill", "-9"]);
+    let ids = get_websock_pids().await?.into_iter().map(|x| x.to_string());
+    kill.args(ids);
+    let kill = kill.spawn()?;
+    kill.wait_with_output().await?;
+
+    let mut output = Vec::new();
+    while let Some(mut child) = children.pop() {
+        if let Err(e) = child.kill().await {
+            debug!("Failed to kill {}", e);
+        }
+        let result = child.wait_with_output().await?;
+        output.push(StackString::from_utf8(result.stdout)?);
+        output.push(StackString::from_utf8(result.stderr)?);
+    }
+    children.clear();
+    Ok(output)
 }
 
 pub async fn get_websock_pids() -> Result<Vec<usize>, Error> {
@@ -1017,14 +926,8 @@ pub async fn get_websock_pids() -> Result<Vec<usize>, Error> {
     Ok(result)
 }
 
-pub struct NoVncStatusRequest {}
-
-#[async_trait]
-impl HandleRequest<NoVncStatusRequest> for AwsAppInterface {
-    type Result = usize;
-    async fn handle(&self, _: NoVncStatusRequest) -> Self::Result {
-        NOVNC_CHILDREN.read().await.len()
-    }
+pub async fn get_novnc_status() -> usize {
+    NOVNC_CHILDREN.read().await.len()
 }
 
 fn get_volumes(current_vol: i64) -> SmallVec<[i64; 8]> {

@@ -24,10 +24,10 @@ use super::{
     errors::ServiceError as Error,
     logged_user::LoggedUser,
     requests::{
-        get_websock_pids, CleanupEcrImagesRequest, CommandRequest, CreateImageRequest,
-        CreateSnapshotRequest, DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest,
-        DeleteVolumeRequest, HandleRequest, ModifyVolumeRequest, NoVncStartRequest,
-        NoVncStatusRequest, NoVncStopRequest, StatusRequest, TagItemRequest, TerminateRequest,
+        get_novnc_status, get_websock_pids, novnc_start, novnc_stop_request, CommandRequest,
+        CreateImageRequest, CreateSnapshotRequest, DeleteEcrImageRequest, DeleteImageRequest,
+        DeleteSnapshotRequest, DeleteVolumeRequest, ModifyVolumeRequest, StatusRequest,
+        TagItemRequest, TerminateRequest, get_frontpage,
     },
 };
 
@@ -36,7 +36,7 @@ pub type HttpResult = WarpResult<Html<String>>;
 pub type JsonResult = WarpResult<Json>;
 
 pub async fn sync_frontpage(_: LoggedUser, data: AppState) -> HttpResult {
-    let results = data.aws.handle(ResourceType::Instances).await?;
+    let results = get_frontpage(ResourceType::Instances, &data.aws).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
     Ok(warp::reply::html(body))
@@ -48,26 +48,26 @@ pub struct ResourceRequest {
 }
 
 pub async fn list(query: ResourceRequest, _: LoggedUser, data: AppState) -> HttpResult {
-    let results = data.aws.handle(query.resource).await?;
+    let results = get_frontpage(query.resource, &data.aws).await?;
     Ok(warp::reply::html(results.join("\n")))
 }
 
 pub async fn terminate(query: TerminateRequest, _: LoggedUser, data: AppState) -> HttpResult {
-    data.aws.handle(query).await?;
+    data.aws.terminate(&[query.instance]).await?;
     Ok(warp::reply::html("finished".to_string()))
 }
 
 pub async fn create_image(query: CreateImageRequest, _: LoggedUser, data: AppState) -> HttpResult {
     let body = data
         .aws
-        .handle(query)
+        .create_image(&query.inst_id, &query.name)
         .await?
         .map_or_else(|| "failed to create ami".into(), |ami_id| ami_id.into());
     Ok(warp::reply::html(body))
 }
 
 pub async fn delete_image(query: DeleteImageRequest, _: LoggedUser, data: AppState) -> HttpResult {
-    data.aws.handle(query).await?;
+    data.aws.delete_image(&query.ami).await?;
     Ok(warp::reply::html("finished".into()))
 }
 
@@ -76,7 +76,7 @@ pub async fn delete_volume(
     _: LoggedUser,
     data: AppState,
 ) -> HttpResult {
-    data.aws.handle(query).await?;
+    data.aws.delete_ebs_volume(&query.volid).await?;
     Ok(warp::reply::html("finished".into()))
 }
 
@@ -85,7 +85,7 @@ pub async fn modify_volume(
     _: LoggedUser,
     data: AppState,
 ) -> HttpResult {
-    data.aws.handle(query).await?;
+    data.aws.modify_ebs_volume(&query.volid, query.size).await?;
     Ok(warp::reply::html("finished".into()))
 }
 
@@ -94,7 +94,7 @@ pub async fn delete_snapshot(
     _: LoggedUser,
     data: AppState,
 ) -> HttpResult {
-    data.aws.handle(query).await?;
+    data.aws.delete_ebs_snapshot(&query.snapid).await?;
     Ok(warp::reply::html("finished".into()))
 }
 
@@ -103,12 +103,12 @@ pub async fn create_snapshot(
     _: LoggedUser,
     data: AppState,
 ) -> HttpResult {
-    data.aws.handle(query).await?;
+    query.handle(&data.aws).await?;
     Ok(warp::reply::html("finished".into()))
 }
 
 pub async fn tag_item(query: TagItemRequest, _: LoggedUser, data: AppState) -> HttpResult {
-    data.aws.handle(query).await?;
+    query.handle(&data.aws).await?;
     Ok(warp::reply::html("finished".into()))
 }
 
@@ -117,12 +117,15 @@ pub async fn delete_ecr_image(
     _: LoggedUser,
     data: AppState,
 ) -> HttpResult {
-    data.aws.handle(query).await?;
+    data.aws
+        .ecr
+        .delete_ecr_images(&query.reponame, &[query.imageid])
+        .await?;
     Ok(warp::reply::html("finished".into()))
 }
 
 pub async fn cleanup_ecr_images(_: LoggedUser, data: AppState) -> HttpResult {
-    data.aws.handle(CleanupEcrImagesRequest {}).await?;
+    data.aws.ecr.cleanup_ecr_images().await?;
     Ok(warp::reply::html("finished".into()))
 }
 
@@ -527,9 +530,8 @@ pub async fn novnc_launcher(_: LoggedUser, data: AppState) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
         return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
-    data.aws.handle(NoVncStartRequest {}).await?;
-
-    let number = data.aws.handle(NoVncStatusRequest {}).await;
+    novnc_start(&data.aws.config).await?;
+    let number = get_novnc_status().await;
     let body = novnc_status_response(number, &data.aws.config.domain).await?;
     Ok(warp::reply::html(body))
 }
@@ -538,7 +540,7 @@ pub async fn novnc_shutdown(_: LoggedUser, data: AppState) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
         return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
-    let output = data.aws.handle(NoVncStopRequest {}).await?;
+    let output = novnc_stop_request().await?;
     let body = format!(
         "<textarea cols=100 rows=50>{}</textarea>",
         output.join("\n")
@@ -550,7 +552,7 @@ pub async fn novnc_status(_: LoggedUser, data: AppState) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
         return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
-    let number = data.aws.handle(NoVncStatusRequest {}).await;
+    let number = get_novnc_status().await;
     let body = if number == 0 {
         r#"
             <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
