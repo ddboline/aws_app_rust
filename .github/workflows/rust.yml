@@ -50,6 +50,7 @@ jobs:
         AWS_DEFAULT_REGION: us-east-1
         DEFAULT_SECURITY_GROUP: sg-61a56505
         DEFAULT_KEY_NAME: ddboline_dilepton_tower
+        MY_OWNER_ID: ${{secrets.MY_OWNER_ID}}
 
     - name: Upload to codecov.io
       uses: codecov/codecov-action@v1.0.2

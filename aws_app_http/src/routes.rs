@@ -1,8 +1,3 @@
-use actix_web::{
-    http::StatusCode,
-    web::{Data, Json, Query},
-    HttpResponse,
-};
 use itertools::Itertools;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
@@ -12,6 +7,10 @@ use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
     task::spawn,
+};
+use warp::{
+    reply::{Html, Json},
+    Reply,
 };
 
 use aws_app_lib::{
@@ -25,33 +24,22 @@ use super::{
     errors::ServiceError as Error,
     logged_user::LoggedUser,
     requests::{
-        get_websock_pids, CleanupEcrImagesRequest, CommandRequest, CreateImageRequest,
-        CreateSnapshotRequest, DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest,
-        DeleteVolumeRequest, HandleRequest, ModifyVolumeRequest, NoVncStartRequest,
-        NoVncStatusRequest, NoVncStopRequest, StatusRequest, TagItemRequest, TerminateRequest,
+        get_novnc_status, get_websock_pids, novnc_start, novnc_stop_request, CommandRequest,
+        CreateImageRequest, CreateSnapshotRequest, DeleteEcrImageRequest, DeleteImageRequest,
+        DeleteSnapshotRequest, DeleteVolumeRequest, ModifyVolumeRequest, StatusRequest,
+        TagItemRequest, TerminateRequest, get_frontpage,
     },
 };
 
-pub type HttpResult = Result<HttpResponse, Error>;
+pub type WarpResult<T> = Result<T, Error>;
+pub type HttpResult = WarpResult<Html<String>>;
+pub type JsonResult = WarpResult<Json>;
 
-fn form_http_response(body: String) -> HttpResult {
-    Ok(HttpResponse::build(StatusCode::OK)
-        .content_type("text/html; charset=utf-8")
-        .body(body))
-}
-
-fn to_json<T>(js: T) -> HttpResult
-where
-    T: Serialize,
-{
-    Ok(HttpResponse::Ok().json(js))
-}
-
-pub async fn sync_frontpage(_: LoggedUser, data: Data<AppState>) -> HttpResult {
-    let results = data.aws.handle(ResourceType::Instances).await?;
+pub async fn sync_frontpage(_: LoggedUser, data: AppState) -> HttpResult {
+    let results = get_frontpage(ResourceType::Instances, &data.aws).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -59,111 +47,86 @@ pub struct ResourceRequest {
     resource: ResourceType,
 }
 
-pub async fn list(
-    query: Query<ResourceRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
-    let results = data.aws.handle(query.resource).await?;
-    form_http_response(results.join("\n"))
+pub async fn list(query: ResourceRequest, _: LoggedUser, data: AppState) -> HttpResult {
+    let results = get_frontpage(query.resource, &data.aws).await?;
+    Ok(warp::reply::html(results.join("\n")))
 }
 
-pub async fn terminate(
-    query: Query<TerminateRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+pub async fn terminate(query: TerminateRequest, _: LoggedUser, data: AppState) -> HttpResult {
+    data.aws.terminate(&[query.instance]).await?;
+    Ok(warp::reply::html("finished".to_string()))
 }
 
-pub async fn create_image(
-    query: Query<CreateImageRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?.map_or_else(
-        || form_http_response("failed to create ami".to_string()),
-        |ami_id| form_http_response(ami_id.into()),
-    )
+pub async fn create_image(query: CreateImageRequest, _: LoggedUser, data: AppState) -> HttpResult {
+    let body = data
+        .aws
+        .create_image(&query.inst_id, &query.name)
+        .await?
+        .map_or_else(|| "failed to create ami".into(), |ami_id| ami_id.into());
+    Ok(warp::reply::html(body))
 }
 
-pub async fn delete_image(
-    query: Query<DeleteImageRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+pub async fn delete_image(query: DeleteImageRequest, _: LoggedUser, data: AppState) -> HttpResult {
+    data.aws.delete_image(&query.ami).await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
 pub async fn delete_volume(
-    query: Query<DeleteVolumeRequest>,
+    query: DeleteVolumeRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+    data.aws.delete_ebs_volume(&query.volid).await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
 pub async fn modify_volume(
-    query: Query<ModifyVolumeRequest>,
+    query: ModifyVolumeRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+    data.aws.modify_ebs_volume(&query.volid, query.size).await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
 pub async fn delete_snapshot(
-    query: Query<DeleteSnapshotRequest>,
+    query: DeleteSnapshotRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+    data.aws.delete_ebs_snapshot(&query.snapid).await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
 pub async fn create_snapshot(
-    query: Query<CreateSnapshotRequest>,
+    query: CreateSnapshotRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+    query.handle(&data.aws).await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
-pub async fn tag_item(
-    query: Query<TagItemRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+pub async fn tag_item(query: TagItemRequest, _: LoggedUser, data: AppState) -> HttpResult {
+    query.handle(&data.aws).await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
 pub async fn delete_ecr_image(
-    query: Query<DeleteEcrImageRequest>,
+    query: DeleteEcrImageRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
-    let query = query.into_inner();
-    data.aws.handle(query).await?;
-    form_http_response("finished".to_string())
+    data.aws
+        .ecr
+        .delete_ecr_images(&query.reponame, &[query.imageid])
+        .await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
-pub async fn cleanup_ecr_images(_: LoggedUser, data: Data<AppState>) -> HttpResult {
-    data.aws.handle(CleanupEcrImagesRequest {}).await?;
-    form_http_response("finished".to_string())
+pub async fn cleanup_ecr_images(_: LoggedUser, data: AppState) -> HttpResult {
+    data.aws.ecr.cleanup_ecr_images().await?;
+    Ok(warp::reply::html("finished".into()))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -171,12 +134,7 @@ pub struct EditData {
     pub filename: StackString,
 }
 
-pub async fn edit_script(
-    query: Query<EditData>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
+pub async fn edit_script(query: EditData, _: LoggedUser, data: AppState) -> HttpResult {
     let filename = data.aws.config.script_directory.join(&query.filename);
     let text = if filename.exists() {
         read_to_string(&filename).await?
@@ -197,7 +155,7 @@ pub async fn edit_script(
         fname = &query.filename,
         rows = rows,
     );
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -206,29 +164,19 @@ pub struct ReplaceData {
     pub text: StackString,
 }
 
-pub async fn replace_script(
-    req: Json<ReplaceData>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let req = req.into_inner();
+pub async fn replace_script(req: ReplaceData, _: LoggedUser, data: AppState) -> HttpResult {
     let filename = data.aws.config.script_directory.join(&req.filename);
     let mut f = File::create(&filename).await?;
     f.write_all(req.text.as_bytes()).await?;
-    form_http_response("done".to_string())
+    Ok(warp::reply::html("done".into()))
 }
 
-pub async fn delete_script(
-    query: Query<EditData>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
+pub async fn delete_script(query: EditData, _: LoggedUser, data: AppState) -> HttpResult {
     let filename = data.aws.config.script_directory.join(&query.filename);
     if filename.exists() {
         remove_file(&filename).await?;
     }
-    form_http_response("done".to_string())
+    Ok(warp::reply::html("done".into()))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -253,13 +201,7 @@ where
     }
 }
 
-pub async fn build_spot_request(
-    query: Query<SpotBuilder>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
-
+pub async fn build_spot_request(query: SpotBuilder, _: LoggedUser, data: AppState) -> HttpResult {
     let mut amis: Vec<_> = data
         .aws
         .get_all_ami_tags()
@@ -354,8 +296,7 @@ pub async fn build_spot_request(
         key = keys,
         price = data.aws.config.max_spot_price,
     );
-
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -383,19 +324,15 @@ impl From<SpotRequestData> for SpotRequest {
     }
 }
 
-pub async fn request_spot(
-    req: Json<SpotRequestData>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let req: SpotRequest = req.into_inner().into();
+pub async fn request_spot(req: SpotRequestData, _: LoggedUser, data: AppState) -> HttpResult {
+    let req: SpotRequest = req.into();
     let tags = Arc::new(req.tags.clone());
     for spot_id in data.aws.ec2.request_spot_instance(&req).await? {
         let ec2 = data.aws.ec2.clone();
         let tags = tags.clone();
         spawn(async move { ec2.tag_spot_instance(&spot_id, &tags, 1000).await });
     }
-    form_http_response("done".to_string())
+    Ok(warp::reply::html("done".into()))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -403,17 +340,12 @@ pub struct CancelSpotRequest {
     pub spot_id: StackString,
 }
 
-pub async fn cancel_spot(
-    query: Query<CancelSpotRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
+pub async fn cancel_spot(query: CancelSpotRequest, _: LoggedUser, data: AppState) -> HttpResult {
     data.aws
         .ec2
-        .cancel_spot_instance_request(&[query.spot_id])
+        .cancel_spot_instance_request(&[query.spot_id.clone()])
         .await?;
-    form_http_response("".to_string())
+    Ok(warp::reply::html(format!("cancelled {}", query.spot_id)))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -421,12 +353,7 @@ pub struct PriceRequest {
     pub search: Option<StackString>,
 }
 
-pub async fn get_prices(
-    query: Query<PriceRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
+pub async fn get_prices(query: PriceRequest, _: LoggedUser, data: AppState) -> HttpResult {
     let mut inst_fam = InstanceFamily::get_all(&data.aws.pool).await?;
     move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
 
@@ -512,10 +439,10 @@ pub async fn get_prices(
         )
     };
 
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
-pub async fn update(_: LoggedUser, data: Data<AppState>) -> HttpResult {
+pub async fn update(_: LoggedUser, data: AppState) -> HttpResult {
     let entries: Vec<_> = data.aws.update().await?.collect();
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
@@ -524,15 +451,10 @@ pub async fn update(_: LoggedUser, data: Data<AppState>) -> HttpResult {
         entries.len() + 5,
         entries.join("\n"),
     );
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
-pub async fn status(
-    query: Query<StatusRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let query = query.into_inner();
+pub async fn status(query: StatusRequest, _: LoggedUser, data: AppState) -> HttpResult {
     let entries = data.aws.get_status(&query.instance).await?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
@@ -550,15 +472,10 @@ pub async fn status(
         entries.len() + 5,
         entries.join("\n")
     );
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
-pub async fn command(
-    payload: Json<CommandRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    let payload = payload.into_inner();
+pub async fn command(payload: CommandRequest, _: LoggedUser, data: AppState) -> HttpResult {
     let entries = data
         .aws
         .run_command(&payload.instance, &payload.command)
@@ -579,7 +496,7 @@ pub async fn command(
         entries.len() + 5,
         entries.join("\n")
     );
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -587,17 +504,13 @@ pub struct InstancesRequest {
     pub inst: StackString,
 }
 
-pub async fn get_instances(
-    query: Query<InstancesRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
+pub async fn get_instances(query: InstancesRequest, _: LoggedUser, data: AppState) -> HttpResult {
     let instances = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
         .await?
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .join("\n");
-    form_http_response(instances)
+    Ok(warp::reply::html(instances))
 }
 
 async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Error> {
@@ -613,34 +526,33 @@ async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Er
     ))
 }
 
-pub async fn novnc_launcher(_: LoggedUser, data: Data<AppState>) -> HttpResult {
+pub async fn novnc_launcher(_: LoggedUser, data: AppState) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
-        return form_http_response("NoVNC not configured".to_string());
+        return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
-    data.aws.handle(NoVncStartRequest {}).await?;
-
-    let number = data.aws.handle(NoVncStatusRequest {}).await;
+    novnc_start(&data.aws.config).await?;
+    let number = get_novnc_status().await;
     let body = novnc_status_response(number, &data.aws.config.domain).await?;
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
-pub async fn novnc_shutdown(_: LoggedUser, data: Data<AppState>) -> HttpResult {
+pub async fn novnc_shutdown(_: LoggedUser, data: AppState) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
-        return form_http_response("NoVNC not configured".to_string());
+        return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
-    let output = data.aws.handle(NoVncStopRequest {}).await?;
+    let output = novnc_stop_request().await?;
     let body = format!(
         "<textarea cols=100 rows=50>{}</textarea>",
         output.join("\n")
     );
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
-pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> HttpResult {
+pub async fn novnc_status(_: LoggedUser, data: AppState) -> HttpResult {
     if data.aws.config.novnc_path.is_none() {
-        return form_http_response("NoVNC not configured".to_string());
+        return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
-    let number = data.aws.handle(NoVncStatusRequest {}).await;
+    let number = get_novnc_status().await;
     let body = if number == 0 {
         r#"
             <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
@@ -648,11 +560,11 @@ pub async fn novnc_status(_: LoggedUser, data: Data<AppState>) -> HttpResult {
     } else {
         novnc_status_response(number, &data.aws.config.domain).await?
     };
-    form_http_response(body)
+    Ok(warp::reply::html(body))
 }
 
-pub async fn user(user: LoggedUser, _: Data<AppState>) -> HttpResult {
-    to_json(user)
+pub async fn user(user: LoggedUser) -> JsonResult {
+    Ok(warp::reply::json(&user))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -660,27 +572,22 @@ pub struct CreateUserRequest {
     pub user_name: StackString,
 }
 
+#[allow(clippy::option_if_let_else)]
 pub async fn create_user(
-    query: Query<CreateUserRequest>,
+    query: CreateUserRequest,
     _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
-    data.aws
-        .create_user(query.user_name.as_str())
-        .await?
-        .map_or_else(
-            || form_http_response("create user failed".into()),
-            |user| to_json(&user),
-        )
+    data: AppState,
+) -> WarpResult<Box<dyn Reply>> {
+    if let Some(user) = data.aws.create_user(query.user_name.as_str()).await? {
+        Ok(Box::new(warp::reply::json(&user)))
+    } else {
+        Ok(Box::new(warp::reply::html("create user failed")))
+    }
 }
 
-pub async fn delete_user(
-    query: Query<CreateUserRequest>,
-    _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
+pub async fn delete_user(query: CreateUserRequest, _: LoggedUser, data: AppState) -> HttpResult {
     data.aws.delete_user(query.user_name.as_str()).await?;
-    form_http_response(format!("{} deleted", query.user_name))
+    Ok(warp::reply::html(format!("{} deleted", query.user_name)))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -690,25 +597,31 @@ pub struct AddUserToGroupRequest {
 }
 
 pub async fn add_user_to_group(
-    query: Query<AddUserToGroupRequest>,
+    query: AddUserToGroupRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
     data.aws
         .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
         .await?;
-    form_http_response("".into())
+    Ok(warp::reply::html(format!(
+        "added {} to {}",
+        query.user_name, query.group_name
+    )))
 }
 
 pub async fn remove_user_from_group(
-    query: Query<AddUserToGroupRequest>,
+    query: AddUserToGroupRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
     data.aws
         .remove_user_from_group(query.user_name.as_str(), query.group_name.as_str())
         .await?;
-    form_http_response("".into())
+    Ok(warp::reply::html(format!(
+        "removed {} from {}",
+        query.user_name, query.group_name
+    )))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -718,21 +631,24 @@ pub struct DeleteAccesssKeyRequest {
 }
 
 pub async fn create_access_key(
-    query: Query<CreateUserRequest>,
+    query: CreateUserRequest,
     _: LoggedUser,
-    data: Data<AppState>,
-) -> HttpResult {
+    data: AppState,
+) -> JsonResult {
     let access_key = data.aws.create_access_key(query.user_name.as_str()).await?;
-    to_json(&access_key)
+    Ok(warp::reply::json(&access_key))
 }
 
 pub async fn delete_access_key(
-    query: Query<DeleteAccesssKeyRequest>,
+    query: DeleteAccesssKeyRequest,
     _: LoggedUser,
-    data: Data<AppState>,
+    data: AppState,
 ) -> HttpResult {
     data.aws
         .delete_access_key(query.user_name.as_str(), query.access_key_id.as_str())
         .await?;
-    form_http_response("".into())
+    Ok(warp::reply::html(format!(
+        "delete {} for {}",
+        query.access_key_id, query.user_name
+    )))
 }
