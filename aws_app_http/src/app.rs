@@ -473,9 +473,9 @@ async fn run_app(config: &Config) -> Result<(), Error> {
                 .or(status_path)
                 .or(command_path)
                 .or(get_instances_path)
-                .or(user_path),
+                .or(user_path)
+                .or(novnc_scope)
         )
-        .or(novnc_scope)
         .boxed();
     let routes = aws_path.recover(error_response);
     let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
