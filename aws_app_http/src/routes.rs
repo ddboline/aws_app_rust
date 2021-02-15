@@ -1,3 +1,4 @@
+use anyhow::format_err;
 use itertools::Itertools;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
@@ -534,11 +535,16 @@ pub async fn update(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
 }
 
 pub async fn status(query: StatusRequest, _: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
-    let entries = data
-        .aws
-        .get_status(&query.instance)
-        .await
-        .map_err(Into::<Error>::into)?;
+    let entries = match tokio::time::timeout(
+        tokio::time::Duration::from_secs(60),
+        data.aws.get_status(&query.instance),
+    )
+    .await
+    {
+        Ok(x) => x,
+        Err(_) => Err(format_err!("Timeout")),
+    }
+    .map_err(Into::<Error>::into)?;
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
@@ -563,11 +569,17 @@ pub async fn command(
     _: LoggedUser,
     data: AppState,
 ) -> WarpResult<impl Reply> {
-    let entries = data
-        .aws
-        .run_command(&payload.instance, &payload.command)
-        .await
-        .map_err(Into::<Error>::into)?;
+    let entries = match tokio::time::timeout(
+        tokio::time::Duration::from_secs(60),
+        data.aws.run_command(&payload.instance, &payload.command),
+    )
+    .await
+    {
+        Ok(x) => x,
+        Err(_) => Err(format_err!("Timeout")),
+    }
+    .map_err(Into::<Error>::into)?;
+
     let body = format!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
