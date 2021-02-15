@@ -1,6 +1,5 @@
-use anyhow::Error;
-use cached::{Cached, SizedCache};
-use chrono::{DateTime, Duration, Local, Utc};
+use cached::{proc_macro::cached, SizedCache};
+use chrono::Local;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -12,14 +11,12 @@ use stack_string::StackString;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
-    future::Future,
-    ops::Deref,
     path::Path,
     process::Stdio,
 };
 use tokio::{
     process::{Child, Command},
-    sync::{Mutex, RwLock},
+    sync::RwLock,
     try_join,
 };
 
@@ -30,53 +27,27 @@ use aws_app_lib::{
     resource_type::ResourceType,
 };
 
-type AmiInfoValue = (DateTime<Utc>, Option<AmiInfo>);
+use crate::errors::ServiceError as Error;
 
 lazy_static! {
-    static ref CACHE_UBUNTU_AMI: InfoCache = InfoCache::default();
-    static ref CACHE_UBUNTU_AMI_ARM64: InfoCache = InfoCache::default();
     static ref NOVNC_CHILDREN: RwLock<Vec<Child>> = RwLock::new(Vec::new());
 }
 
-struct InfoCache(Mutex<SizedCache<StackString, AmiInfoValue>>);
-
-impl Default for InfoCache {
-    fn default() -> Self {
-        Self(Mutex::new(SizedCache::with_size(10)))
-    }
-}
-
-impl Deref for InfoCache {
-    type Target = Mutex<SizedCache<StackString, AmiInfoValue>>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl InfoCache {
-    async fn get_cached<F>(&self, hash: &str, call: F) -> Result<Option<AmiInfo>, Error>
-    where
-        F: Future<Output = Result<Option<AmiInfo>, Error>>,
-    {
-        let mut has_cache = false;
-        let d = match self.lock().await.cache_get(&hash.into()) {
-            Some((t, d)) => {
-                if *t < Utc::now() - Duration::hours(1) {
-                    call.await?
-                } else {
-                    has_cache = true;
-                    d.clone()
-                }
-            }
-            None => call.await?,
-        };
-        if !has_cache {
-            self.lock()
-                .await
-                .cache_set(hash.into(), (Utc::now(), d.clone()));
-        }
-        Ok(d)
-    }
+#[cached(
+    type = "SizedCache<String, Option<AmiInfo>>",
+    create = "{ SizedCache::with_size(10) }",
+    convert = r#"{ format!("{}-{}", ubuntu_release, arch) }"#,
+    result = true
+)]
+async fn get_latest_ubuntu_ami(
+    app: &AwsAppInterface,
+    ubuntu_release: &str,
+    arch: &str,
+) -> Result<Option<AmiInfo>, Error> {
+    app.ec2
+        .get_latest_ubuntu_ami(ubuntu_release, arch)
+        .await
+        .map_err(Into::into)
 }
 
 pub async fn get_frontpage(
@@ -178,16 +149,14 @@ pub async fn get_frontpage(
         }
         ResourceType::Ami => {
             let ubuntu_ami = async {
-                let hash = app.config.ubuntu_release.as_str();
-                CACHE_UBUNTU_AMI
-                    .get_cached(hash, app.ec2.get_latest_ubuntu_ami(hash, "amd64"))
+                get_latest_ubuntu_ami(&app, &app.config.ubuntu_release, "amd64")
                     .await
+                    .map_err(Into::into)
             };
             let ubuntu_ami_arm64 = async {
-                let hash = app.config.ubuntu_release.as_str();
-                CACHE_UBUNTU_AMI_ARM64
-                    .get_cached(hash, app.ec2.get_latest_ubuntu_ami(hash, "arm64"))
+                get_latest_ubuntu_ami(&app, &app.config.ubuntu_release, "arm64")
                     .await
+                    .map_err(Into::into)
             };
 
             let ami_tags = app.ec2.get_ami_tags();
@@ -456,7 +425,7 @@ pub async fn get_frontpage(
                         (u.user_name.clone(), groups)
                     })
             });
-            let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+            let results: Result<Vec<_>, Error> = try_join_all(futures).await.map_err(Into::into);
             let group_map: HashMap<StackString, _> = results?.into_iter().collect();
 
             let futures = users.iter().map(|u| async move {
@@ -465,7 +434,7 @@ pub async fn get_frontpage(
                     .await
                     .map(|metadata| (u.user_name.clone(), metadata))
             });
-            let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+            let results: Result<Vec<_>, Error> = try_join_all(futures).await.map_err(Into::into);
             let key_map: HashMap<StackString, _> = results?.into_iter().collect();
 
             let users = users
@@ -552,7 +521,7 @@ pub async fn get_frontpage(
                     .await
                     .map(|g| g.map(|group| (u.clone(), group)).collect::<Vec<_>>())
             });
-            let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+            let results: Result<Vec<_>, Error> = try_join_all(futures).await.map_err(Into::into);
             let user_map: HashMap<StackString, HashSet<StackString>> = results?
                 .into_iter()
                 .flatten()
@@ -628,7 +597,8 @@ pub async fn get_frontpage(
                 .list_users()
                 .await?
                 .map(|user| async move { app.iam.list_access_keys(&user.user_name).await });
-            let results: Result<Vec<Vec<_>>, Error> = try_join_all(futures).await;
+            let results: Result<Vec<Vec<_>>, Error> =
+                try_join_all(futures).await.map_err(Into::into);
             let keys = results?
                     .into_iter()
                     .map(|keys| {
@@ -788,6 +758,7 @@ impl CreateSnapshotRequest {
         app.create_ebs_snapshot(self.volid.as_str(), &tags)
             .await
             .map(|_| ())
+            .map_err(Into::into)
     }
 }
 
@@ -807,6 +778,7 @@ impl TagItemRequest {
                 },
             )
             .await
+            .map_err(Into::into)
     }
 }
 

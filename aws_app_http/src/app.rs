@@ -1,13 +1,13 @@
 use anyhow::Error;
 use std::{net::SocketAddr, time::Duration};
 use tokio::time::interval;
-use warp::{Filter, Rejection};
+use warp::Filter;
 
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
 use super::{
     errors::error_response,
-    logged_user::{fill_from_db, get_secrets, LoggedUser, TRIGGER_DB_UPDATE},
+    logged_user::{fill_from_db, get_secrets, TRIGGER_DB_UPDATE},
     routes::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
         create_access_key, create_image, create_snapshot, create_user, delete_access_key,
@@ -52,386 +52,258 @@ async fn run_app(config: &Config) -> Result<(), Error> {
     let frontpage_path = warp::path("index.html")
         .and(warp::path::end())
         .and(warp::get())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|data, user: LoggedUser| async move {
-            sync_frontpage(user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(sync_frontpage)
         .boxed();
     let list_path = warp::path("list")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            list(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(list)
         .boxed();
     let terminate_path = warp::path("terminate")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            terminate(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(terminate)
         .boxed();
     let create_image_path = warp::path("create_image")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            create_image(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(create_image)
         .boxed();
     let delete_image_path = warp::path("delete_image")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            delete_image(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(delete_image)
         .boxed();
     let delete_volume_path = warp::path("delete_volume")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            delete_volume(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(delete_volume)
         .boxed();
     let modify_volume_path = warp::path("modify_volume")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            modify_volume(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(modify_volume)
         .boxed();
     let delete_snapshot_path = warp::path("delete_snapshot")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            delete_snapshot(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(delete_snapshot)
         .boxed();
     let create_snapshot_path = warp::path("create_snapshot")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            create_snapshot(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(create_snapshot)
         .boxed();
     let tag_item_path = warp::path("tag_item")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            tag_item(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(tag_item)
         .boxed();
     let delete_ecr_image_path = warp::path("delete_ecr_image")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            delete_ecr_image(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(delete_ecr_image)
         .boxed();
     let cleanup_ecr_images_path = warp::path("cleanup_ecr_images")
         .and(warp::path::end())
         .and(warp::get())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|data, user: LoggedUser| async move {
-            cleanup_ecr_images(user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(cleanup_ecr_images)
         .boxed();
     let edit_script_path = warp::path("edit_script")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            edit_script(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(edit_script)
         .boxed();
     let replace_script_path = warp::path("replace_script")
         .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            replace_script(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(replace_script)
         .boxed();
     let delete_script_path = warp::path("delete_script")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            delete_script(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(delete_script)
         .boxed();
     let create_user_path = warp::path("create_user")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            create_user(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(create_user)
         .boxed();
     let delete_user_path = warp::path("delete_user")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            delete_user(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(delete_user)
         .boxed();
     let add_user_to_group_path = warp::path("add_user_to_group")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            add_user_to_group(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(add_user_to_group)
         .boxed();
     let remove_user_from_group_path = warp::path("remove_user_from_group")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            remove_user_from_group(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(remove_user_from_group)
         .boxed();
     let create_access_key_path = warp::path("create_access_key")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            create_access_key(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(create_access_key)
         .boxed();
     let delete_access_key_path = warp::path("delete_access_key")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            delete_access_key(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(delete_access_key)
         .boxed();
     let build_spot_request_path = warp::path("build_spot_request")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            build_spot_request(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(build_spot_request)
         .boxed();
     let request_spot_path = warp::path("request_spot")
         .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            request_spot(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(request_spot)
         .boxed();
     let cancel_spot_path = warp::path("cancel_spot")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            cancel_spot(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(cancel_spot)
         .boxed();
     let get_prices_path = warp::path("prices")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            get_prices(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(get_prices)
         .boxed();
     let update_path = warp::path("update")
         .and(warp::path::end())
         .and(warp::get())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|data, user: LoggedUser| async move {
-            update(user, data).await.map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(update)
         .boxed();
     let status_path = warp::path("status")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            status(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(status)
         .boxed();
     let command_path = warp::path("command")
         .and(warp::path::end())
         .and(warp::post())
         .and(warp::body::json())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            command(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(command)
         .boxed();
     let get_instances_path = warp::path("instances")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|query, data, user: LoggedUser| async move {
-            get_instances(query, user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(get_instances)
         .boxed();
     let user_path = warp::path("user")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::cookie("jwt"))
-        .and_then(
-            |user_: LoggedUser| async move { user(user_).await.map_err(Into::<Rejection>::into) },
-        )
+        .and_then(user)
         .boxed();
     let novnc_launcher_path = warp::path("start")
         .and(warp::path::end())
         .and(warp::get())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|data, user: LoggedUser| async move {
-            novnc_launcher(user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(novnc_launcher)
         .boxed();
     let novnc_status_path = warp::path("status")
         .and(warp::path::end())
         .and(warp::get())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|data, user: LoggedUser| async move {
-            novnc_status(user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(novnc_status)
         .boxed();
     let novnc_shutdown_path = warp::path("stop")
         .and(warp::path::end())
         .and(warp::get())
-        .and(data.clone())
         .and(warp::cookie("jwt"))
-        .and_then(|data, user: LoggedUser| async move {
-            novnc_shutdown(user, data)
-                .await
-                .map_err(Into::<Rejection>::into)
-        })
+        .and(data.clone())
+        .and_then(novnc_shutdown)
         .boxed();
 
     let novnc_scope = warp::path("novnc")
@@ -474,7 +346,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
                 .or(command_path)
                 .or(get_instances_path)
                 .or(user_path)
-                .or(novnc_scope)
+                .or(novnc_scope),
         )
         .boxed();
     let routes = aws_path.recover(error_response);

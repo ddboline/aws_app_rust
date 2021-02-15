@@ -4,7 +4,7 @@ use http::StatusCode;
 use log::error;
 use serde::Serialize;
 use stack_string::StackString;
-use std::{convert::Infallible, fmt::Debug};
+use std::{convert::Infallible, fmt::Debug, string::FromUtf8Error};
 use thiserror::Error;
 use warp::{reject::Reject, Rejection, Reply};
 
@@ -20,6 +20,8 @@ pub enum ServiceError {
     AnyhowError(#[from] AnyhowError),
     #[error("io Error {0}")]
     IoError(#[from] std::io::Error),
+    #[error("FromUtf8Error {0}")]
+    FromUtf8Error(#[from] FromUtf8Error),
 }
 
 impl Reject for ServiceError {}
