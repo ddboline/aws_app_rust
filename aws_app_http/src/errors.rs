@@ -6,7 +6,7 @@ use serde::Serialize;
 use stack_string::StackString;
 use std::{convert::Infallible, fmt::Debug};
 use thiserror::Error;
-use warp::{reject::Reject, Rejection, Reply};
+use warp::{reject::{Reject, InvalidHeader, MissingCookie}, Rejection, Reply};
 
 #[derive(Error, Debug)]
 pub enum ServiceError {
@@ -50,6 +50,16 @@ pub async fn error_response(err: Rejection) -> Result<Box<dyn Reply>, Infallible
     if err.is_not_found() {
         code = StatusCode::NOT_FOUND;
         message = "NOT FOUND";
+    } else if err.find::<InvalidHeader>().is_some() {
+        TRIGGER_DB_UPDATE.set();
+        return Ok(Box::new(login_html()));
+    } else if let Some(missing_cookie) = err.find::<MissingCookie>() {
+        if missing_cookie.name() == "jwt" {
+            TRIGGER_DB_UPDATE.set();
+            return Ok(Box::new(login_html()));
+        }
+        code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = "Internal Server Error";
     } else if let Some(service_err) = err.find::<ServiceError>() {
         match service_err {
             ServiceError::BadRequest(msg) => {
