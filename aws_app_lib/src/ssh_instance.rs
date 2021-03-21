@@ -41,7 +41,7 @@ impl SSHInstance {
 
     pub async fn run_command_stream_stdout(&self, cmd: &str) -> Result<Vec<StackString>, Error> {
         if let Some(host_lock) = LOCK_CACHE.read().await.get(&self.host) {
-            let _ = host_lock.lock().await;
+            let _lock = host_lock.lock().await;
             debug!("cmd {}", cmd);
             let user_host = self.get_ssh_username_host()?;
 

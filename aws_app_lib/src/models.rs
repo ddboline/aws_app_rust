@@ -1,15 +1,16 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use diesel::{
-    Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
-    TextExpressionMethods,
+    ExpressionMethods, Insertable, QueryDsl, Queryable,
+    TextExpressionMethods, RunQueryDsl,
+    pg::PgConnection, result::Error as DieselError,
 };
+use tokio_diesel::{AsyncConnection, AsyncRunQueryDsl};
 use stack_string::StackString;
 use std::fmt;
-use tokio::task::spawn_blocking;
 
 use crate::{
-    pgpool::{PgPool, PgPoolConn},
+    pgpool::{PgPool},
     schema::{authorized_users, instance_family, instance_list, instance_pricing},
 };
 
@@ -40,86 +41,47 @@ impl From<InstanceFamily> for InstanceFamilyInsert {
 }
 
 impl InstanceFamily {
-    fn _existing_entries(
-        f_name: &str,
-        f_type: &str,
-        conn: &PgPoolConn,
-    ) -> Result<Vec<Self>, Error> {
+    fn _existing_entries(f_name: &str, f_type: &str, conn: &PgConnection) -> Result<Vec<Self>, DieselError> {
         use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
         instance_family
             .filter(family_name.eq(f_name))
             .filter(family_type.eq(f_type))
             .load(conn)
-            .map_err(Into::into)
-    }
-
-    fn existing_entries_sync(
-        f_name: &str,
-        f_type: &str,
-        pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
-        let conn = pool.get()?;
-        Self::_existing_entries(f_name, f_type, &conn)
-    }
-
-    pub async fn existing_entries(
-        f_name: &str,
-        f_type: &str,
-        pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
-        let f_name = f_name.to_owned();
-        let f_type = f_type.to_owned();
-        let pool = pool.clone();
-        spawn_blocking(move || Self::existing_entries_sync(&f_name, &f_type, &pool)).await?
-    }
-
-    fn get_all_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
-        let conn = pool.get()?;
-        instance_family
-            .order((family_type, family_name))
-            .load(&conn)
-            .map_err(Into::into)
     }
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_all_sync(&pool)).await?
+        use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
+        instance_family
+            .order((family_type, family_name))
+            .load_async(pool).await
+            .map_err(Into::into)
     }
 }
 
 impl InstanceFamilyInsert {
-    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+    fn _insert_entry(&self, conn: &PgConnection) -> Result<(), DieselError> {
         use crate::schema::instance_family::dsl::instance_family;
 
         diesel::insert_into(instance_family)
             .values(self)
             .execute(conn)
             .map(|_| ())
-            .map_err(Into::into)
-    }
-
-    fn insert_entry_sync(&self, pool: &PgPool) -> Result<bool, Error> {
-        let conn = pool.get()?;
-
-        conn.transaction(|| {
-            let existing_entries = InstanceFamily::_existing_entries(
-                self.family_name.as_ref(),
-                self.family_type.as_ref(),
-                &conn,
-            )?;
-            if existing_entries.is_empty() {
-                self._insert_entry(&conn)?;
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        })
     }
 
     pub async fn insert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || self.insert_entry_sync(&pool).map(|r| (self, r))).await?
+        pool.transaction(|conn| {
+            let existing_entries = InstanceFamily::_existing_entries(
+                self.family_name.as_ref(),
+                self.family_type.as_ref(),
+                conn,
+            )?;
+            if existing_entries.is_empty() {
+                self._insert_entry(conn)?;
+                Ok((self, true))
+            } else {
+                Ok((self, false))
+            }
+        }).await.map_err(Into::into)
     }
 }
 
@@ -142,49 +104,27 @@ pub struct InstanceList {
 }
 
 impl InstanceList {
-    fn get_all_instances_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        use crate::schema::instance_list::dsl::instance_list;
-        let conn = pool.get()?;
-        instance_list.load(&conn).map_err(Into::into)
-    }
-
     pub async fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_all_instances_sync(&pool)).await?
-    }
-
-    fn get_by_instance_family_sync(
-        instance_family: &str,
-        pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
-        use crate::schema::instance_list::dsl::{instance_list, instance_type};
-        let conn = pool.get()?;
-        instance_list
-            .filter(instance_type.like(format!("{}%", instance_family)))
-            .load(&conn)
-            .map_err(Into::into)
+        use crate::schema::instance_list::dsl::instance_list;
+        instance_list.load_async(pool).await.map_err(Into::into)
     }
 
     pub async fn get_by_instance_family(
         instance_family: &str,
         pool: &PgPool,
     ) -> Result<Vec<Self>, Error> {
-        let instance_family = instance_family.to_owned();
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_by_instance_family_sync(&instance_family, &pool)).await?
+        use crate::schema::instance_list::dsl::{instance_list, instance_type};
+        instance_list
+            .filter(instance_type.like(format!("{}%", instance_family)))
+            .load_async(pool).await
+            .map_err(Into::into)
     }
 
-    fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
+    fn _get_by_instance_type(instance_type_: &str, conn: &PgConnection) -> Result<Vec<Self>, DieselError> {
         use crate::schema::instance_list::dsl::{instance_list, instance_type};
         instance_list
             .filter(instance_type.eq(instance_type_))
             .load(conn)
-            .map_err(Into::into)
-    }
-
-    fn get_by_instance_type_sync(instance_type_: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let conn = pool.get()?;
-        Self::_get_by_instance_type(instance_type_, &conn)
     }
 
     pub async fn get_by_instance_type(
@@ -192,37 +132,28 @@ impl InstanceList {
         pool: &PgPool,
     ) -> Result<Vec<Self>, Error> {
         let instance_type = instance_type.to_owned();
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_by_instance_type_sync(&instance_type, &pool)).await?
+        pool.run(move |conn| Self::_get_by_instance_type(&instance_type, conn)).await.map_err(Into::into)
     }
 
-    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+    fn _insert_entry(&self, conn: &PgConnection) -> Result<(), DieselError> {
         use crate::schema::instance_list::dsl::instance_list;
 
         diesel::insert_into(instance_list)
             .values(self)
             .execute(conn)
             .map(|_| ())
-            .map_err(Into::into)
-    }
-
-    fn insert_entry_sync(&self, pool: &PgPool) -> Result<bool, Error> {
-        let conn = pool.get()?;
-
-        conn.transaction(|| {
-            let existing_entries = Self::_get_by_instance_type(self.instance_type.as_ref(), &conn)?;
-            if existing_entries.is_empty() {
-                self._insert_entry(&conn)?;
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        })
     }
 
     pub async fn insert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || self.insert_entry_sync(&pool).map(|r| (self, r))).await?
+        pool.transaction(|conn| {
+            let existing_entries = Self::_get_by_instance_type(self.instance_type.as_ref(), conn)?;
+            if existing_entries.is_empty() {
+                self._insert_entry(&conn)?;
+                Ok((self, true))
+            } else {
+                Ok((self, false))
+            }
+        }).await.map_err(Into::into)
     }
 }
 
@@ -259,23 +190,13 @@ impl InstancePricing {
     fn _existing_entries(
         i_type: &str,
         p_type: &str,
-        conn: &PgPoolConn,
-    ) -> Result<Vec<Self>, Error> {
+        conn: &PgConnection,
+    ) -> Result<Vec<Self>, DieselError> {
         use crate::schema::instance_pricing::dsl::{instance_pricing, instance_type, price_type};
         instance_pricing
             .filter(instance_type.eq(i_type))
             .filter(price_type.eq(p_type))
             .load(conn)
-            .map_err(Into::into)
-    }
-
-    fn existing_entries_sync(
-        i_type: &str,
-        p_type: &str,
-        pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
-        let conn = pool.get()?;
-        Self::_existing_entries(i_type, p_type, &conn)
     }
 
     pub async fn existing_entries(
@@ -285,34 +206,26 @@ impl InstancePricing {
     ) -> Result<Vec<Self>, Error> {
         let i_type = i_type.to_owned();
         let p_type = p_type.to_owned();
-        let pool = pool.clone();
-        spawn_blocking(move || Self::existing_entries_sync(&i_type, &p_type, &pool)).await?
-    }
-
-    fn get_all_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        use crate::schema::instance_pricing::dsl::instance_pricing;
-        let conn = pool.get()?;
-        instance_pricing.load(&conn).map_err(Into::into)
+        pool.run(move |conn| Self::_existing_entries(&i_type, &p_type, conn)).await.map_err(Into::into)
     }
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_all_sync(&pool)).await?
+        use crate::schema::instance_pricing::dsl::instance_pricing;
+        instance_pricing.load_async(pool).await.map_err(Into::into)
     }
 }
 
 impl InstancePricingInsert {
-    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+    fn _insert_entry(&self, conn: &PgConnection) -> Result<(), DieselError> {
         use crate::schema::instance_pricing::dsl::instance_pricing;
 
         diesel::insert_into(instance_pricing)
             .values(self)
             .execute(conn)
             .map(|_| ())
-            .map_err(Into::into)
     }
 
-    fn _update_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+    fn _update_entry(&self, conn: &PgConnection) -> Result<(), DieselError> {
         use crate::schema::instance_pricing::dsl::{
             instance_pricing, instance_type, price, price_timestamp, price_type,
         };
@@ -327,13 +240,10 @@ impl InstancePricingInsert {
         ))
         .execute(conn)
         .map(|_| ())
-        .map_err(Into::into)
     }
 
-    fn upsert_entry_sync(&self, pool: &PgPool) -> Result<bool, Error> {
-        let conn = pool.get()?;
-
-        conn.transaction(|| {
+    pub async fn upsert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
+        pool.transaction(|conn| {
             let existing_entries = InstancePricing::_existing_entries(
                 self.instance_type.as_ref(),
                 self.price_type.as_ref(),
@@ -341,17 +251,12 @@ impl InstancePricingInsert {
             )?;
             if existing_entries.is_empty() {
                 self._insert_entry(&conn)?;
-                Ok(true)
+                Ok((self, true))
             } else {
                 self._update_entry(&conn)?;
-                Ok(false)
+                Ok((self, false))
             }
-        })
-    }
-
-    pub async fn upsert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || self.upsert_entry_sync(&pool).map(|r| (self, r))).await?
+        }).await.map_err(Into::into)
     }
 }
 
@@ -385,14 +290,8 @@ pub struct AuthorizedUsers {
 }
 
 impl AuthorizedUsers {
-    fn get_authorized_users_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        use crate::schema::authorized_users::dsl::authorized_users;
-        let conn = pool.get()?;
-        authorized_users.load(&conn).map_err(Into::into)
-    }
-
     pub async fn get_authorized_users(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_authorized_users_sync(&pool)).await?
+        use crate::schema::authorized_users::dsl::authorized_users;
+        authorized_users.load_async(pool).await.map_err(Into::into)
     }
 }

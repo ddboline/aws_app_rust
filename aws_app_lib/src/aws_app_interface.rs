@@ -49,7 +49,7 @@ pub struct AwsAppInterface {
     pub ec2: Ec2Instance,
     pub ecr: EcrInstance,
     pub iam: IamInstance,
-    pub stdout: StdoutChannel,
+    pub stdout: StdoutChannel<StackString>,
 }
 
 impl AwsAppInterface {
