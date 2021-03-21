@@ -2,15 +2,16 @@ use anyhow::Error;
 use diesel::{pg::PgConnection, r2d2::ConnectionManager};
 use r2d2::{Pool, PooledConnection};
 use std::{fmt, sync::Arc};
-use std::ops::Deref;
+use derive_more::Deref;
 
 use stack_string::StackString;
 
 pub type PgPoolConn = PooledConnection<ConnectionManager<PgConnection>>;
 
-#[derive(Clone)]
+#[derive(Clone, Deref)]
 pub struct PgPool {
     pgurl: Arc<StackString>,
+    #[deref]
     pool: Pool<ConnectionManager<PgConnection>>,
 }
 
@@ -34,12 +35,5 @@ impl PgPool {
 
     pub fn get(&self) -> Result<PgPoolConn, Error> {
         self.pool.get().map_err(Into::into)
-    }
-}
-
-impl Deref for PgPool {
-    type Target = Pool<ConnectionManager<PgConnection>>;
-    fn deref(&self) -> &Self::Target {
-        &self.pool
     }
 }
