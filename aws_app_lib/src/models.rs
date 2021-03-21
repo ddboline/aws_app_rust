@@ -1,9 +1,10 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use diesel::{
-    Connection, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
+    ExpressionMethods, Insertable, QueryDsl, Queryable,
     TextExpressionMethods,
 };
+use tokio_diesel::{AsyncConnection, AsyncRunQueryDsl};
 use stack_string::StackString;
 use std::fmt;
 use tokio::task::spawn_blocking;
@@ -40,66 +41,38 @@ impl From<InstanceFamily> for InstanceFamilyInsert {
 }
 
 impl InstanceFamily {
-    fn _existing_entries(
-        f_name: &str,
-        f_type: &str,
-        conn: &PgPoolConn,
-    ) -> Result<Vec<Self>, Error> {
+    pub async fn existing_entries(f_name: &str, f_type: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
+        let conn = pool.get()?;
         instance_family
             .filter(family_name.eq(f_name))
             .filter(family_type.eq(f_type))
-            .load(conn)
-            .map_err(Into::into)
-    }
-
-    fn existing_entries_sync(
-        f_name: &str,
-        f_type: &str,
-        pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
-        let conn = pool.get()?;
-        Self::_existing_entries(f_name, f_type, &conn)
-    }
-
-    pub async fn existing_entries(
-        f_name: &str,
-        f_type: &str,
-        pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
-        let f_name = f_name.to_owned();
-        let f_type = f_type.to_owned();
-        let pool = pool.clone();
-        spawn_blocking(move || Self::existing_entries_sync(&f_name, &f_type, &pool)).await?
-    }
-
-    fn get_all_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
-        let conn = pool.get()?;
-        instance_family
-            .order((family_type, family_name))
-            .load(&conn)
+            .load_async(&conn).await
             .map_err(Into::into)
     }
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_all_sync(&pool)).await?
+        use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
+        let conn = pool.get()?;
+        instance_family
+            .order((family_type, family_name))
+            .load_async(&conn).await
+            .map_err(Into::into)
     }
 }
 
 impl InstanceFamilyInsert {
-    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+    async fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
         use crate::schema::instance_family::dsl::instance_family;
 
         diesel::insert_into(instance_family)
             .values(self)
-            .execute(conn)
+            .execute_async(conn).await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    fn insert_entry_sync(&self, pool: &PgPool) -> Result<bool, Error> {
+    pub async fn insert_entry(&self, pool: &PgPool) -> Result<bool, Error> {
         let conn = pool.get()?;
 
         conn.transaction(|| {
@@ -115,11 +88,6 @@ impl InstanceFamilyInsert {
                 Ok(false)
             }
         })
-    }
-
-    pub async fn insert_entry(self, pool: &PgPool) -> Result<(Self, bool), Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || self.insert_entry_sync(&pool).map(|r| (self, r))).await?
     }
 }
 
@@ -142,18 +110,13 @@ pub struct InstanceList {
 }
 
 impl InstanceList {
-    fn get_all_instances_sync(pool: &PgPool) -> Result<Vec<Self>, Error> {
+    pub async fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_list::dsl::instance_list;
         let conn = pool.get()?;
-        instance_list.load(&conn).map_err(Into::into)
+        instance_list.load_async(&conn).await.map_err(Into::into)
     }
 
-    pub async fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_all_instances_sync(&pool)).await?
-    }
-
-    fn get_by_instance_family_sync(
+    pub async fn get_by_instance_family(
         instance_family: &str,
         pool: &PgPool,
     ) -> Result<Vec<Self>, Error> {
@@ -161,47 +124,32 @@ impl InstanceList {
         let conn = pool.get()?;
         instance_list
             .filter(instance_type.like(format!("{}%", instance_family)))
-            .load(&conn)
+            .load_async(&conn).await
             .map_err(Into::into)
     }
 
-    pub async fn get_by_instance_family(
-        instance_family: &str,
-        pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
-        let instance_family = instance_family.to_owned();
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_by_instance_family_sync(&instance_family, &pool)).await?
-    }
-
-    fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
+    async fn _get_by_instance_type(instance_type_: &str, conn: &PgPoolConn) -> Result<Vec<Self>, Error> {
         use crate::schema::instance_list::dsl::{instance_list, instance_type};
         instance_list
             .filter(instance_type.eq(instance_type_))
-            .load(conn)
+            .load_async(conn).await
             .map_err(Into::into)
-    }
-
-    fn get_by_instance_type_sync(instance_type_: &str, pool: &PgPool) -> Result<Vec<Self>, Error> {
-        let conn = pool.get()?;
-        Self::_get_by_instance_type(instance_type_, &conn)
     }
 
     pub async fn get_by_instance_type(
         instance_type: &str,
         pool: &PgPool,
     ) -> Result<Vec<Self>, Error> {
-        let instance_type = instance_type.to_owned();
-        let pool = pool.clone();
-        spawn_blocking(move || Self::get_by_instance_type_sync(&instance_type, &pool)).await?
+        let conn = pool.get()?;
+        Self::_get_by_instance_type(instance_type_, &conn).await
     }
 
-    fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
+    async fn _insert_entry(&self, conn: &PgPoolConn) -> Result<(), Error> {
         use crate::schema::instance_list::dsl::instance_list;
 
         diesel::insert_into(instance_list)
             .values(self)
-            .execute(conn)
+            .execute_async(conn).await
             .map(|_| ())
             .map_err(Into::into)
     }
