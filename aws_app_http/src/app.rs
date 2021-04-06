@@ -370,7 +370,7 @@ mod tests {
         logged_user::{get_random_key, JWT_SECRET, KEY_LENGTH, SECRET_KEY},
     };
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_app() -> Result<(), Error> {
         set_var("TESTENV", "true");
 
