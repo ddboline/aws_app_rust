@@ -1,8 +1,8 @@
 use anyhow::Error;
+use derive_more::Deref;
 use diesel::{pg::PgConnection, r2d2::ConnectionManager};
 use r2d2::{Pool, PooledConnection};
 use std::{fmt, sync::Arc};
-use derive_more::Deref;
 
 use stack_string::StackString;
 

@@ -1,16 +1,15 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use diesel::{
-    ExpressionMethods, Insertable, QueryDsl, Queryable,
-    TextExpressionMethods, RunQueryDsl,
-    pg::PgConnection, result::Error as DieselError,
+    pg::PgConnection, result::Error as DieselError, ExpressionMethods, Insertable, QueryDsl,
+    Queryable, RunQueryDsl, TextExpressionMethods,
 };
-use tokio_diesel::{AsyncConnection, AsyncRunQueryDsl};
 use stack_string::StackString;
 use std::fmt;
+use tokio_diesel::{AsyncConnection, AsyncRunQueryDsl};
 
 use crate::{
-    pgpool::{PgPool},
+    pgpool::PgPool,
     schema::{authorized_users, instance_family, instance_list, instance_pricing},
 };
 
@@ -41,7 +40,11 @@ impl From<InstanceFamily> for InstanceFamilyInsert {
 }
 
 impl InstanceFamily {
-    fn _existing_entries(f_name: &str, f_type: &str, conn: &PgConnection) -> Result<Vec<Self>, DieselError> {
+    fn _existing_entries(
+        f_name: &str,
+        f_type: &str,
+        conn: &PgConnection,
+    ) -> Result<Vec<Self>, DieselError> {
         use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
         instance_family
             .filter(family_name.eq(f_name))
@@ -53,7 +56,8 @@ impl InstanceFamily {
         use crate::schema::instance_family::dsl::{family_name, family_type, instance_family};
         instance_family
             .order((family_type, family_name))
-            .load_async(pool).await
+            .load_async(pool)
+            .await
             .map_err(Into::into)
     }
 }
@@ -81,7 +85,9 @@ impl InstanceFamilyInsert {
             } else {
                 Ok((self, false))
             }
-        }).await.map_err(Into::into)
+        })
+        .await
+        .map_err(Into::into)
     }
 }
 
@@ -116,11 +122,15 @@ impl InstanceList {
         use crate::schema::instance_list::dsl::{instance_list, instance_type};
         instance_list
             .filter(instance_type.like(format!("{}%", instance_family)))
-            .load_async(pool).await
+            .load_async(pool)
+            .await
             .map_err(Into::into)
     }
 
-    fn _get_by_instance_type(instance_type_: &str, conn: &PgConnection) -> Result<Vec<Self>, DieselError> {
+    fn _get_by_instance_type(
+        instance_type_: &str,
+        conn: &PgConnection,
+    ) -> Result<Vec<Self>, DieselError> {
         use crate::schema::instance_list::dsl::{instance_list, instance_type};
         instance_list
             .filter(instance_type.eq(instance_type_))
@@ -132,7 +142,9 @@ impl InstanceList {
         pool: &PgPool,
     ) -> Result<Vec<Self>, Error> {
         let instance_type = instance_type.to_owned();
-        pool.run(move |conn| Self::_get_by_instance_type(&instance_type, conn)).await.map_err(Into::into)
+        pool.run(move |conn| Self::_get_by_instance_type(&instance_type, conn))
+            .await
+            .map_err(Into::into)
     }
 
     fn _insert_entry(&self, conn: &PgConnection) -> Result<(), DieselError> {
@@ -153,7 +165,9 @@ impl InstanceList {
             } else {
                 Ok((self, false))
             }
-        }).await.map_err(Into::into)
+        })
+        .await
+        .map_err(Into::into)
     }
 }
 
@@ -206,7 +220,9 @@ impl InstancePricing {
     ) -> Result<Vec<Self>, Error> {
         let i_type = i_type.to_owned();
         let p_type = p_type.to_owned();
-        pool.run(move |conn| Self::_existing_entries(&i_type, &p_type, conn)).await.map_err(Into::into)
+        pool.run(move |conn| Self::_existing_entries(&i_type, &p_type, conn))
+            .await
+            .map_err(Into::into)
     }
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
@@ -256,7 +272,9 @@ impl InstancePricingInsert {
                 self._update_entry(&conn)?;
                 Ok((self, false))
             }
-        }).await.map_err(Into::into)
+        })
+        .await
+        .map_err(Into::into)
     }
 }
 

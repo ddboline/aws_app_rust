@@ -6,7 +6,10 @@ use serde::Serialize;
 use stack_string::StackString;
 use std::{convert::Infallible, fmt::Debug, string::FromUtf8Error};
 use thiserror::Error;
-use warp::{reject::{Reject, InvalidHeader, MissingCookie}, Rejection, Reply};
+use warp::{
+    reject::{InvalidHeader, MissingCookie, Reject},
+    Rejection, Reply,
+};
 
 #[derive(Error, Debug)]
 pub enum ServiceError {

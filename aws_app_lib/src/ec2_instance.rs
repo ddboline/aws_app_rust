@@ -186,11 +186,17 @@ impl Ec2Instance {
             })
             .collect();
         if let Some(latest_ami_name) = &latest_ami_name {
-            let latest_ami_id = ami_map.get(latest_ami_name).unwrap().clone();
+            let latest_ami_id = ami_map
+                .get(latest_ami_name)
+                .ok_or_else(|| format_err!("No latest ami"))?
+                .clone();
             ami_map.insert("latest".into(), latest_ami_id);
         }
         if let Some(latest_arm64_name) = &latest_arm64_name {
-            let latest_arm64_id = ami_map.get(latest_arm64_name).unwrap().clone();
+            let latest_arm64_id = ami_map
+                .get(latest_arm64_name)
+                .ok_or_else(|| format_err!("No latest ami"))?
+                .clone();
             ami_map.insert("arm64".into(), latest_arm64_id);
         }
         Ok(ami_map)

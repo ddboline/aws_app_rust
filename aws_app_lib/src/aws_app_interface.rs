@@ -525,8 +525,7 @@ impl AwsAppInterface {
             .await?
             .into_iter()
             .map(|price| {
-                let mut outstr = Vec::new();
-                outstr.push(format!("{:14} ", price.instance_type));
+                let mut outstr = vec![format!("{:14} ", price.instance_type)];
                 match price.ondemand_price {
                     Some(p) => outstr.push(format!("ond: ${:0.4}/hr   ", p)),
                     None => outstr.push(format!("{:4} {:9}   ", "", "")),
