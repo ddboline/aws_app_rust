@@ -28,6 +28,7 @@ pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
 pub mod spot_request_opt;
 pub mod ssh_instance;
+pub mod route53_instance;
 
 #[cfg(test)]
 mod tests {
