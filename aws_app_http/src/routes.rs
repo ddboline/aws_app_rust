@@ -534,7 +534,7 @@ pub async fn update(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
     Ok(warp::reply::html(body))
 }
 
-pub async fn status(query: StatusRequest, _: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+pub async fn instance_status(query: StatusRequest, _: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
         data.aws.get_status(&query.instance),

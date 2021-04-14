@@ -138,6 +138,13 @@ impl Route53Instance {
             .await?;
         Ok(())
     }
+
+    pub async fn get_ip_address() -> Result<Ipv4Addr, Error> {
+        let response = reqwest::get("https://ipinfo.io/ip").await?.error_for_status()?.text().await?;
+        let ip: Ipv4Addr = response.parse()?;
+        println!("{}", ip);
+        Ok(ip)
+    }
 }
 
 #[cfg(test)]
@@ -159,6 +166,14 @@ mod tests {
             let result = r53.list_dns_records(&zone.id).await?;
             println!("{:?}", result);
         }
+        assert!(false);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_ip_address() -> Result<(), Error> {
+        let ip = Route53Instance::get_ip_address().await?;
+        println!("{:?}", ip);
         assert!(false);
         Ok(())
     }

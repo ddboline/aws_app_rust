@@ -351,7 +351,7 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function getStatus( instance ) {
-        let url = "/aws/status?instance=" + instance;
+        let url = "/aws/instance_status?instance=" + instance;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("sub_article").innerHTML = xmlhttp.responseText;

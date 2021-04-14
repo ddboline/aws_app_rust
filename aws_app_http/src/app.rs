@@ -13,8 +13,8 @@ use super::{
         create_access_key, create_image, create_snapshot, create_user, delete_access_key,
         delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_user, delete_volume,
         edit_script, get_instances, get_prices, list, modify_volume, novnc_launcher,
-        novnc_shutdown, novnc_status, remove_user_from_group, replace_script, request_spot, status,
-        sync_frontpage, tag_item, terminate, update, user,
+        novnc_shutdown, novnc_status, remove_user_from_group, replace_script, request_spot, instance_status,
+        sync_frontpage, tag_item, terminate, update, user
     },
 };
 
@@ -254,13 +254,13 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .and(data.clone())
         .and_then(update)
         .boxed();
-    let status_path = warp::path("status")
+    let instance_status_path = warp::path("instance_status")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
         .and(warp::cookie("jwt"))
         .and(data.clone())
-        .and_then(status)
+        .and_then(instance_status)
         .boxed();
     let command_path = warp::path("command")
         .and(warp::path::end())
@@ -342,7 +342,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
                 .or(cancel_spot_path)
                 .or(get_prices_path)
                 .or(update_path)
-                .or(status_path)
+                .or(instance_status_path)
                 .or(command_path)
                 .or(get_instances_path)
                 .or(user_path)
