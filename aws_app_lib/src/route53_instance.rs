@@ -150,6 +150,7 @@ impl Route53Instance {
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
+    use std::net::Ipv4Addr;
 
     use crate::{config::Config, route53_instance::Route53Instance};
 
@@ -171,10 +172,10 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_get_ip_address() -> Result<(), Error> {
         let ip = Route53Instance::get_ip_address().await?;
-        println!("{:?}", ip);
-        assert!(false);
+        assert_eq!(ip, Ipv4Addr::new(68, 174, 151, 250));
         Ok(())
     }
 }
