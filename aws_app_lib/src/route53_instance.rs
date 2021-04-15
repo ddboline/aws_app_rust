@@ -1,3 +1,4 @@
+use futures::future::try_join_all;
 use anyhow::{format_err, Error};
 use rusoto_core::Region;
 use rusoto_route53::{
@@ -9,6 +10,7 @@ use sts_profile_auth::get_client_sts;
 
 use crate::config::Config;
 
+#[derive(Clone)]
 pub struct Route53Instance {
     route53_client: Route53Client,
     region: Region,
@@ -76,14 +78,29 @@ impl Route53Instance {
                 .into_iter()
                 .filter_map(|record| {
                     if record.type_ == "A" {
+                        let dnsname = record.name.trim_end_matches(".").into();
                         let value = record.resource_records?.pop()?.value;
-                        Some((record.name, value))
+                        Some((dnsname, value))
                     } else {
                         None
                     }
                 })
                 .collect()
         })
+    }
+
+    pub async fn list_all_dns_records(&self) -> Result<Vec<(String, String, String)>, Error> {
+        let hosted_zones = self.get_hosted_zones().await?;
+        let futures = hosted_zones.into_iter().map(|zone| {
+            async move {
+                self.list_dns_records(&zone.id).await.map(|v| v.into_iter().map(|(name, ip)| {
+                    (zone.id.clone(), name, ip)
+                }).collect::<Vec<_>>())
+            }
+        });
+        let results: Result<Vec<_>, Error> = try_join_all(futures).await;
+        let dns_records = results?.into_iter().flatten().collect();
+        Ok(dns_records)
     }
 
     pub async fn update_dns_record(
@@ -155,6 +172,7 @@ mod tests {
     use crate::{config::Config, route53_instance::Route53Instance};
 
     #[tokio::test]
+    #[ignore]
     async fn test_route53_instance() -> Result<(), Error> {
         let config = Config::init_config()?;
         let r53 = Route53Instance::new(&config);
@@ -167,6 +185,18 @@ mod tests {
             let result = r53.list_dns_records(&zone.id).await?;
             println!("{:?}", result);
         }
+        assert!(false);
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_list_all_dns_records() -> Result<(), Error> {
+        let config = Config::init_config()?;
+        let r53 = Route53Instance::new(&config);
+        let result = r53.list_all_dns_records().await?;
+        assert!(result.len() > 0);
+        println!("{:?}", result);
         assert!(false);
         Ok(())
     }

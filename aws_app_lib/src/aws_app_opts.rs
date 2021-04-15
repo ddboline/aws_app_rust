@@ -1,7 +1,7 @@
 use anyhow::Error;
 use futures::future::try_join_all;
 use stack_string::StackString;
-use std::{string::ToString, sync::Arc};
+use std::{net::Ipv4Addr, string::ToString, sync::Arc};
 use structopt::StructOpt;
 
 use crate::{
@@ -145,6 +145,16 @@ pub enum AwsAppOpts {
         /// Instance ID
         instance_id: StackString,
     },
+    UpdateDns {
+        #[structopt(short, long)]
+        zone: StackString,
+        #[structopt(short, long)]
+        dnsname: StackString,
+        #[structopt(short, long)]
+        old_ip: Ipv4Addr,
+        #[structopt(short, long)]
+        new_ip: Ipv4Addr,
+    }
 }
 
 impl AwsAppOpts {
@@ -303,6 +313,9 @@ impl AwsAppOpts {
                     app.stdout.send(line);
                 }
                 Ok(())
+            },
+            Self::UpdateDns { zone, dnsname, old_ip, new_ip} => {
+                app.route53.update_dns_record(&zone, &dnsname, old_ip, new_ip).await
             }
         };
         result?;

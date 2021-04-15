@@ -627,6 +627,7 @@ pub async fn get_frontpage(
             output.push(keys.into());
             output.push(r#"</tbody></table>"#.into());
         }
+        ResourceType::Route53 => {}
     };
     Ok(output)
 }
