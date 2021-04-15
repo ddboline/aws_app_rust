@@ -627,7 +627,12 @@ pub async fn get_frontpage(
             output.push(keys.into());
             output.push(r#"</tbody></table>"#.into());
         }
-        ResourceType::Route53 => {}
+        ResourceType::Route53 => {
+            let records = app.route53.list_all_dns_records().await?.into_iter().map(|(zone, name, ip)| {
+                format!("{} {} {}", zone, name, ip)
+            }).join("");
+            output.push(records);
+        }
     };
     Ok(output)
 }
