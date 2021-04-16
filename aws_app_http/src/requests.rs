@@ -638,7 +638,7 @@ pub async fn get_frontpage(
             let records = app.route53.list_all_dns_records().await?.into_iter().map(|(zone, name, ip)| {
                 let update_dns_button = format!(
                     r#"<input type="button" name="Update" value="{new_ip}"
-                        onclick="updateDnsName('{zone}', '{dns}', '{old_ip}', '{new_ip}');">"#,
+                        onclick="updateDnsName('{zone}', '{dns}.', '{old_ip}', '{new_ip}');">"#,
                     zone=zone, dns=name, old_ip=ip, new_ip=current_ip,
                 );
                 format!(

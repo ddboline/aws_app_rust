@@ -110,6 +110,9 @@ impl Route53Instance {
         old_ip: Ipv4Addr,
         new_ip: Ipv4Addr,
     ) -> Result<(), Error> {
+        if old_ip == new_ip {
+            return Ok(());
+        }
         let old_ip = old_ip.to_string();
         let new_ip = new_ip.to_string();
         let mut record = self

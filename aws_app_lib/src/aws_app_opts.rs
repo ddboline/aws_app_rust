@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{format_err, Error};
 use futures::future::try_join_all;
 use stack_string::StackString;
 use std::{net::Ipv4Addr, string::ToString, sync::Arc};
@@ -151,9 +151,7 @@ pub enum AwsAppOpts {
         #[structopt(short, long)]
         dnsname: StackString,
         #[structopt(short, long)]
-        old_ip: Ipv4Addr,
-        #[structopt(short, long)]
-        new_ip: Ipv4Addr,
+        new_ip: Option<Ipv4Addr>,
     },
 }
 
@@ -317,9 +315,27 @@ impl AwsAppOpts {
             Self::UpdateDns {
                 zone,
                 dnsname,
-                old_ip,
                 new_ip,
             } => {
+                let record_name = format!("{}.", dnsname);
+                let old_ip = app
+                    .route53
+                    .list_record_sets(&zone)
+                    .await?
+                    .into_iter()
+                    .filter_map(|record| {
+                        if record.type_ == "A" && record.name == record_name {
+                            let ip: Ipv4Addr =
+                                record.resource_records?.pop()?.value.parse().ok()?;
+                            Some(ip)
+                        } else {
+                            None
+                        }
+                    })
+                    .next()
+                    .ok_or_else(|| format_err!("No IP"))?;
+                let current_ip = app.route53.get_ip_address().await?;
+                let new_ip = new_ip.unwrap_or(current_ip);
                 app.route53
                     .update_dns_record(&zone, &dnsname, old_ip, new_ip)
                     .await
