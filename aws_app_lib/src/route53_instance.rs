@@ -173,7 +173,7 @@ impl Route53Instance {
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
-    use std::net::Ipv4Addr;
+    use std::collections::HashMap;
 
     use crate::{config::Config, route53_instance::Route53Instance};
 
@@ -191,7 +191,6 @@ mod tests {
             let result = r53.list_dns_records(&zone.id).await?;
             println!("{:?}", result);
         }
-        assert!(false);
         Ok(())
     }
 
@@ -203,7 +202,6 @@ mod tests {
         let result = r53.list_all_dns_records().await?;
         assert!(result.len() > 0);
         println!("{:?}", result);
-        assert!(false);
         Ok(())
     }
 
@@ -213,7 +211,17 @@ mod tests {
         let config = Config::init_config()?;
         let r53 = Route53Instance::new(&config);
         let ip = r53.get_ip_address().await?;
-        assert_eq!(ip, Ipv4Addr::new(68, 174, 151, 250));
+        let name_map: HashMap<_, _> = r53
+            .list_all_dns_records()
+            .await?
+            .into_iter()
+            .map(|(_, name, ip)| (name, ip))
+            .collect();
+        if config.domain == "www.ddboline.net" || config.domain == "cloud.ddboline.net" {
+            if let Some(home_ip) = name_map.get(config.domain.as_str()) {
+                assert_eq!(&ip.to_string(), home_ip);
+            }
+        }
         Ok(())
     }
 }
