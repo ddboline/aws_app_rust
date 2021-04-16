@@ -3,7 +3,7 @@ use itertools::Itertools;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::sync::Arc;
+use std::{net::Ipv4Addr, sync::Arc};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -534,7 +534,11 @@ pub async fn update(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
     Ok(warp::reply::html(body))
 }
 
-pub async fn instance_status(query: StatusRequest, _: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+pub async fn instance_status(
+    query: StatusRequest,
+    _: LoggedUser,
+    data: AppState,
+) -> WarpResult<impl Reply> {
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
         data.aws.get_status(&query.instance),
@@ -774,5 +778,29 @@ pub async fn delete_access_key(
     Ok(warp::reply::html(format!(
         "delete {} for {}",
         query.access_key_id, query.user_name
+    )))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateDnsNameRequest {
+    zone: StackString,
+    dns_name: StackString,
+    old_ip: Ipv4Addr,
+    new_ip: Ipv4Addr,
+}
+
+pub async fn update_dns_name(
+    query: UpdateDnsNameRequest,
+    _: LoggedUser,
+    data: AppState,
+) -> WarpResult<impl Reply> {
+    data.aws
+        .route53
+        .update_dns_record(&query.zone, &query.dns_name, query.old_ip, query.new_ip)
+        .await
+        .map_err(Into::<Error>::into)?;
+    Ok(warp::reply::html(format!(
+        "update {} from {} to {}",
+        query.dns_name, query.old_ip, query.new_ip
     )))
 }

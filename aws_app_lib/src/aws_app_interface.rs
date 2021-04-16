@@ -11,18 +11,17 @@ use std::{
 use stdout_channel::StdoutChannel;
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
-use std::net::ToSocketAddrs;
 
 use crate::{
     config::Config,
     ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
     ecr_instance::EcrInstance,
     iam_instance::{IamAccessKey, IamInstance, IamUser},
-    route53_instance::Route53Instance,
     instance_family::InstanceFamilies,
     models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
     resource_type::ResourceType,
+    route53_instance::Route53Instance,
     scrape_instance_info::scrape_instance_info,
     scrape_pricing_info::scrape_pricing_info,
     ssh_instance::SSHInstance,
@@ -69,7 +68,8 @@ impl AwsAppInterface {
     }
 
     pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
-        self.ec2.set_region(region)
+        self.ec2
+            .set_region(region)
             .and_then(|_| self.ecr.set_region(region))
             .and_then(|_| self.route53.set_region(region))
     }
@@ -352,10 +352,14 @@ impl AwsAppInterface {
                 self.stdout.send(format!("---\nAccess Keys:\n{}", keys));
             }
             ResourceType::Route53 => {
-                let current_ip = Route53Instance::get_ip_address().await?;
-                let dns_records = self.route53.list_all_dns_records().await?.into_iter().map(|(zone, name, ip)| {
-                    format!("{} {} {} {}", zone, name, ip, current_ip)
-                }).join("\n");
+                let current_ip = self.route53.get_ip_address().await?;
+                let dns_records = self
+                    .route53
+                    .list_all_dns_records()
+                    .await?
+                    .into_iter()
+                    .map(|(zone, name, ip)| format!("{} {} {} {}", zone, name, ip, current_ip))
+                    .join("\n");
                 self.stdout.send(format!("---\nDNS:\n{}", dns_records));
             }
         };

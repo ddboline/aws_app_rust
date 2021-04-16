@@ -1,5 +1,5 @@
-use futures::future::try_join_all;
 use anyhow::{format_err, Error};
+use futures::future::try_join_all;
 use rusoto_core::Region;
 use rusoto_route53::{
     Change, ChangeBatch, ChangeResourceRecordSetsRequest, HostedZone, ListHostedZonesRequest,
@@ -91,12 +91,12 @@ impl Route53Instance {
 
     pub async fn list_all_dns_records(&self) -> Result<Vec<(String, String, String)>, Error> {
         let hosted_zones = self.get_hosted_zones().await?;
-        let futures = hosted_zones.into_iter().map(|zone| {
-            async move {
-                self.list_dns_records(&zone.id).await.map(|v| v.into_iter().map(|(name, ip)| {
-                    (zone.id.clone(), name, ip)
-                }).collect::<Vec<_>>())
-            }
+        let futures = hosted_zones.into_iter().map(|zone| async move {
+            self.list_dns_records(&zone.id).await.map(|v| {
+                v.into_iter()
+                    .map(|(name, ip)| (zone.id.clone(), name, ip))
+                    .collect::<Vec<_>>()
+            })
         });
         let results: Result<Vec<_>, Error> = try_join_all(futures).await;
         let dns_records = results?.into_iter().flatten().collect();
@@ -156,10 +156,13 @@ impl Route53Instance {
         Ok(())
     }
 
-    pub async fn get_ip_address() -> Result<Ipv4Addr, Error> {
-        let response = reqwest::get("https://ipinfo.io/ip").await?.error_for_status()?.text().await?;
-        let ip: Ipv4Addr = response.parse()?;
-        println!("{}", ip);
+    pub async fn get_ip_address(&self) -> Result<Ipv4Addr, Error> {
+        let ip = reqwest::get("https://ipinfo.io/ip")
+            .await?
+            .error_for_status()?
+            .text()
+            .await?
+            .parse()?;
         Ok(ip)
     }
 }
@@ -204,7 +207,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_get_ip_address() -> Result<(), Error> {
-        let ip = Route53Instance::get_ip_address().await?;
+        let config = Config::init_config()?;
+        let r53 = Route53Instance::new(&config);
+        let ip = r53.get_ip_address().await?;
         assert_eq!(ip, Ipv4Addr::new(68, 174, 151, 250));
         Ok(())
     }

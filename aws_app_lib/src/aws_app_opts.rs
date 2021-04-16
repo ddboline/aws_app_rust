@@ -154,7 +154,7 @@ pub enum AwsAppOpts {
         old_ip: Ipv4Addr,
         #[structopt(short, long)]
         new_ip: Ipv4Addr,
-    }
+    },
 }
 
 impl AwsAppOpts {
@@ -313,9 +313,16 @@ impl AwsAppOpts {
                     app.stdout.send(line);
                 }
                 Ok(())
-            },
-            Self::UpdateDns { zone, dnsname, old_ip, new_ip} => {
-                app.route53.update_dns_record(&zone, &dnsname, old_ip, new_ip).await
+            }
+            Self::UpdateDns {
+                zone,
+                dnsname,
+                old_ip,
+                new_ip,
+            } => {
+                app.route53
+                    .update_dns_record(&zone, &dnsname, old_ip, new_ip)
+                    .await
             }
         };
         result?;

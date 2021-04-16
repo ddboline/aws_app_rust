@@ -628,10 +628,26 @@ pub async fn get_frontpage(
             output.push(r#"</tbody></table>"#.into());
         }
         ResourceType::Route53 => {
+            let current_ip = app.route53.get_ip_address().await?;
+            output.push(
+                r#"<table border="1" class="dataframe"><thead><tr><th>Zone ID</th><th>DNS Name</th>
+                    <th>IP Address</th><th></th>
+                    </tr></thead><tbody>"#
+                    .into(),
+            );
             let records = app.route53.list_all_dns_records().await?.into_iter().map(|(zone, name, ip)| {
-                format!("{} {} {}", zone, name, ip)
+                let update_dns_button = format!(
+                    r#"<input type="button" name="Update" value="{new_ip}"
+                        onclick="updateDnsName('{zone}', '{dns}', '{old_ip}', '{new_ip}');">"#,
+                    zone=zone, dns=name, old_ip=ip, new_ip=current_ip,
+                );
+                format!(
+                    r#"<tr style="text-align; left;"><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
+                    zone, name, ip, update_dns_button
+                )
             }).join("");
-            output.push(records);
+            output.push(records.into());
+            output.push(r#"</tbody></table>"#.into());
         }
     };
     Ok(output)
