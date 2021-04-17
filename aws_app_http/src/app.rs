@@ -12,9 +12,9 @@ use super::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
         create_access_key, create_image, create_snapshot, create_user, delete_access_key,
         delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_user, delete_volume,
-        edit_script, get_instances, get_prices, list, modify_volume, novnc_launcher,
-        novnc_shutdown, novnc_status, remove_user_from_group, replace_script, request_spot, status,
-        sync_frontpage, tag_item, terminate, update, user,
+        edit_script, get_instances, get_prices, instance_status, list, modify_volume,
+        novnc_launcher, novnc_shutdown, novnc_status, remove_user_from_group, replace_script,
+        request_spot, sync_frontpage, tag_item, terminate, update, update_dns_name, user,
     },
 };
 
@@ -254,13 +254,13 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .and(data.clone())
         .and_then(update)
         .boxed();
-    let status_path = warp::path("status")
+    let instance_status_path = warp::path("instance_status")
         .and(warp::path::end())
         .and(warp::get())
         .and(warp::query())
         .and(warp::cookie("jwt"))
         .and(data.clone())
-        .and_then(status)
+        .and_then(instance_status)
         .boxed();
     let command_path = warp::path("command")
         .and(warp::path::end())
@@ -305,6 +305,14 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .and(data.clone())
         .and_then(novnc_shutdown)
         .boxed();
+    let update_dns_name_path = warp::path("update_dns_name")
+        .and(warp::path::end())
+        .and(warp::get())
+        .and(warp::query())
+        .and(warp::cookie("jwt"))
+        .and(data.clone())
+        .and_then(update_dns_name)
+        .boxed();
 
     let novnc_scope = warp::path("novnc")
         .and(
@@ -342,11 +350,12 @@ async fn run_app(config: &Config) -> Result<(), Error> {
                 .or(cancel_spot_path)
                 .or(get_prices_path)
                 .or(update_path)
-                .or(status_path)
+                .or(instance_status_path)
                 .or(command_path)
                 .or(get_instances_path)
                 .or(user_path)
-                .or(novnc_scope),
+                .or(novnc_scope)
+                .or(update_dns_name_path),
         )
         .boxed();
     let routes = aws_path.recover(error_response);

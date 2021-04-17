@@ -67,6 +67,7 @@ footer {
 <input type="button" name="list_users" value="Users" onclick="listResource('user');"/>
 <input type="button" name="list_groups" value="Groups" onclick="listResource('group');"/>
 <input type="button" name="list_access_keys" value="AccessKey" onclick="listResource('access-key');"/>
+<input type="button" name="list_route53" value="DnsRecords" onclick="listResource('route53');"/>
 <input type="button" name="list_price" value="Price" onclick="listAllPrices()"/>
 <input type="button" name="novnc" value="NoVNC" onclick="noVncTab('/aws/novnc/status')"/>
 <input type="button" name="update" value="Update" onclick="updateMetadata()"/>
@@ -351,7 +352,7 @@ DISPLAY_TEXT
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
     function getStatus( instance ) {
-        let url = "/aws/status?instance=" + instance;
+        let url = "/aws/instance_status?instance=" + instance;
         let xmlhttp = new XMLHttpRequest();
         xmlhttp.onload = function f() {
             document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
@@ -490,6 +491,17 @@ DISPLAY_TEXT
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
             listResource('access-key');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function updateDnsName(zone, dns_name, old_ip, new_ip) {
+        let url = "/aws/update_dns_name?zone=" + zone + "&dns_name=" + dns_name + "&old_ip=" + old_ip + "&new_ip=" + new_ip;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('route53');
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);

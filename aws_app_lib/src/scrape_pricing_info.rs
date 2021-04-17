@@ -20,7 +20,7 @@ pub async fn scrape_pricing_info(
     let url = extract_json_url(get_url(ptype)?).await?;
     output.push(format!("url {}", url).into());
     let js: PricingJson = reqwest::get(url).await?.json().await?;
-    let results = parse_json(js, ptype)?;
+    let results = parse_json(js, ptype);
     output.push(format!("{}", results.len()).into());
 
     let results = results.into_iter().map(|r| r.upsert_entry(pool));
@@ -45,7 +45,7 @@ async fn extract_json_url(url: Url) -> Result<Url, Error> {
 }
 
 fn parse_json_url_body(body: &str) -> Result<Url, Error> {
-    let condition = |l: &&str| l.contains("data-service-url") && l.contains("/linux/");
+    let condition = |l: &&str| l.contains("data-service-url");
     body.split('\n')
         .find(condition)
         .and_then(|line| {
@@ -61,7 +61,7 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
         .ok_or_else(|| format_err!("No url"))
 }
 
-fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricingInsert>, Error> {
+fn parse_json(js: PricingJson, ptype: PricingType) -> Vec<InstancePricingInsert> {
     fn preserved_filter(p: &PricingEntry) -> bool {
         fn _cmp(os: Option<&StackString>, s: &str) -> bool {
             os.map(Into::into) == Some(s)
@@ -84,7 +84,7 @@ fn parse_json(js: PricingJson, ptype: PricingType) -> Result<Vec<InstancePricing
                 PricingType::Reserved => preserved_filter(&p),
             };
             if get_price {
-                Some(get_instance_pricing(&p, ptype))
+                get_instance_pricing(&p, ptype).ok()
             } else {
                 None
             }
@@ -106,7 +106,7 @@ fn get_instance_pricing(
             let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
-                .ok_or_else(|| format_err!("No instance type"))?
+                .ok_or_else(|| format_err!("No instance type {:?}", price_entry))?
                 .clone();
             let i = InstancePricingInsert {
                 instance_type,
@@ -184,14 +184,14 @@ mod tests {
         let gz = GzDecoder::new(&data[..]);
         let js: PricingJson = serde_json::from_reader(gz)?;
         let ptype = PricingType::Reserved;
-        let results = parse_json(js, ptype)?;
+        let results = parse_json(js, ptype);
         assert_eq!(results.len(), 263);
 
         let data = include_bytes!("../../tests/data/ondemand.json.gz");
         let gz = GzDecoder::new(&data[..]);
         let js: PricingJson = serde_json::from_reader(gz)?;
         let ptype = PricingType::OnDemand;
-        let results = parse_json(js, ptype)?;
+        let results = parse_json(js, ptype);
         assert_eq!(results.len(), 263);
         Ok(())
     }
