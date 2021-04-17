@@ -51,7 +51,10 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
         .and_then(|line| {
             line.split_whitespace().find(condition).and_then(|entry| {
                 entry.split('=').nth(1).and_then(|s| {
-                    s.replace(r#"{{region}}"#, "us-east-1").trim_matches('"').parse().ok()
+                    s.replace(r#"{{region}}"#, "us-east-1")
+                        .trim_matches('"')
+                        .parse()
+                        .ok()
                 })
             })
         })
