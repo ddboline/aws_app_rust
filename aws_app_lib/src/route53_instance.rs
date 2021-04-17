@@ -78,7 +78,7 @@ impl Route53Instance {
                 .into_iter()
                 .filter_map(|record| {
                     if record.type_ == "A" {
-                        let dnsname = record.name.trim_end_matches(".").into();
+                        let dnsname = record.name.trim_end_matches('.').into();
                         let value = record.resource_records?.pop()?.value;
                         Some((dnsname, value))
                     } else {
@@ -119,8 +119,7 @@ impl Route53Instance {
             .list_record_sets(zone_id)
             .await?
             .into_iter()
-            .filter(|r| r.type_ == "A" && r.name == name)
-            .next()
+            .find(|r| r.type_ == "A" && r.name == name)
             .ok_or_else(|| format_err!("No record found"))?;
 
         let value = record

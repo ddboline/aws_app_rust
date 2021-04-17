@@ -323,7 +323,7 @@ impl AwsAppOpts {
                     .list_record_sets(&zone)
                     .await?
                     .into_iter()
-                    .filter_map(|record| {
+                    .find_map(|record| {
                         if record.type_ == "A" && record.name == record_name {
                             let ip: Ipv4Addr =
                                 record.resource_records?.pop()?.value.parse().ok()?;
@@ -332,7 +332,6 @@ impl AwsAppOpts {
                             None
                         }
                     })
-                    .next()
                     .ok_or_else(|| format_err!("No IP"))?;
                 let current_ip = app.route53.get_ip_address().await?;
                 let new_ip = new_ip.unwrap_or(current_ip);
