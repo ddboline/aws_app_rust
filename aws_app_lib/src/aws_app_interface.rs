@@ -20,6 +20,7 @@ use crate::{
     instance_family::InstanceFamilies,
     models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
+    pricing_instance::PricingInstance,
     resource_type::ResourceType,
     route53_instance::Route53Instance,
     scrape_instance_info::scrape_instance_info,
@@ -51,6 +52,7 @@ pub struct AwsAppInterface {
     pub ecr: EcrInstance,
     pub iam: IamInstance,
     pub route53: Route53Instance,
+    pub pricing: PricingInstance,
     pub stdout: StdoutChannel<StackString>,
 }
 
@@ -61,6 +63,7 @@ impl AwsAppInterface {
             ecr: EcrInstance::new(&config),
             iam: IamInstance::new(&config),
             route53: Route53Instance::new(&config),
+            pricing: PricingInstance::new(&config),
             config,
             pool,
             stdout: StdoutChannel::new(),
@@ -75,17 +78,19 @@ impl AwsAppInterface {
     }
 
     pub async fn update(&self) -> Result<impl Iterator<Item = StackString>, Error> {
-        let (hvm, pv, res, ond) = try_join!(
+        let (hvm, pv, res, ond, pri) = try_join!(
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
             scrape_instance_info(AwsGeneration::PV, &self.pool),
             scrape_pricing_info(PricingType::Reserved, &self.pool),
             scrape_pricing_info(PricingType::OnDemand, &self.pool),
+            self.pricing.update_all_prices(&self.pool),
         )?;
         let iter = hvm
             .into_iter()
             .chain(pv.into_iter())
             .chain(res.into_iter())
-            .chain(ond.into_iter());
+            .chain(ond.into_iter())
+            .chain(pri.into_iter());
         Ok(iter)
     }
 

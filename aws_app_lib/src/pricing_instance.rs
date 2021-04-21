@@ -7,16 +7,21 @@ use rusoto_pricing::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::collections::{HashMap, HashSet};
-use std::fmt;
+use std::{collections::HashMap, fmt};
 use sts_profile_auth::get_client_sts;
 
-use crate::config::Config;
-use crate::models::{InstancePricingInsert, PricingType};
+use crate::{
+    config::Config,
+    models::{InstanceList, InstancePricingInsert, PricingType},
+    pgpool::PgPool,
+    rate_limiter::RateLimiter,
+};
 
+#[derive(Clone)]
 pub struct PricingInstance {
     pricing_client: PricingClient,
     region: Region,
+    limit: RateLimiter,
 }
 
 impl fmt::Debug for PricingInstance {
@@ -31,6 +36,7 @@ impl Default for PricingInstance {
             pricing_client: get_client_sts!(PricingClient, Region::UsEast1)
                 .expect("StsProfile failed"),
             region: Region::UsEast1,
+            limit: RateLimiter::new(10, 5000),
         }
     }
 }
@@ -46,6 +52,7 @@ impl PricingInstance {
             pricing_client: get_client_sts!(PricingClient, region.clone())
                 .expect("StsProfile failed"),
             region,
+            limit: RateLimiter::new(10, 5000),
         }
     }
 
@@ -61,6 +68,7 @@ impl PricingInstance {
                 next_token: next_token.clone(),
                 ..DescribeServicesRequest::default()
             };
+            self.limit.acquire().await;
             let mut result = self.pricing_client.describe_services(input).await?;
             if let Some(services) = result.services.take() {
                 for service in services {
@@ -102,6 +110,7 @@ impl PricingInstance {
                 next_token: next_token.clone(),
                 ..GetAttributeValuesRequest::default()
             };
+            self.limit.acquire().await;
             let mut response = self.pricing_client.get_attribute_values(input).await?;
             if let Some(values) = response.attribute_values.take() {
                 results.extend(
@@ -124,7 +133,8 @@ impl PricingInstance {
         instance_type: &str,
     ) -> Result<HashMap<(StackString, PricingType), InstancePricingInsert>, Error> {
         let mut next_token = None;
-        let mut entries: HashMap<(StackString, PricingType), InstancePricingInsert> = HashMap::new();
+        let mut entries: HashMap<(StackString, PricingType), InstancePricingInsert> =
+            HashMap::new();
         loop {
             let input = GetProductsRequest {
                 format_version: Some("aws_v1".into()),
@@ -159,39 +169,41 @@ impl PricingInstance {
                 next_token: next_token.clone(),
                 ..GetProductsRequest::default()
             };
+            self.limit.acquire().await;
             let mut response = self.pricing_client.get_products(input).await?;
             if let Some(price_list) = response.price_list.take() {
                 for price in price_list {
                     #[derive(Deserialize, Debug)]
-                    struct PricePerUnit {
+                    struct PricePerUnit<'a> {
                         #[serde(rename = "USD")]
-                        usd: StackString,
+                        usd: &'a str,
                     }
                     #[derive(Deserialize, Debug)]
-                    struct PriceDimension {
-                        unit: StackString,
+                    struct PriceDimension<'a> {
+                        unit: &'a str,
                         #[serde(rename = "pricePerUnit")]
-                        price_per_unit: PricePerUnit,
+                        price_per_unit: PricePerUnit<'a>,
                     }
                     #[derive(Deserialize, Debug)]
-                    struct TermAttributes {
+                    struct TermAttributes<'a> {
                         #[serde(rename = "LeaseContractLength")]
-                        lease_contract_length: Option<StackString>,
+                        lease_contract_length: Option<&'a str>,
                         #[serde(rename = "PurchaseOption")]
-                        purchase_option: Option<StackString>,
+                        purchase_option: Option<&'a str>,
                     }
                     #[derive(Deserialize, Debug)]
-                    struct PriceDimensions {
-                        #[serde(rename = "priceDimensions")]
-                        price_dimensions: HashMap<StackString, PriceDimension>,
+                    struct PriceDimensions<'a> {
+                        #[serde(rename = "priceDimensions", borrow)]
+                        price_dimensions: HashMap<&'a str, PriceDimension<'a>>,
                         #[serde(rename = "effectiveDate")]
                         effective_date: DateTime<Utc>,
                         #[serde(rename = "termAttributes")]
-                        term_attributes: TermAttributes,
+                        term_attributes: TermAttributes<'a>,
                     }
                     #[derive(Deserialize, Debug)]
-                    struct PriceList {
-                        terms: HashMap<StackString, HashMap<StackString, PriceDimensions>>,
+                    struct PriceList<'a> {
+                        #[serde(borrow)]
+                        terms: HashMap<&'a str, HashMap<&'a str, PriceDimensions<'a>>>,
                         #[serde(rename = "publicationDate")]
                         publication_date: DateTime<Utc>,
                     }
@@ -207,7 +219,9 @@ impl PricingInstance {
                                     let price_type = PricingType::OnDemand;
                                     let price_timestamp = price_dimensions.effective_date;
                                     let instance_type: StackString = instance_type.into();
-                                    if let Some(i) = entries.get(&(instance_type.clone(), price_type)) {
+                                    if let Some(i) =
+                                        entries.get(&(instance_type.clone(), price_type))
+                                    {
                                         if i.price_timestamp > price_timestamp {
                                             continue;
                                         }
@@ -248,7 +262,9 @@ impl PricingInstance {
                                     let price_type = PricingType::Reserved;
                                     let price_timestamp = price_dimensions.effective_date;
                                     let instance_type: StackString = instance_type.into();
-                                    if let Some(i) = entries.get(&(instance_type.clone(), price_type)) {
+                                    if let Some(i) =
+                                        entries.get(&(instance_type.clone(), price_type))
+                                    {
                                         if i.price_timestamp > price_timestamp {
                                             continue;
                                         }
@@ -274,6 +290,22 @@ impl PricingInstance {
         }
         Ok(entries)
     }
+
+    pub async fn update_all_prices(&self, pool: &PgPool) -> Result<Vec<StackString>, Error> {
+        let mut output = Vec::new();
+        let instances: Vec<_> = InstanceList::get_all_instances(pool)
+            .await?
+            .into_iter()
+            .map(|i| i.instance_type)
+            .collect();
+        for instance in instances {
+            for (_, price) in self.get_prices(&instance).await? {
+                output.push(format!("{:?}", price).into());
+                price.upsert_entry(pool).await?;
+            }
+        }
+        Ok(output)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -286,8 +318,7 @@ pub struct AwsService {
 mod tests {
     use anyhow::Error;
 
-    use crate::pricing_instance::PricingInstance;
-    use crate::{config::Config, ec2_instance};
+    use crate::{config::Config, pricing_instance::PricingInstance};
 
     #[tokio::test]
     async fn test_describe_services() -> Result<(), Error> {
