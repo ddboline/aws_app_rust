@@ -78,19 +78,17 @@ impl AwsAppInterface {
     }
 
     pub async fn update(&self) -> Result<impl Iterator<Item = StackString>, Error> {
-        let (hvm, pv, res, ond, pri) = try_join!(
+        let (hvm, pv, res, ond) = try_join!(
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
             scrape_instance_info(AwsGeneration::PV, &self.pool),
             scrape_pricing_info(PricingType::Reserved, &self.pool),
             scrape_pricing_info(PricingType::OnDemand, &self.pool),
-            self.pricing.update_all_prices(&self.pool),
         )?;
         let iter = hvm
             .into_iter()
             .chain(pv.into_iter())
             .chain(res.into_iter())
-            .chain(ond.into_iter())
-            .chain(pri.into_iter());
+            .chain(ond.into_iter());
         Ok(iter)
     }
 
