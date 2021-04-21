@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
 warp = "0.3"
+rweb = {version="0.10", features=["openapi"]}
 http = "0.2"
 chrono = "0.4"
 futures = "0.3"
@@ -28,11 +29,11 @@ cached = "0.23"
 dirs = "3.0"
 itertools = "0.10"
 smallvec = "1.6"
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.4.9"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.4.10"}
 stack-string = { version="0.2", features=["diesel_types"] }
 
 [dev-dependencies]
 reqwest = {version = "0.11", features=["cookies", "rustls-tls", "gzip", "json"]}
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.4.9"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.4.9"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.4.10"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.4.10"}
 env_logger = "0.8"

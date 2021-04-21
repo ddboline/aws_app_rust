@@ -293,11 +293,27 @@ impl From<AwsGeneration> for StackString {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum PricingType {
     Reserved,
     OnDemand,
     Spot,
+}
+
+impl fmt::Display for PricingType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::OnDemand => write!(f, "ondemand"),
+            Self::Reserved => write!(f, "reserved"),
+            Self::Spot => write!(f, "spot"),
+        }
+    }
+}
+
+impl From<PricingType> for StackString {
+    fn from(p: PricingType) -> Self {
+        p.to_string().into()
+    }
 }
 
 #[derive(Queryable, Insertable, Clone, Debug)]

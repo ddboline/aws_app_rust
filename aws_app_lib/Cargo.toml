@@ -21,6 +21,7 @@ rusoto_core = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_ec2 = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_ecr = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_iam = {version = "0.46", default_features = false, features=["rustls"]}
+rusoto_pricing = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_route53 = {version = "0.46", default_features = false, features=["rustls"]}
 sts_profile_auth = "0.6"
 structopt = "0.3"

@@ -22,6 +22,7 @@ pub mod instance_family;
 pub mod instance_opt;
 pub mod models;
 pub mod pgpool;
+pub mod pricing_instance;
 pub mod resource_type;
 pub mod route53_instance;
 pub mod schema;
