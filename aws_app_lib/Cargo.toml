@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_lib"
-version = "0.8.3"
+version = "0.8.4"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -21,6 +21,7 @@ rusoto_core = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_ec2 = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_ecr = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_iam = {version = "0.46", default_features = false, features=["rustls"]}
+rusoto_pricing = {version = "0.46", default_features = false, features=["rustls"]}
 rusoto_route53 = {version = "0.46", default_features = false, features=["rustls"]}
 sts_profile_auth = "0.6"
 structopt = "0.3"
@@ -43,6 +44,7 @@ maplit = "1.0"
 itertools = "0.10"
 smallvec = "1.6"
 deadqueue = "0.2"
+env_logger = "0.8"
 stack-string = { version="0.2", features=["diesel_types"] }
 stdout-channel = "0.4"
 

@@ -84,7 +84,9 @@ pub enum AwsAppOpts {
         user_name: StackString,
     },
     /// Delete EBS Volume
-    DeleteVolume { volid: StackString },
+    DeleteVolume {
+        volid: StackString,
+    },
     /// Attach EBS Volume
     AttachVolume {
         #[structopt(long)]
@@ -153,6 +155,7 @@ pub enum AwsAppOpts {
         #[structopt(short, long)]
         new_ip: Option<Ipv4Addr>,
     },
+    UpdatePricing,
 }
 
 impl AwsAppOpts {
@@ -338,6 +341,12 @@ impl AwsAppOpts {
                 app.route53
                     .update_dns_record(&zone, &dnsname, old_ip, new_ip)
                     .await
+            }
+            Self::UpdatePricing => {
+                for line in app.pricing.update_all_prices(&app.pool).await? {
+                    app.stdout.send(line);
+                }
+                Ok(())
             }
         };
         result?;

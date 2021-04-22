@@ -20,6 +20,7 @@ use crate::{
     instance_family::InstanceFamilies,
     models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
+    pricing_instance::PricingInstance,
     resource_type::ResourceType,
     route53_instance::Route53Instance,
     scrape_instance_info::scrape_instance_info,
@@ -51,6 +52,7 @@ pub struct AwsAppInterface {
     pub ecr: EcrInstance,
     pub iam: IamInstance,
     pub route53: Route53Instance,
+    pub pricing: PricingInstance,
     pub stdout: StdoutChannel<StackString>,
 }
 
@@ -61,6 +63,7 @@ impl AwsAppInterface {
             ecr: EcrInstance::new(&config),
             iam: IamInstance::new(&config),
             route53: Route53Instance::new(&config),
+            pricing: PricingInstance::new(&config),
             config,
             pool,
             stdout: StdoutChannel::new(),
