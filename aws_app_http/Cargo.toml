@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.8.4"
+version = "0.8.5"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -29,8 +29,9 @@ cached = "0.23"
 dirs = "3.0"
 itertools = "0.10"
 smallvec = "1.6"
+derive_more = "0.99"
 authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.4.10"}
-stack-string = { version="0.2", features=["diesel_types"] }
+stack-string = { version="0.2", features=["diesel_types", "rweb-openapi"] }
 
 [dev-dependencies]
 reqwest = {version = "0.11", features=["cookies", "rustls-tls", "gzip", "json"]}

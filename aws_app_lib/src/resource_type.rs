@@ -1,8 +1,9 @@
 use anyhow::{format_err, Error};
+use rweb::Schema;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, fmt, str::FromStr};
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, Schema)]
 #[serde(into = "String", try_from = "String")]
 pub enum ResourceType {
     Instances,

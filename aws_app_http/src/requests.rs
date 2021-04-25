@@ -5,6 +5,7 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::debug;
 use maplit::hashmap;
+use rweb::Schema;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use stack_string::StackString;
@@ -732,39 +733,39 @@ fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
         .into()
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct TerminateRequest {
     pub instance: StackString,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct CreateImageRequest {
     pub inst_id: StackString,
     pub name: StackString,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteImageRequest {
     pub ami: StackString,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteVolumeRequest {
     pub volid: StackString,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct ModifyVolumeRequest {
     pub volid: StackString,
     pub size: i64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteSnapshotRequest {
     pub snapid: StackString,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct CreateSnapshotRequest {
     pub volid: StackString,
     pub name: Option<StackString>,
@@ -784,7 +785,7 @@ impl CreateSnapshotRequest {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct TagItemRequest {
     pub id: StackString,
     pub tag: StackString,
@@ -804,18 +805,18 @@ impl TagItemRequest {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteEcrImageRequest {
     pub reponame: StackString,
     pub imageid: StackString,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct StatusRequest {
     pub instance: StackString,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Schema)]
 pub struct CommandRequest {
     pub instance: StackString,
     pub command: StackString,

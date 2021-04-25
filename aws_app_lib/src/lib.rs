@@ -8,6 +8,7 @@
 #![allow(clippy::cognitive_complexity)]
 #![allow(clippy::used_underscore_binding)]
 #![allow(clippy::upper_case_acronyms)]
+#![allow(clippy::default_trait_access)]
 
 #[macro_use]
 extern crate diesel;

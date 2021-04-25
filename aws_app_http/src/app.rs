@@ -47,272 +47,40 @@ async fn run_app(config: &Config) -> Result<(), Error> {
 
     tokio::task::spawn(_update_db(app.aws.pool.clone()));
 
-    let data = warp::any().map(move || app.clone());
-
-    let frontpage_path = warp::path("index.html")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(sync_frontpage)
-        .boxed();
-    let list_path = warp::path("list")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(list)
-        .boxed();
-    let terminate_path = warp::path("terminate")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(terminate)
-        .boxed();
-    let create_image_path = warp::path("create_image")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(create_image)
-        .boxed();
-    let delete_image_path = warp::path("delete_image")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(delete_image)
-        .boxed();
-    let delete_volume_path = warp::path("delete_volume")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(delete_volume)
-        .boxed();
-    let modify_volume_path = warp::path("modify_volume")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(modify_volume)
-        .boxed();
-    let delete_snapshot_path = warp::path("delete_snapshot")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(delete_snapshot)
-        .boxed();
-    let create_snapshot_path = warp::path("create_snapshot")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(create_snapshot)
-        .boxed();
-    let tag_item_path = warp::path("tag_item")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(tag_item)
-        .boxed();
-    let delete_ecr_image_path = warp::path("delete_ecr_image")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(delete_ecr_image)
-        .boxed();
-    let cleanup_ecr_images_path = warp::path("cleanup_ecr_images")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(cleanup_ecr_images)
-        .boxed();
-    let edit_script_path = warp::path("edit_script")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(edit_script)
-        .boxed();
-    let replace_script_path = warp::path("replace_script")
-        .and(warp::path::end())
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(replace_script)
-        .boxed();
-    let delete_script_path = warp::path("delete_script")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(delete_script)
-        .boxed();
-    let create_user_path = warp::path("create_user")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(create_user)
-        .boxed();
-    let delete_user_path = warp::path("delete_user")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(delete_user)
-        .boxed();
-    let add_user_to_group_path = warp::path("add_user_to_group")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(add_user_to_group)
-        .boxed();
-    let remove_user_from_group_path = warp::path("remove_user_from_group")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(remove_user_from_group)
-        .boxed();
-    let create_access_key_path = warp::path("create_access_key")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(create_access_key)
-        .boxed();
-    let delete_access_key_path = warp::path("delete_access_key")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(delete_access_key)
-        .boxed();
-    let build_spot_request_path = warp::path("build_spot_request")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(build_spot_request)
-        .boxed();
-    let request_spot_path = warp::path("request_spot")
-        .and(warp::path::end())
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(request_spot)
-        .boxed();
-    let cancel_spot_path = warp::path("cancel_spot")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(cancel_spot)
-        .boxed();
-    let get_prices_path = warp::path("prices")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(get_prices)
-        .boxed();
-    let update_path = warp::path("update")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(update)
-        .boxed();
-    let instance_status_path = warp::path("instance_status")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(instance_status)
-        .boxed();
-    let command_path = warp::path("command")
-        .and(warp::path::end())
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(command)
-        .boxed();
-    let get_instances_path = warp::path("instances")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(get_instances)
-        .boxed();
-    let user_path = warp::path("user")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::cookie("jwt"))
-        .and_then(user)
-        .boxed();
-    let novnc_launcher_path = warp::path("start")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(novnc_launcher)
-        .boxed();
-    let novnc_status_path = warp::path("status")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(novnc_status)
-        .boxed();
-    let novnc_shutdown_path = warp::path("stop")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(novnc_shutdown)
-        .boxed();
-    let update_dns_name_path = warp::path("update_dns_name")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(warp::query())
-        .and(warp::cookie("jwt"))
-        .and(data.clone())
-        .and_then(update_dns_name)
-        .boxed();
+    let frontpage_path = sync_frontpage(app.clone()).boxed();
+    let list_path = list(app.clone()).boxed();
+    let terminate_path = terminate(app.clone()).boxed();
+    let create_image_path = create_image(app.clone()).boxed();
+    let delete_image_path = delete_image(app.clone()).boxed();
+    let delete_volume_path = delete_volume(app.clone()).boxed();
+    let modify_volume_path = modify_volume(app.clone()).boxed();
+    let delete_snapshot_path = delete_snapshot(app.clone()).boxed();
+    let create_snapshot_path = create_snapshot(app.clone()).boxed();
+    let tag_item_path = tag_item(app.clone()).boxed();
+    let delete_ecr_image_path = delete_ecr_image(app.clone()).boxed();
+    let cleanup_ecr_images_path = cleanup_ecr_images(app.clone()).boxed();
+    let edit_script_path = edit_script(app.clone()).boxed();
+    let replace_script_path = replace_script(app.clone()).boxed();
+    let delete_script_path = delete_script(app.clone()).boxed();
+    let create_user_path = create_user(app.clone()).boxed();
+    let delete_user_path = delete_user(app.clone()).boxed();
+    let add_user_to_group_path = add_user_to_group(app.clone()).boxed();
+    let remove_user_from_group_path = remove_user_from_group(app.clone()).boxed();
+    let create_access_key_path = create_access_key(app.clone()).boxed();
+    let delete_access_key_path = delete_access_key(app.clone()).boxed();
+    let build_spot_request_path = build_spot_request(app.clone()).boxed();
+    let request_spot_path = request_spot(app.clone()).boxed();
+    let cancel_spot_path = cancel_spot(app.clone()).boxed();
+    let get_prices_path = get_prices(app.clone()).boxed();
+    let update_path = update(app.clone()).boxed();
+    let instance_status_path = instance_status(app.clone()).boxed();
+    let command_path = command(app.clone()).boxed();
+    let get_instances_path = get_instances(app.clone()).boxed();
+    let user_path = user().boxed();
+    let novnc_launcher_path = novnc_launcher(app.clone()).boxed();
+    let novnc_status_path = novnc_status(app.clone()).boxed();
+    let novnc_shutdown_path = novnc_shutdown(app.clone()).boxed();
+    let update_dns_name_path = update_dns_name(app.clone()).boxed();
 
     let novnc_scope = warp::path("novnc")
         .and(
