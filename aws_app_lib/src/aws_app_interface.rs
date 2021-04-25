@@ -83,10 +83,7 @@ impl AwsAppInterface {
             scrape_instance_info(AwsGeneration::PV, &self.pool),
             scrape_pricing_info(PricingType::Reserved, &self.pool),
         )?;
-        let iter = hvm
-            .into_iter()
-            .chain(pv.into_iter())
-            .chain(res.into_iter());
+        let iter = hvm.into_iter().chain(pv.into_iter()).chain(res.into_iter());
         Ok(iter)
     }
 

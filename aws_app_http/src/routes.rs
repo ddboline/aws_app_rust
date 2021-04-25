@@ -759,18 +759,15 @@ pub async fn create_user(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateUserRequest>,
-) -> WarpResult<Box<dyn Reply>> {
+) -> WarpResult<impl Reply> {
     let query = query.into_inner();
-    if let Some(user) = data
+    let user = data
         .aws
         .create_user(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?
-    {
-        Ok(Box::new(warp::reply::json(&user)))
-    } else {
-        Ok(Box::new(warp::reply::html("create user failed")))
-    }
+        .ok_or_else(|| Error::BadRequest("create user failed".into()))?;
+    Ok(warp::reply::json(&user))
 }
 
 #[get("/delete_user")]
