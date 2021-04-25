@@ -1,15 +1,15 @@
 use anyhow::format_err;
 use itertools::Itertools;
 use maplit::hashmap;
+use rweb::{get, post, Json, Query, Rejection, Reply, Schema};
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::{net::Ipv4Addr, sync::Arc};
+use std::sync::Arc;
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
     task::spawn,
 };
-use warp::{Rejection, Reply};
 
 use aws_app_lib::{
     ec2_instance::SpotRequest,
@@ -20,6 +20,7 @@ use aws_app_lib::{
 use super::{
     app::AppState,
     errors::ServiceError as Error,
+    ipv4addr_wrapper::Ipv4AddrWrapper,
     logged_user::LoggedUser,
     requests::{
         get_frontpage, get_novnc_status, get_websock_pids, novnc_start, novnc_stop_request,
@@ -32,28 +33,40 @@ use super::{
 pub type WarpResult<T> = Result<T, Rejection>;
 pub type HttpResult<T> = Result<T, Error>;
 
-pub async fn sync_frontpage(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/index.html")]
+pub async fn sync_frontpage(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<impl Reply> {
     let results = get_frontpage(ResourceType::Instances, &data.aws).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
-    Ok(warp::reply::html(body))
+    Ok(rweb::reply::html(body))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct ResourceRequest {
     resource: ResourceType,
 }
 
-pub async fn list(query: ResourceRequest, _: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/list")]
+pub async fn list(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<ResourceRequest>,
+) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let results = get_frontpage(query.resource, &data.aws).await?;
-    Ok(warp::reply::html(results.join("\n")))
+    Ok(rweb::reply::html(results.join("\n")))
 }
 
+#[get("/terminate")]
 pub async fn terminate(
-    query: TerminateRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<TerminateRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .terminate(&[query.instance])
         .await
@@ -61,11 +74,13 @@ pub async fn terminate(
     Ok(warp::reply::html("finished".to_string()))
 }
 
+#[get("/create_image")]
 pub async fn create_image(
-    query: CreateImageRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<CreateImageRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let body: String = data
         .aws
         .create_image(&query.inst_id, &query.name)
@@ -75,11 +90,13 @@ pub async fn create_image(
     Ok(warp::reply::html(body))
 }
 
+#[get("/delete_image")]
 pub async fn delete_image(
-    query: DeleteImageRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<DeleteImageRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .delete_image(&query.ami)
         .await
@@ -87,11 +104,13 @@ pub async fn delete_image(
     Ok(warp::reply::html("finished"))
 }
 
+#[get("/delete_volume")]
 pub async fn delete_volume(
-    query: DeleteVolumeRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<DeleteVolumeRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .delete_ebs_volume(&query.volid)
         .await
@@ -99,11 +118,13 @@ pub async fn delete_volume(
     Ok(warp::reply::html("finished"))
 }
 
+#[get("/modify_volume")]
 pub async fn modify_volume(
-    query: ModifyVolumeRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<ModifyVolumeRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .modify_ebs_volume(&query.volid, query.size)
         .await
@@ -111,11 +132,13 @@ pub async fn modify_volume(
     Ok(warp::reply::html("finished"))
 }
 
+#[get("/delete_snapshot")]
 pub async fn delete_snapshot(
-    query: DeleteSnapshotRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<DeleteSnapshotRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .delete_ebs_snapshot(&query.snapid)
         .await
@@ -123,29 +146,35 @@ pub async fn delete_snapshot(
     Ok(warp::reply::html("finished"))
 }
 
+#[get("/create_snapshot")]
 pub async fn create_snapshot(
-    query: CreateSnapshotRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<CreateSnapshotRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     query.handle(&data.aws).await?;
     Ok(warp::reply::html("finished"))
 }
 
+#[get("/tag_item")]
 pub async fn tag_item(
-    query: TagItemRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<TagItemRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     query.handle(&data.aws).await?;
     Ok(warp::reply::html("finished"))
 }
 
+#[get("/delete_ecr_image")]
 pub async fn delete_ecr_image(
-    query: DeleteEcrImageRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<DeleteEcrImageRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .ecr
         .delete_ecr_images(&query.reponame, &[query.imageid])
@@ -154,7 +183,11 @@ pub async fn delete_ecr_image(
     Ok(warp::reply::html("finished"))
 }
 
-pub async fn cleanup_ecr_images(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/cleanup_ecr_images")]
+pub async fn cleanup_ecr_images(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<impl Reply> {
     data.aws
         .ecr
         .cleanup_ecr_images()
@@ -163,12 +196,18 @@ pub async fn cleanup_ecr_images(_: LoggedUser, data: AppState) -> WarpResult<imp
     Ok(warp::reply::html("finished"))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct EditData {
     pub filename: StackString,
 }
 
-pub async fn edit_script(query: EditData, _: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/edit_script")]
+pub async fn edit_script(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<EditData>,
+) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
     let text = if filename.exists() {
         read_to_string(&filename)
@@ -194,17 +233,19 @@ pub async fn edit_script(query: EditData, _: LoggedUser, data: AppState) -> Warp
     Ok(warp::reply::html(body))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct ReplaceData {
     pub filename: StackString,
     pub text: StackString,
 }
 
+#[post("/replace_script")]
 pub async fn replace_script(
-    req: ReplaceData,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    req: Json<ReplaceData>,
 ) -> WarpResult<impl Reply> {
+    let req = req.into_inner();
     let filename = data.aws.config.script_directory.join(&req.filename);
     let mut f = File::create(&filename).await.map_err(Into::<Error>::into)?;
     f.write_all(req.text.as_bytes())
@@ -213,11 +254,13 @@ pub async fn replace_script(
     Ok(warp::reply::html("done"))
 }
 
+#[get("/delete_script")]
 pub async fn delete_script(
-    query: EditData,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<EditData>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
     if filename.exists() {
         remove_file(&filename).await.map_err(Into::<Error>::into)?;
@@ -225,7 +268,7 @@ pub async fn delete_script(
     Ok(warp::reply::html("done"))
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Schema)]
 pub struct SpotBuilder {
     pub ami: Option<StackString>,
     pub inst: Option<StackString>,
@@ -247,11 +290,13 @@ where
     }
 }
 
+#[get("/build_spot_request")]
 pub async fn build_spot_request(
-    query: SpotBuilder,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<SpotBuilder>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let mut amis: Vec<_> = data
         .aws
         .get_all_ami_tags()
@@ -353,7 +398,7 @@ pub async fn build_spot_request(
     Ok(warp::reply::html(body))
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, Schema)]
 pub struct SpotRequestData {
     pub ami: StackString,
     pub instance_type: StackString,
@@ -378,12 +423,13 @@ impl From<SpotRequestData> for SpotRequest {
     }
 }
 
+#[post("/request_spot")]
 pub async fn request_spot(
-    req: SpotRequestData,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    req: Json<SpotRequestData>,
 ) -> WarpResult<impl Reply> {
-    let req: SpotRequest = req.into();
+    let req: SpotRequest = req.into_inner().into();
     let tags = Arc::new(req.tags.clone());
     for spot_id in data
         .aws
@@ -399,16 +445,18 @@ pub async fn request_spot(
     Ok(warp::reply::html("done"))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct CancelSpotRequest {
     pub spot_id: StackString,
 }
 
+#[get("/cancel_spot")]
 pub async fn cancel_spot(
-    query: CancelSpotRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<CancelSpotRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .ec2
         .cancel_spot_instance_request(&[query.spot_id.clone()])
@@ -417,16 +465,18 @@ pub async fn cancel_spot(
     Ok(warp::reply::html(format!("cancelled {}", query.spot_id)))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct PriceRequest {
     pub search: Option<StackString>,
 }
 
+#[get("/prices")]
 pub async fn get_prices(
-    query: PriceRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<PriceRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let mut inst_fam = InstanceFamily::get_all(&data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?;
@@ -517,7 +567,11 @@ pub async fn get_prices(
     Ok(warp::reply::html(body))
 }
 
-pub async fn update(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/update")]
+pub async fn update(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<impl Reply> {
     let entries: Vec<_> = data
         .aws
         .update()
@@ -534,11 +588,13 @@ pub async fn update(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
     Ok(warp::reply::html(body))
 }
 
+#[get("/instance_status")]
 pub async fn instance_status(
-    query: StatusRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<StatusRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
         data.aws.get_status(&query.instance),
@@ -568,11 +624,13 @@ pub async fn instance_status(
     Ok(warp::reply::html(body))
 }
 
+#[post("/command")]
 pub async fn command(
-    payload: CommandRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    payload: Json<CommandRequest>,
 ) -> WarpResult<impl Reply> {
+    let payload = payload.into_inner();
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
         data.aws.run_command(&payload.instance, &payload.command),
@@ -603,16 +661,18 @@ pub async fn command(
     Ok(warp::reply::html(body))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct InstancesRequest {
     pub inst: StackString,
 }
 
+#[get("/instances")]
 pub async fn get_instances(
-    query: InstancesRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<InstancesRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let instances = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?
@@ -635,7 +695,11 @@ async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Er
     ))
 }
 
-pub async fn novnc_launcher(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/start")]
+pub async fn novnc_launcher(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<impl Reply> {
     if data.aws.config.novnc_path.is_none() {
         return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
@@ -645,7 +709,11 @@ pub async fn novnc_launcher(_: LoggedUser, data: AppState) -> WarpResult<impl Re
     Ok(warp::reply::html(body))
 }
 
-pub async fn novnc_shutdown(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/stop")]
+pub async fn novnc_shutdown(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<impl Reply> {
     if data.aws.config.novnc_path.is_none() {
         return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
@@ -657,7 +725,11 @@ pub async fn novnc_shutdown(_: LoggedUser, data: AppState) -> WarpResult<impl Re
     Ok(warp::reply::html(body))
 }
 
-pub async fn novnc_status(_: LoggedUser, data: AppState) -> WarpResult<impl Reply> {
+#[get("/status")]
+pub async fn novnc_status(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<impl Reply> {
     if data.aws.config.novnc_path.is_none() {
         return Ok(warp::reply::html("NoVNC not configured".to_string()));
     }
@@ -672,21 +744,23 @@ pub async fn novnc_status(_: LoggedUser, data: AppState) -> WarpResult<impl Repl
     Ok(warp::reply::html(body))
 }
 
-pub async fn user(user: LoggedUser) -> WarpResult<impl Reply> {
+#[get("/user")]
+pub async fn user(#[cookie = "jwt"] user: LoggedUser) -> WarpResult<impl Reply> {
     Ok(warp::reply::json(&user))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct CreateUserRequest {
     pub user_name: StackString,
 }
 
-#[allow(clippy::option_if_let_else)]
+#[get("/create_user")]
 pub async fn create_user(
-    query: CreateUserRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<CreateUserRequest>,
 ) -> WarpResult<Box<dyn Reply>> {
+    let query = query.into_inner();
     if let Some(user) = data
         .aws
         .create_user(query.user_name.as_str())
@@ -699,11 +773,13 @@ pub async fn create_user(
     }
 }
 
+#[get("/delete_user")]
 pub async fn delete_user(
-    query: CreateUserRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<CreateUserRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .delete_user(query.user_name.as_str())
         .await
@@ -711,17 +787,19 @@ pub async fn delete_user(
     Ok(warp::reply::html(format!("{} deleted", query.user_name)))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct AddUserToGroupRequest {
     pub user_name: StackString,
     pub group_name: StackString,
 }
 
+#[get("/add_user_to_group")]
 pub async fn add_user_to_group(
-    query: AddUserToGroupRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<AddUserToGroupRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
         .await
@@ -732,11 +810,13 @@ pub async fn add_user_to_group(
     )))
 }
 
+#[get("/remove_user_from_group")]
 pub async fn remove_user_from_group(
-    query: AddUserToGroupRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<AddUserToGroupRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .remove_user_from_group(query.user_name.as_str(), query.group_name.as_str())
         .await
@@ -747,17 +827,19 @@ pub async fn remove_user_from_group(
     )))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteAccesssKeyRequest {
     pub user_name: StackString,
     pub access_key_id: StackString,
 }
 
+#[get("/create_access_key")]
 pub async fn create_access_key(
-    query: CreateUserRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<CreateUserRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     let access_key = data
         .aws
         .create_access_key(query.user_name.as_str())
@@ -766,11 +848,13 @@ pub async fn create_access_key(
     Ok(warp::reply::json(&access_key))
 }
 
+#[get("/delete_access_key")]
 pub async fn delete_access_key(
-    query: DeleteAccesssKeyRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<DeleteAccesssKeyRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .delete_access_key(query.user_name.as_str(), query.access_key_id.as_str())
         .await
@@ -781,22 +865,29 @@ pub async fn delete_access_key(
     )))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct UpdateDnsNameRequest {
     zone: StackString,
     dns_name: StackString,
-    old_ip: Ipv4Addr,
-    new_ip: Ipv4Addr,
+    old_ip: Ipv4AddrWrapper,
+    new_ip: Ipv4AddrWrapper,
 }
 
+#[get("/update_dns_name")]
 pub async fn update_dns_name(
-    query: UpdateDnsNameRequest,
-    _: LoggedUser,
-    data: AppState,
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<UpdateDnsNameRequest>,
 ) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
     data.aws
         .route53
-        .update_dns_record(&query.zone, &query.dns_name, query.old_ip, query.new_ip)
+        .update_dns_record(
+            &query.zone,
+            &query.dns_name,
+            query.old_ip.into(),
+            query.new_ip.into(),
+        )
         .await
         .map_err(Into::<Error>::into)?;
     Ok(warp::reply::html(format!(
