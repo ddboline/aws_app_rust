@@ -1,7 +1,7 @@
 use anyhow::Error;
+use rweb::Filter;
 use std::{net::SocketAddr, time::Duration};
 use tokio::time::interval;
-use warp::Filter;
 
 use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
 
@@ -82,53 +82,47 @@ async fn run_app(config: &Config) -> Result<(), Error> {
     let novnc_shutdown_path = novnc_shutdown(app.clone()).boxed();
     let update_dns_name_path = update_dns_name(app.clone()).boxed();
 
-    let novnc_scope = warp::path("novnc")
-        .and(
-            novnc_launcher_path
-                .or(novnc_status_path)
-                .or(novnc_shutdown_path),
-        )
+    let novnc_scope = novnc_launcher_path
+        .or(novnc_status_path)
+        .or(novnc_shutdown_path)
         .boxed();
 
-    let aws_path = warp::path("aws")
-        .and(
-            frontpage_path
-                .or(list_path)
-                .or(terminate_path)
-                .or(create_image_path)
-                .or(delete_image_path)
-                .or(delete_volume_path)
-                .or(modify_volume_path)
-                .or(delete_snapshot_path)
-                .or(create_snapshot_path)
-                .or(tag_item_path)
-                .or(delete_ecr_image_path)
-                .or(cleanup_ecr_images_path)
-                .or(edit_script_path)
-                .or(replace_script_path)
-                .or(delete_script_path)
-                .or(create_user_path)
-                .or(delete_user_path)
-                .or(add_user_to_group_path)
-                .or(remove_user_from_group_path)
-                .or(create_access_key_path)
-                .or(delete_access_key_path)
-                .or(build_spot_request_path)
-                .or(request_spot_path)
-                .or(cancel_spot_path)
-                .or(get_prices_path)
-                .or(update_path)
-                .or(instance_status_path)
-                .or(command_path)
-                .or(get_instances_path)
-                .or(user_path)
-                .or(novnc_scope)
-                .or(update_dns_name_path),
-        )
+    let aws_path = frontpage_path
+        .or(list_path)
+        .or(terminate_path)
+        .or(create_image_path)
+        .or(delete_image_path)
+        .or(delete_volume_path)
+        .or(modify_volume_path)
+        .or(delete_snapshot_path)
+        .or(create_snapshot_path)
+        .or(tag_item_path)
+        .or(delete_ecr_image_path)
+        .or(cleanup_ecr_images_path)
+        .or(edit_script_path)
+        .or(replace_script_path)
+        .or(delete_script_path)
+        .or(create_user_path)
+        .or(delete_user_path)
+        .or(add_user_to_group_path)
+        .or(remove_user_from_group_path)
+        .or(create_access_key_path)
+        .or(delete_access_key_path)
+        .or(build_spot_request_path)
+        .or(request_spot_path)
+        .or(cancel_spot_path)
+        .or(get_prices_path)
+        .or(update_path)
+        .or(instance_status_path)
+        .or(command_path)
+        .or(get_instances_path)
+        .or(user_path)
+        .or(novnc_scope)
+        .or(update_dns_name_path)
         .boxed();
     let routes = aws_path.recover(error_response);
     let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
-    warp::serve(routes).bind(addr).await;
+    rweb::serve(routes).bind(addr).await;
     Ok(())
 }
 

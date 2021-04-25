@@ -7,12 +7,13 @@ use rusoto_iam::{
     ListAccessKeysRequest, ListGroupsForUserRequest, ListGroupsRequest, ListUsersRequest,
     RemoveUserFromGroupRequest, User,
 };
+use rweb::Schema;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::collections::HashMap;
 use sts_profile_auth::get_client_sts;
 
-use crate::config::Config;
+use crate::{config::Config, datetime_wrapper::DateTimeWrapper};
 
 #[derive(Clone)]
 pub struct IamInstance {
@@ -169,13 +170,13 @@ impl IamInstance {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Schema)]
 pub struct IamUser {
     pub arn: StackString,
-    pub create_date: DateTime<Utc>,
+    pub create_date: DateTimeWrapper,
     pub user_id: StackString,
     pub user_name: StackString,
-    pub tags: HashMap<StackString, StackString>,
+    pub tags: HashMap<String, StackString>,
 }
 
 impl From<User> for IamUser {
@@ -185,11 +186,11 @@ impl From<User> for IamUser {
             .tags
             .unwrap_or_else(Vec::new)
             .into_iter()
-            .map(|t| (t.key.into(), t.value.into()))
+            .map(|t| (t.key, t.value.into()))
             .collect();
         IamUser {
             arn: user.arn.into(),
-            create_date,
+            create_date: create_date.into(),
             user_id: user.user_id.into(),
             user_name: user.user_name.into(),
             tags,
@@ -217,10 +218,10 @@ impl From<Group> for IamGroup {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Schema)]
 pub struct IamAccessKey {
     pub access_key_id: StackString,
-    pub create_date: DateTime<Utc>,
+    pub create_date: DateTimeWrapper,
     pub access_key_secret: StackString,
     pub status: StackString,
     pub user_name: StackString,
@@ -234,7 +235,7 @@ impl From<AccessKey> for IamAccessKey {
             .unwrap_or_else(Utc::now);
         Self {
             access_key_id: key.access_key_id.into(),
-            create_date,
+            create_date: create_date.into(),
             access_key_secret: key.secret_access_key.into(),
             status: key.status.into(),
             user_name: key.user_name.into(),
