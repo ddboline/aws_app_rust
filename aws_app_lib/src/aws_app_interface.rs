@@ -18,13 +18,12 @@ use crate::{
     ecr_instance::EcrInstance,
     iam_instance::{IamAccessKey, IamInstance, IamUser},
     instance_family::InstanceFamilies,
-    models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing, PricingType},
+    models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing},
     pgpool::PgPool,
     pricing_instance::PricingInstance,
     resource_type::ResourceType,
     route53_instance::Route53Instance,
     scrape_instance_info::scrape_instance_info,
-    scrape_pricing_info::scrape_pricing_info,
     ssh_instance::SSHInstance,
 };
 
@@ -78,12 +77,11 @@ impl AwsAppInterface {
     }
 
     pub async fn update(&self) -> Result<impl Iterator<Item = StackString>, Error> {
-        let (hvm, pv, res) = try_join!(
+        let (hvm, pv) = try_join!(
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
             scrape_instance_info(AwsGeneration::PV, &self.pool),
-            scrape_pricing_info(PricingType::Reserved, &self.pool),
         )?;
-        let iter = hvm.into_iter().chain(pv.into_iter()).chain(res.into_iter());
+        let iter = hvm.into_iter().chain(pv.into_iter());
         Ok(iter)
     }
 
