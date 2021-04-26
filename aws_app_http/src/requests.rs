@@ -670,8 +670,9 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
             } else {
                 "".to_string()
             };
-            let name = inst.tags.get("Name").cloned().unwrap_or_else(|| "".into());
-            let name_button = if &inst.state == "running" && &name != "ddbolineinthecloud" {
+            let empty: StackString = "".into();
+            let name = inst.tags.get("Name").unwrap_or(&empty);
+            let name_button = if &inst.state == "running" && name != "ddbolineinthecloud" {
                 format!(
                     r#"<input type="button" name="CreateImage {name}" value="{name}" {button}>"#,
                     name = name,
@@ -684,7 +685,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
             } else {
                 name.to_string()
             };
-            let terminate_button = if &inst.state == "running" && &name != "ddbolineinthecloud" {
+            let terminate_button = if &inst.state == "running" && name != "ddbolineinthecloud" {
                 format!(
                     r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
                     format!(r#"onclick="terminateInstance('{}')""#, inst.id)
