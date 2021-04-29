@@ -339,7 +339,7 @@ impl AwsAppOpts {
                 let current_ip = app.route53.get_ip_address().await?;
                 let new_ip = new_ip.unwrap_or(current_ip);
                 app.route53
-                    .update_dns_record(&zone, &dnsname, old_ip, new_ip)
+                    .update_dns_record(&zone, &record_name, old_ip, new_ip)
                     .await
             }
             Self::UpdatePricing => {
