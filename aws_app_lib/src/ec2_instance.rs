@@ -400,7 +400,7 @@ impl Ec2Instance {
                             id: v.volume_id?.into(),
                             availability_zone: v.availability_zone?.into(),
                             size: v.size?,
-                            iops: v.iops?,
+                            iops: v.iops.unwrap_or(0),
                             state: v.state?.into(),
                             tags: v
                                 .tags
