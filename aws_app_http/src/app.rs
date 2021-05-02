@@ -3,7 +3,10 @@ use rweb::Filter;
 use std::{net::SocketAddr, time::Duration};
 use tokio::time::interval;
 
-use aws_app_lib::{aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool};
+use aws_app_lib::{
+    aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool,
+    novnc_instance::NoVncInstance,
+};
 
 use super::{
     errors::error_response,
@@ -21,6 +24,7 @@ use super::{
 #[derive(Clone)]
 pub struct AppState {
     pub aws: AwsAppInterface,
+    pub novnc: NoVncInstance,
 }
 
 pub async fn start_app() -> Result<(), Error> {
@@ -43,6 +47,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
     let pool = PgPool::new(&config.database_url);
     let app = AppState {
         aws: AwsAppInterface::new(config.clone(), pool),
+        novnc: NoVncInstance::new(),
     };
 
     tokio::task::spawn(_update_db(app.aws.pool.clone()));

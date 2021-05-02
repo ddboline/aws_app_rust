@@ -2,8 +2,6 @@ use cached::{proc_macro::cached, SizedCache};
 use chrono::Local;
 use futures::future::try_join_all;
 use itertools::Itertools;
-use lazy_static::lazy_static;
-use log::debug;
 use maplit::hashmap;
 use rweb::Schema;
 use serde::{Deserialize, Serialize};
@@ -12,27 +10,18 @@ use stack_string::StackString;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
-    path::Path,
-    process::Stdio,
 };
 use tokio::{
-    process::{Child, Command},
-    sync::RwLock,
     try_join,
 };
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
-    config::Config,
     ec2_instance::AmiInfo,
     resource_type::ResourceType,
 };
 
 use crate::errors::ServiceError as Error;
-
-lazy_static! {
-    static ref NOVNC_CHILDREN: RwLock<Vec<Child>> = RwLock::new(Vec::new());
-}
 
 #[cached(
     type = "SizedCache<String, Option<AmiInfo>>",
@@ -821,109 +810,6 @@ pub struct StatusRequest {
 pub struct CommandRequest {
     pub instance: StackString,
     pub command: StackString,
-}
-
-pub async fn novnc_start(config: &Config) -> Result<(), Error> {
-    let home_dir = dirs::home_dir().expect("No home directory");
-    let x11vnc = Path::new("/usr/bin/x11vnc");
-    // let vncserver = Path::new("/usr/bin/vncserver");
-    let vncpwd = home_dir.join(".vnc/passwd");
-    let websockify = Path::new("/usr/bin/websockify");
-    let certdir = Path::new("/etc/letsencrypt/live/").join(&config.domain);
-    let cert = certdir.join("fullchain.pem");
-    let key = certdir.join("privkey.pem");
-
-    if x11vnc.exists() {
-        if let Some(novnc_path) = &config.novnc_path {
-            let x11vnc_command = Command::new(&x11vnc)
-                .args(&[
-                    "-safer",
-                    "-rfbauth",
-                    &vncpwd.to_string_lossy(),
-                    "-forever",
-                    "-display",
-                    ":0",
-                ])
-                .kill_on_drop(true)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()?;
-            let websockify_command = Command::new("sudo")
-                .args(&[
-                    &websockify.to_string_lossy(),
-                    "8787",
-                    "--ssl-only",
-                    "--web",
-                    novnc_path.to_string_lossy().as_ref(),
-                    "--cert",
-                    &cert.to_string_lossy(),
-                    "--key",
-                    &key.to_string_lossy(),
-                    "localhost:5900",
-                ])
-                .kill_on_drop(true)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()?;
-
-            let mut children = NOVNC_CHILDREN.write().await;
-            children.push(x11vnc_command);
-            children.push(websockify_command);
-        }
-    }
-    Ok(())
-}
-
-pub async fn novnc_stop_request() -> Result<Vec<StackString>, Error> {
-    let mut children = NOVNC_CHILDREN.write().await;
-    for child in children.iter_mut() {
-        if let Err(e) = child.kill().await {
-            debug!("Failed to kill {}", e);
-        }
-    }
-
-    let mut kill = Command::new("sudo");
-    kill.args(&["kill", "-9"]);
-    let ids = get_websock_pids().await?.into_iter().map(|x| x.to_string());
-    kill.args(ids);
-    let kill = kill.spawn()?;
-    kill.wait_with_output().await?;
-
-    let mut output = Vec::new();
-    while let Some(mut child) = children.pop() {
-        if let Err(e) = child.kill().await {
-            debug!("Failed to kill {}", e);
-        }
-        let result = child.wait_with_output().await?;
-        output.push(StackString::from_utf8(result.stdout)?);
-        output.push(StackString::from_utf8(result.stderr)?);
-    }
-    children.clear();
-    Ok(output)
-}
-
-pub async fn get_websock_pids() -> Result<Vec<usize>, Error> {
-    let websock = Command::new("ps")
-        .args(&["-eF"])
-        .stdout(Stdio::piped())
-        .spawn()?;
-    let output = websock.wait_with_output().await?;
-    let output = StackString::from_utf8(output.stdout)?;
-    let result: Vec<_> = output
-        .split('\n')
-        .filter_map(|s| {
-            if s.contains("websockify") {
-                s.split_whitespace().nth(1).and_then(|x| x.parse().ok())
-            } else {
-                None
-            }
-        })
-        .collect();
-    Ok(result)
-}
-
-pub async fn get_novnc_status() -> usize {
-    NOVNC_CHILDREN.read().await.len()
 }
 
 fn get_volumes(current_vol: i64) -> SmallVec<[i64; 8]> {
