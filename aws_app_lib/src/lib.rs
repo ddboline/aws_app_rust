@@ -23,6 +23,7 @@ pub mod iam_instance;
 pub mod instance_family;
 pub mod instance_opt;
 pub mod models;
+pub mod novnc_instance;
 pub mod pgpool;
 pub mod pricing_instance;
 pub mod rate_limiter;

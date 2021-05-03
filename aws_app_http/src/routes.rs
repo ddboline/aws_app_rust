@@ -10,7 +10,7 @@ use rweb::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -21,6 +21,7 @@ use aws_app_lib::{
     ec2_instance::SpotRequest,
     iam_instance::{IamAccessKey, IamUser},
     models::{InstanceFamily, InstanceList},
+    novnc_instance::NoVncInstance,
     resource_type::ResourceType,
 };
 
@@ -30,10 +31,9 @@ use super::{
     ipv4addr_wrapper::Ipv4AddrWrapper,
     logged_user::LoggedUser,
     requests::{
-        get_frontpage, get_novnc_status, get_websock_pids, novnc_start, novnc_stop_request,
-        CommandRequest, CreateImageRequest, CreateSnapshotRequest, DeleteEcrImageRequest,
-        DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest, ModifyVolumeRequest,
-        StatusRequest, TagItemRequest, TerminateRequest,
+        get_frontpage, CommandRequest, CreateImageRequest, CreateSnapshotRequest,
+        DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest,
+        ModifyVolumeRequest, StatusRequest, TagItemRequest, TerminateRequest,
     },
 };
 
@@ -739,8 +739,12 @@ pub async fn get_instances(
     Ok(rweb::reply::html(instances))
 }
 
-async fn novnc_status_response(number: usize, domain: &str) -> Result<String, Error> {
-    let pids = get_websock_pids().await?;
+async fn novnc_status_response(
+    novnc: &NoVncInstance,
+    number: usize,
+    domain: &str,
+) -> Result<String, Error> {
+    let pids = novnc.get_websock_pids().await?;
     Ok(format!(
         r#"{} processes currenty running {:?}
             <br>
@@ -757,13 +761,18 @@ pub async fn novnc_launcher(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<impl Reply> {
-    if data.aws.config.novnc_path.is_none() {
+    if let Some(novnc_path) = &data.aws.config.novnc_path {
+        let certdir = Path::new("/etc/letsencrypt/live/").join(&data.aws.config.domain);
+        data.novnc
+            .novnc_start(&novnc_path, &certdir)
+            .await
+            .map_err(Into::<Error>::into)?;
+        let number = data.novnc.get_novnc_status().await;
+        let body = novnc_status_response(&data.novnc, number, &data.aws.config.domain).await?;
+        Ok(rweb::reply::html(body))
+    } else {
         return Ok(rweb::reply::html("NoVNC not configured".to_string()));
     }
-    novnc_start(&data.aws.config).await?;
-    let number = get_novnc_status().await;
-    let body = novnc_status_response(number, &data.aws.config.domain).await?;
-    Ok(rweb::reply::html(body))
 }
 
 #[get("/aws/novnc/stop")]
@@ -774,7 +783,11 @@ pub async fn novnc_shutdown(
     if data.aws.config.novnc_path.is_none() {
         return Ok(rweb::reply::html("NoVNC not configured".to_string()));
     }
-    let output = novnc_stop_request().await?;
+    let output = data
+        .novnc
+        .novnc_stop_request()
+        .await
+        .map_err(Into::<Error>::into)?;
     let body = format!(
         "<textarea cols=100 rows=50>{}</textarea>",
         output.join("\n")
@@ -790,13 +803,15 @@ pub async fn novnc_status(
     if data.aws.config.novnc_path.is_none() {
         return Ok(rweb::reply::html("NoVNC not configured".to_string()));
     }
-    let number = get_novnc_status().await;
+    let number = data.novnc.get_novnc_status().await;
     let body = if number == 0 {
         r#"
             <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
         "#.to_string()
     } else {
-        novnc_status_response(number, &data.aws.config.domain).await?
+        novnc_status_response(&data.novnc, number, &data.aws.config.domain)
+            .await
+            .map_err(Into::<Error>::into)?
     };
     Ok(rweb::reply::html(body))
 }
