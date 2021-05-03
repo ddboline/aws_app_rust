@@ -11,9 +11,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
 };
-use tokio::{
-    try_join,
-};
+use tokio::try_join;
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},

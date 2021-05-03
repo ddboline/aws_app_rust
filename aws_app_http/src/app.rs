@@ -4,8 +4,8 @@ use std::{net::SocketAddr, time::Duration};
 use tokio::time::interval;
 
 use aws_app_lib::{
-    aws_app_interface::AwsAppInterface, config::Config, pgpool::PgPool,
-    novnc_instance::NoVncInstance,
+    aws_app_interface::AwsAppInterface, config::Config, novnc_instance::NoVncInstance,
+    pgpool::PgPool,
 };
 
 use super::{

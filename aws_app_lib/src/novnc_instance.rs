@@ -1,11 +1,11 @@
-use log::debug;
-use std::path::Path;
-use tokio::process::{Child, Command};
 use anyhow::{format_err, Error};
-use std::process::Stdio;
+use log::debug;
 use stack_string::StackString;
-use tokio::sync::RwLock;
-use std::sync::Arc;
+use std::{path::Path, process::Stdio, sync::Arc};
+use tokio::{
+    process::{Child, Command},
+    sync::RwLock,
+};
 
 #[derive(Default, Clone)]
 pub struct NoVncInstance {
@@ -28,10 +28,15 @@ impl NoVncInstance {
         let cert = certdir.join("fullchain.pem");
         let key = certdir.join("privkey.pem");
 
-        if !x11vnc.exists() || !websockify.exists() || !vncpwd.exists() || !cert.exists() || !key.exists() {
+        if !x11vnc.exists()
+            || !websockify.exists()
+            || !vncpwd.exists()
+            || !cert.exists()
+            || !key.exists()
+        {
             return Err(format_err!("Missing needed file(s)"));
         }
-    
+
         let x11vnc_command = Command::new(&x11vnc)
             .args(&[
                 "-safer",
@@ -75,14 +80,18 @@ impl NoVncInstance {
                 debug!("Failed to kill {}", e);
             }
         }
-    
+
         let mut kill = Command::new("sudo");
         kill.args(&["kill", "-9"]);
-        let ids = self.get_websock_pids().await?.into_iter().map(|x| x.to_string());
+        let ids = self
+            .get_websock_pids()
+            .await?
+            .into_iter()
+            .map(|x| x.to_string());
         kill.args(ids);
         let kill = kill.spawn()?;
         kill.wait_with_output().await?;
-    
+
         let mut output = Vec::new();
         while let Some(mut child) = children.pop() {
             if let Err(e) = child.kill().await {
@@ -118,5 +127,5 @@ impl NoVncInstance {
 
     pub async fn get_novnc_status(&self) -> usize {
         self.children.read().await.len()
-    }    
+    }
 }
