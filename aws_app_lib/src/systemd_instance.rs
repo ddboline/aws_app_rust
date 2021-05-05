@@ -190,6 +190,7 @@ mod tests {
     use crate::systemd_instance::SystemdInstance;
 
     #[tokio::test]
+    #[ignore]
     async fn test_systemd_list() -> Result<(), Error> {
         let systemd = SystemdInstance::new(&["aws-app-http", "auth-server-rust"]);
         let services = systemd.list_running_services().await?;
@@ -199,6 +200,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_get_service_status() -> Result<(), Error> {
         let systemd = SystemdInstance::new(&["aws-app-http", "auth-server-rust"]);
         let status = systemd.get_service_status("aws-app-http").await?;
@@ -207,11 +209,11 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_get_service_logs() -> Result<(), Error> {
         let systemd = SystemdInstance::new(&["aws-app-http", "auth-server-rust"]);
         let logs = systemd.get_service_logs("aws-app-http").await?;
-        println!("{}", logs.len());
-        assert!(false);
+        assert!(logs.len() > 0);
         Ok(())
     }
 }
