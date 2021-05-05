@@ -1,13 +1,12 @@
 use anyhow::Error;
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use stack_string::StackString;
 use std::{
     ops::Deref,
     path::{Path, PathBuf},
     sync::Arc,
 };
-
-use stack_string::StackString;
 
 lazy_static! {
     static ref CONFIG_DIR: PathBuf = dirs::config_dir().expect("No CONFIG directory");
@@ -38,6 +37,8 @@ pub struct ConfigInner {
     pub secret_path: PathBuf,
     #[serde(default = "default_secret_path")]
     pub jwt_secret_path: PathBuf,
+    #[serde(default = "Vec::new")]
+    pub systemd_services: Vec<StackString>,
 }
 
 fn default_database_url() -> StackString {

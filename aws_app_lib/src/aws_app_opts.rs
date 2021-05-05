@@ -1,5 +1,6 @@
 use anyhow::{format_err, Error};
 use futures::future::try_join_all;
+use itertools::Itertools;
 use stack_string::StackString;
 use std::{net::Ipv4Addr, string::ToString, sync::Arc};
 use structopt::StructOpt;
@@ -12,6 +13,7 @@ use crate::{
     pgpool::PgPool,
     resource_type::ResourceType,
     spot_request_opt::{get_tags, SpotRequestOpt},
+    systemd_instance::SystemdInstance,
 };
 
 #[derive(StructOpt, Debug, Clone)]
@@ -156,6 +158,10 @@ pub enum AwsAppOpts {
         new_ip: Option<Ipv4Addr>,
     },
     UpdatePricing,
+    Systemd {
+        #[structopt(short, long)]
+        pattern: Option<StackString>,
+    },
 }
 
 impl AwsAppOpts {
@@ -345,6 +351,29 @@ impl AwsAppOpts {
             Self::UpdatePricing => {
                 for line in app.pricing.update_all_prices(&app.pool).await? {
                     app.stdout.send(line);
+                }
+                Ok(())
+            }
+            Self::Systemd { pattern } => {
+                let systemd = SystemdInstance::new(&app.config.systemd_services);
+                if let Some(pattern) = &pattern {
+                    let stat = systemd.get_service_status(pattern).await?;
+                    let log = systemd
+                        .get_service_logs(pattern)
+                        .await?
+                        .into_iter()
+                        .join("\n");
+                    app.stdout.send(format!("{}", stat));
+                    app.stdout.send(format!("{}", log));
+                } else {
+                    let services = systemd.list_running_services().await?;
+                    for service in &app.config.systemd_services {
+                        if let Some(val) = services.get(service) {
+                            app.stdout.send(format!("{} {}", service, val));
+                        } else {
+                            app.stdout.send(format!("{} not running", service));
+                        }
+                    }
                 }
                 Ok(())
             }
