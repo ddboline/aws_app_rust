@@ -364,7 +364,7 @@ impl AwsAppOpts {
                         .into_iter()
                         .join("\n");
                     app.stdout.send(format!("{}", stat));
-                    app.stdout.send(format!("{}", log));
+                    app.stdout.send(log.to_string());
                 } else {
                     let services = systemd.list_running_services().await?;
                     for service in &app.config.systemd_services {

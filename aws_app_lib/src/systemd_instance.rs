@@ -2,9 +2,11 @@ use anyhow::Error;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::collections::{BTreeMap, BTreeSet};
-use std::convert::{TryFrom, TryInto};
-use std::fmt;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    convert::{TryFrom, TryInto},
+    fmt,
+};
 use tokio::process::Command;
 
 #[derive(Default, Clone)]
@@ -147,13 +149,13 @@ struct ServiceLogLine<'a> {
 impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
     type Error = Error;
     fn try_from(line: ServiceLogLine) -> Result<Self, Self::Error> {
-        let timestamp: u64 = line.timestamp.parse().map_err(|e| {
+        let timestamp: i64 = line.timestamp.parse().map_err(|e| {
             println!("{}", line.timestamp);
             e
         })?;
         let timestamp = NaiveDateTime::from_timestamp(
             (timestamp / 1_000_000) as i64,
-            (timestamp % 1_000_000) as u32,
+            ((timestamp % 1_000_000) * 1000) as u32,
         );
         let timestamp = DateTime::from_utc(timestamp, Utc);
         Ok(Self {
