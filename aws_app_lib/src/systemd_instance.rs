@@ -84,7 +84,7 @@ impl SystemdInstance {
         stdout
             .split('\n')
             .filter(|line| {
-                line.contains(r#""UNIT""#) && line.contains("_SOURCE_REALTIME_TIMESTAMP")
+                line.contains("_SOURCE_REALTIME_TIMESTAMP")
             })
             .map(|line| {
                 let log: ServiceLogLine = serde_json::from_str(line)?;
@@ -147,8 +147,6 @@ impl fmt::Display for ServiceStatus {
 struct ServiceLogLine<'a> {
     #[serde(alias = "_SOURCE_REALTIME_TIMESTAMP")]
     timestamp: &'a str,
-    #[serde(alias = "UNIT")]
-    unit: StackString,
     #[serde(alias = "MESSAGE")]
     message: StackString,
     #[serde(alias = "_HOSTNAME")]
@@ -169,7 +167,6 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
         let timestamp = DateTime::from_utc(timestamp, Utc);
         Ok(Self {
             timestamp,
-            unit: line.unit,
             message: line.message,
             hostname: line.hostname,
         })
@@ -179,7 +176,6 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
 #[derive(Debug, Clone, Serialize)]
 pub struct ServiceLogEntry {
     timestamp: DateTime<Utc>,
-    unit: StackString,
     message: StackString,
     hostname: StackString,
 }
@@ -188,8 +184,8 @@ impl fmt::Display for ServiceLogEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{} {} {} {}",
-            self.timestamp, self.unit, self.hostname, self.message
+            "{} {} {}",
+            self.timestamp, self.hostname, self.message
         )
     }
 }
