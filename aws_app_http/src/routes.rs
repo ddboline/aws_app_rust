@@ -978,7 +978,7 @@ enum SystemdActions {
 }
 
 impl SystemdActions {
-    fn as_str(&self) -> &'static str {
+    fn as_str(self) -> &'static str {
         match self {
             Self::Start => "start",
             Self::Stop => "stop",
