@@ -25,6 +25,7 @@ use crate::{
     route53_instance::Route53Instance,
     scrape_instance_info::scrape_instance_info,
     ssh_instance::SSHInstance,
+    systemd_instance::SystemdInstance,
 };
 
 lazy_static! {
@@ -52,6 +53,7 @@ pub struct AwsAppInterface {
     pub iam: IamInstance,
     pub route53: Route53Instance,
     pub pricing: PricingInstance,
+    pub systemd: SystemdInstance,
     pub stdout: StdoutChannel<StackString>,
 }
 
@@ -63,6 +65,7 @@ impl AwsAppInterface {
             iam: IamInstance::new(&config),
             route53: Route53Instance::new(&config),
             pricing: PricingInstance::new(&config),
+            systemd: SystemdInstance::new(&config.systemd_services),
             config,
             pool,
             stdout: StdoutChannel::new(),
@@ -357,6 +360,16 @@ impl AwsAppInterface {
                     .map(|(zone, name, ip)| format!("{} {} {} {}", zone, name, ip, current_ip))
                     .join("\n");
                 self.stdout.send(format!("---\nDNS:\n{}", dns_records));
+            }
+            ResourceType::SystemD => {
+                let services = self.systemd.list_running_services().await?;
+                for service in &self.config.systemd_services {
+                    if let Some(val) = services.get(service) {
+                        self.stdout.send(format!("{} {}", service, val));
+                    } else {
+                        self.stdout.send(format!("{} not running", service));
+                    }
+                }
             }
         };
         Ok(())

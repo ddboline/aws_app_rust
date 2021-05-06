@@ -17,6 +17,7 @@ use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
     ec2_instance::AmiInfo,
     resource_type::ResourceType,
+    systemd_instance::RunStatus,
 };
 
 use crate::errors::ServiceError as Error;
@@ -634,6 +635,40 @@ pub async fn get_frontpage(
                     zone, name, ip, update_dns_button
                 )
             }).join("");
+            output.push(records.into());
+            output.push(r#"</tbody></table>"#.into());
+        }
+        ResourceType::SystemD => {
+            let services = app.systemd.list_running_services().await?;
+            output.push(
+                r#"<table border="1" class="dataframe"><thead><tr><th>Name</th><th>Status</th><th></th><td></td></thead>"#.into()
+            );
+            let records = app.config.systemd_services.iter().map(|service| {
+                let log_button = format!(
+                    r#"<input type="button" name="SystemdLogs" value="Logs" onclick="systemdLogs('{service}');">"#,
+                    service=service,
+                );
+                let run_status = services.get(service).unwrap_or(&RunStatus::NotRunning);
+                let action_button = match run_status {
+                    RunStatus::Running => {
+                        format!(
+                            r#"<input type="button" name="SystemdRestart" value="Restart" onclick="systemdAction('restart', '{service}');">
+                               <input type="button" name="SystemdStop" value="Stop" onclick="systemdAction('stop', '{service}');">"#,
+                            service=service,
+                        )
+                    },
+                    RunStatus::NotRunning => {
+                        format!(
+                            r#"<input type="button" name="SystemdStart" value="Start" onclick="systemdAction('start', '{service}');">"#,
+                            service=service
+                        )
+                    },
+                };
+                format!(
+                    r#"<tr style=text-align; left;"><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
+                    service, run_status, action_button, log_button
+                )
+            }).join("\n");
             output.push(records.into());
             output.push(r#"</tbody></table>"#.into());
         }
