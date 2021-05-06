@@ -92,6 +92,15 @@ impl SystemdInstance {
             })
             .collect()
     }
+
+    pub async fn service_action(&self, action: &str, service: &str) -> Result<StackString, Error> {
+        let command = Command::new("sudo")
+            .args(&["systemctl", action, service])
+            .output()
+            .await?;
+        let stdout = String::from_utf8_lossy(&command.stdout);
+        Ok(stdout.as_ref().into())
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -966,3 +966,69 @@ pub async fn update_dns_name(
         query.dns_name, query.old_ip, query.new_ip
     )))
 }
+
+#[derive(Serialize, Deserialize, Schema, Clone, Copy)]
+enum SystemdActions {
+    #[serde(rename = "start")]
+    Start,
+    #[serde(rename = "stop")]
+    Stop,
+    #[serde(rename = "restart")]
+    Restart,
+}
+
+impl SystemdActions {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Start => "start",
+            Self::Stop => "stop",
+            Self::Restart => "restart",
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Schema)]
+struct SystemdAction {
+    action: SystemdActions,
+    service: StackString,
+}
+
+#[get("/aws/systemd_action")]
+pub async fn systemd_action(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    query: Query<SystemdAction>,
+) -> WarpResult<impl Reply> {
+    let query = query.into_inner();
+    let output = data
+        .aws
+        .systemd
+        .service_action(query.action.as_str(), &query.service)
+        .await
+        .map_err(Into::<Error>::into)?;
+    Ok(rweb::reply::html(output.to_string()))
+}
+
+#[get("/aws/systemd_logs/{service}")]
+pub async fn systemd_logs(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+    service: StackString,
+) -> WarpResult<impl Reply> {
+    let entries = data
+        .aws
+        .systemd
+        .get_service_logs(&service)
+        .await
+        .map_err(Into::<Error>::into)?
+        .into_iter()
+        .map(|log| log.to_string())
+        .join("\n");
+    let body = format!(
+        r#"<textarea autofocus readonly="readonly"
+            name="message" id="systemd_logs"
+            rows=50 cols=100>{}</textarea>"#,
+        entries
+    );
+    Ok(rweb::reply::html(body))
+}

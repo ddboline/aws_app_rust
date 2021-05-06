@@ -68,6 +68,7 @@ footer {
 <input type="button" name="list_groups" value="Groups" onclick="listResource('group');"/>
 <input type="button" name="list_access_keys" value="AccessKey" onclick="listResource('access-key');"/>
 <input type="button" name="list_route53" value="DnsRecords" onclick="listResource('route53');"/>
+<input type="button" name="list_systemd" value="SystemD" onclick="listResource('systemd');"/"
 <input type="button" name="list_price" value="Price" onclick="listAllPrices()"/>
 <input type="button" name="novnc" value="NoVNC" onclick="noVncTab('/aws/novnc/status')"/>
 <input type="button" name="update" value="Update" onclick="updateMetadata()"/>
@@ -502,6 +503,28 @@ DISPLAY_TEXT
         xmlhttp.onload = function f() {
             document.getElementById("garminconnectoutput").innerHTML = "done";
             listResource('route53');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function systemdAction(action, service) {
+        let url = "/aws/systemd_action?action=" + action + "&service=" + service;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('systemd');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
+    function systemdLogs(service) {
+        let url = "/aws/systemd_logs/" + service;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
         }
         xmlhttp.open("GET", url, true);
         xmlhttp.send(null);

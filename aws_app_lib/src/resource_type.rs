@@ -19,6 +19,7 @@ pub enum ResourceType {
     Group,
     AccessKey,
     Route53,
+    SystemD,
 }
 
 impl fmt::Display for ResourceType {
@@ -40,6 +41,7 @@ impl fmt::Display for ResourceType {
                 Self::Group => "group",
                 Self::AccessKey => "access-key",
                 Self::Route53 => "route53",
+                Self::SystemD => "systemd",
             }
         )
     }
@@ -63,6 +65,7 @@ impl FromStr for ResourceType {
             "group" => Ok(Self::Group),
             "access-key" | "access_key" => Ok(Self::AccessKey),
             "route53" | "dns" => Ok(Self::Route53),
+            "systemd" => Ok(Self::SystemD),
             _ => Err(format_err!("{} is not a ResourceType", s)),
         }
     }
