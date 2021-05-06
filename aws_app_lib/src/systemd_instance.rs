@@ -84,7 +84,7 @@ impl SystemdInstance {
         stdout
             .split('\n')
             .filter(|line| {
-                line.contains("_SOURCE_REALTIME_TIMESTAMP")
+                line.contains("__REALTIME_TIMESTAMP")
             })
             .map(|line| {
                 let log: ServiceLogLine = serde_json::from_str(line)?;
@@ -145,7 +145,7 @@ impl fmt::Display for ServiceStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ServiceLogLine<'a> {
-    #[serde(alias = "_SOURCE_REALTIME_TIMESTAMP")]
+    #[serde(alias = "__REALTIME_TIMESTAMP")]
     timestamp: &'a str,
     #[serde(alias = "MESSAGE")]
     message: StackString,
