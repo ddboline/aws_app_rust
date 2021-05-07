@@ -1018,11 +1018,25 @@ pub async fn systemd_restart_all(
     let blacklist_service = &["nginx"];
     let aws_service = "aws-app-http".into();
     for service in &data.aws.config.systemd_services {
-        if service == &aws_service || blacklist_service.contains(&service.as_str()) {continue;}
-        output.push(data.aws.systemd.service_action("restart", service).await.map_err(Into::<Error>::into)?);
+        if service == &aws_service || blacklist_service.contains(&service.as_str()) {
+            continue;
+        }
+        output.push(
+            data.aws
+                .systemd
+                .service_action("restart", service)
+                .await
+                .map_err(Into::<Error>::into)?,
+        );
     }
     if data.aws.config.systemd_services.contains(&aws_service) {
-        output.push(data.aws.systemd.service_action("restart", "aws-app-http").await.map_err(Into::<Error>::into)?);
+        output.push(
+            data.aws
+                .systemd
+                .service_action("restart", "aws-app-http")
+                .await
+                .map_err(Into::<Error>::into)?,
+        );
     }
     Ok(rweb::reply::html(output.join("\n")))
 }

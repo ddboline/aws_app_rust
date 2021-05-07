@@ -17,8 +17,8 @@ use super::{
         delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_user, delete_volume,
         edit_script, get_instances, get_prices, instance_status, list, modify_volume,
         novnc_launcher, novnc_shutdown, novnc_status, remove_user_from_group, replace_script,
-        request_spot, sync_frontpage, systemd_action, systemd_logs, tag_item, terminate, update,
-        update_dns_name, user, systemd_restart_all,
+        request_spot, sync_frontpage, systemd_action, systemd_logs, systemd_restart_all, tag_item,
+        terminate, update, update_dns_name, user,
     },
 };
 

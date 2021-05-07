@@ -83,9 +83,7 @@ impl SystemdInstance {
         let stdout = String::from_utf8_lossy(&command.stdout);
         stdout
             .split('\n')
-            .filter(|line| {
-                line.contains("__REALTIME_TIMESTAMP")
-            })
+            .filter(|line| line.contains("__REALTIME_TIMESTAMP"))
             .map(|line| {
                 let log: ServiceLogLine = serde_json::from_str(line)?;
                 log.try_into()
@@ -182,11 +180,7 @@ pub struct ServiceLogEntry {
 
 impl fmt::Display for ServiceLogEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self.timestamp, self.hostname, self.message
-        )
+        write!(f, "{} {} {}", self.timestamp, self.hostname, self.message)
     }
 }
 
