@@ -530,6 +530,17 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function systemdRestartAll() {
+        let url = "/aws/systemd_restart_all";
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            listResource('systemd');
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
 </script>
 
 </body>

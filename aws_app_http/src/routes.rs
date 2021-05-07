@@ -1009,6 +1009,24 @@ pub async fn systemd_action(
     Ok(rweb::reply::html(output.to_string()))
 }
 
+#[get("/aws/systemd_restart_all")]
+pub async fn systemd_restart_all(
+    #[cookie = "jwt"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<impl Reply> {
+    let mut output = Vec::new();
+    let blacklist_service = &["nginx"];
+    let aws_service = "aws-app-http".into();
+    for service in &data.aws.config.systemd_services {
+        if service == &aws_service || blacklist_service.contains(&service.as_str()) {continue;}
+        output.push(data.aws.systemd.service_action("restart", service).await.map_err(Into::<Error>::into)?);
+    }
+    if data.aws.config.systemd_services.contains(&aws_service) {
+        output.push(data.aws.systemd.service_action("restart", "aws-app-http").await.map_err(Into::<Error>::into)?);
+    }
+    Ok(rweb::reply::html(output.join("\n")))
+}
+
 #[get("/aws/systemd_logs/{service}")]
 pub async fn systemd_logs(
     #[cookie = "jwt"] _: LoggedUser,

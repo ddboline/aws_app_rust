@@ -641,7 +641,10 @@ pub async fn get_frontpage(
         ResourceType::SystemD => {
             let services = app.systemd.list_running_services().await?;
             output.push(
-                r#"<table border="1" class="dataframe"><thead><tr><th>Name</th><th>Status</th><th></th><td></td></thead>"#.into()
+                r#"<table border="1" class="dataframe"><thead><tr>
+                   <th>Name</th><th>Status</th><th>
+                   <input type="button" name="RestartAll" value="RestartAll" onclick="systemdRestartAll();">
+                   </th><th></th></thead>"#.into()
             );
             let records = app.config.systemd_services.iter().map(|service| {
                 let log_button = format!(

@@ -18,7 +18,7 @@ use super::{
         edit_script, get_instances, get_prices, instance_status, list, modify_volume,
         novnc_launcher, novnc_shutdown, novnc_status, remove_user_from_group, replace_script,
         request_spot, sync_frontpage, systemd_action, systemd_logs, tag_item, terminate, update,
-        update_dns_name, user,
+        update_dns_name, user, systemd_restart_all,
     },
 };
 
@@ -89,6 +89,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
     let update_dns_name_path = update_dns_name(app.clone()).boxed();
     let systemd_action_path = systemd_action(app.clone()).boxed();
     let systemd_logs_path = systemd_logs(app.clone()).boxed();
+    let systemd_restart_all_path = systemd_restart_all(app.clone()).boxed();
 
     let novnc_scope = novnc_launcher_path
         .or(novnc_status_path)
@@ -129,6 +130,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .or(update_dns_name_path)
         .or(systemd_action_path)
         .or(systemd_logs_path)
+        .or(systemd_restart_all_path)
         .boxed();
     let routes = aws_path.recover(error_response);
     let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
