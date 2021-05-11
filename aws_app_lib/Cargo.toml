@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_lib"
-version = "0.8.13"
+version = "0.8.14"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -45,7 +45,7 @@ itertools = "0.10"
 smallvec = "1.6"
 deadqueue = "0.2"
 env_logger = "0.8"
-rweb = {version="0.10", features=["openapi"]}
+rweb = {version="0.11", features=["openapi"]}
 stack-string = { version="0.2", features=["diesel_types"] }
 stdout-channel = "0.4"
 
