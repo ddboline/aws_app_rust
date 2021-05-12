@@ -133,7 +133,7 @@ async fn insert_result(
     let output: Vec<_> = fam?
         .into_iter()
         .chain(typ?.into_iter())
-        .filter_map(|x| x)
+        .flatten()
         .collect();
     Ok(output)
 }

@@ -127,7 +127,7 @@ fn get_instance_pricing(
                 .attributes
                 .get("aws:ec2:instanceType")
                 .ok_or_else(|| format_err!("No instance type"))?
-                .to_owned();
+                .clone();
             let i = InstancePricingInsert {
                 instance_type,
                 price,

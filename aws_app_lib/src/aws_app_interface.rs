@@ -461,8 +461,6 @@ impl AwsAppInterface {
         let id_host_map = get_id_host_map().await?;
         let inst_id = map_or_val(&name_map, instance_id);
         if let Some(host) = id_host_map.get(inst_id) {
-            let command = command.to_owned();
-            let host = host.to_owned();
             SSHInstance::new("ubuntu", host.as_ref(), 22)
                 .await
                 .run_command_stream_stdout(&command)
