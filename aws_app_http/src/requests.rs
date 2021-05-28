@@ -644,7 +644,10 @@ pub async fn get_frontpage(
                 r#"<table border="1" class="dataframe"><thead><tr>
                    <th>Name</th><th>Status</th><th>
                    <input type="button" name="RestartAll" value="RestartAll" onclick="systemdRestartAll();">
-                   </th><th></th></thead>"#.into()
+                   </th><th>
+                   <input type="button" name="Crontab" value="Crontab" onclick="crontabLogs('user');"><br>
+                   <input type="button" name="CrontabRoot" value="CrontabRoot" onclick="crontabLogs('root');">
+                   </th></thead>"#.into()
             );
             let records = app.config.systemd_services.iter().map(|service| {
                 let log_button = format!(

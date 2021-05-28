@@ -1064,3 +1064,25 @@ pub async fn systemd_logs(
     );
     Ok(rweb::reply::html(body))
 }
+
+#[get("/aws/crontab_logs/{crontab_type}")]
+pub async fn crontab_logs(
+    #[cookie = "jwt"] _: LoggedUser,
+    crontab_type: StackString,
+) -> WarpResult<impl Reply> {
+    let crontab_path = if crontab_type == "user" {
+        Path::new("/tmp/crontab.log")
+    } else {
+        Path::new("/tmp/crontab_root.log")
+    };
+    let body = if crontab_path.exists() {
+        read_to_string(crontab_path).await.map_err(Into::<Error>::into)?
+    } else {String::new()};
+    let body = format!(
+        r#"<textarea autofocus readonly="readonly"
+            name="message" id="systemd_logs"
+            rows=50 cols=100>{}</textarea>"#,
+        body
+    );
+    Ok(rweb::reply::html(body))
+}

@@ -541,6 +541,17 @@ DISPLAY_TEXT
         xmlhttp.send(null);
         document.getElementById("garminconnectoutput").innerHTML = "running";
     }
+    function crontabLogs(crontab_type) {
+        let url = "/aws/crontab_logs/" + crontab_type;
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onload = function f() {
+            document.getElementById("garminconnectoutput").innerHTML = "done";
+            document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send(null);
+        document.getElementById("garminconnectoutput").innerHTML = "running";
+    }
 </script>
 
 </body>
