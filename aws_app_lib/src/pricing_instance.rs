@@ -290,20 +290,20 @@ impl PricingInstance {
         Ok(entries)
     }
 
-    pub async fn update_all_prices(&self, pool: &PgPool) -> Result<Vec<StackString>, Error> {
-        let mut output = Vec::new();
+    pub async fn update_all_prices(&self, pool: &PgPool) -> Result<u32, Error> {
         let instances: Vec<_> = InstanceList::get_all_instances(pool)
             .await?
             .into_iter()
             .map(|i| i.instance_type)
             .collect();
+        let mut number_of_updates = 0;
         for instance in instances {
             for (_, price) in self.get_prices(&instance).await? {
-                output.push(format!("{:?}", price).into());
                 price.upsert_entry(pool).await?;
+                number_of_updates += 1;
             }
         }
-        Ok(output)
+        Ok(number_of_updates)
     }
 }
 

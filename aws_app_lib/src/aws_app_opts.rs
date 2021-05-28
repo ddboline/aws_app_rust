@@ -349,9 +349,8 @@ impl AwsAppOpts {
                     .await
             }
             Self::UpdatePricing => {
-                for line in app.pricing.update_all_prices(&app.pool).await? {
-                    app.stdout.send(line);
-                }
+                let number_of_updates = app.pricing.update_all_prices(&app.pool).await?;
+                app.stdout.send(format!("{} updates", number_of_updates));
                 Ok(())
             }
             Self::Systemd { pattern } => {
