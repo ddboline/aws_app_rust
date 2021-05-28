@@ -77,7 +77,7 @@ impl SystemdInstance {
 
     pub async fn get_service_logs(&self, service: &str) -> Result<Vec<ServiceLogEntry>, Error> {
         let command = Command::new("journalctl")
-            .args(&["-b", "-u", service, "-o", "json"])
+            .args(&["-b", "-u", service, "-o", "json", "-n", "100", "-r"])
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&command.stdout);
