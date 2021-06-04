@@ -6,19 +6,33 @@ use std::{convert::TryFrom, fmt, str::FromStr};
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, Schema)]
 #[serde(into = "String", try_from = "String")]
 pub enum ResourceType {
+    #[serde(rename = "instances")]
     Instances,
+    #[serde(rename = "reserved")]
     Reserved,
+    #[serde(rename = "spot")]
     Spot,
+    #[serde(rename = "ami")]
     Ami,
+    #[serde(rename = "volume")]
     Volume,
+    #[serde(rename = "snapshot")]
     Snapshot,
+    #[serde(rename = "ecr")]
     Ecr,
+    #[serde(rename = "key")]
     Key,
+    #[serde(rename = "script")]
     Script,
+    #[serde(rename = "user")]
     User,
+    #[serde(rename = "group")]
     Group,
+    #[serde(rename = "access-key")]
     AccessKey,
+    #[serde(rename = "route53")]
     Route53,
+    #[serde(rename = "systemd")]
     SystemD,
 }
 

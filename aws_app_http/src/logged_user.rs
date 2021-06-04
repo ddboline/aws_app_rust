@@ -29,7 +29,10 @@ impl From<AuthorizedUser> for LoggedUser {
 
 impl From<LoggedUser> for AuthorizedUser {
     fn from(user: LoggedUser) -> Self {
-        Self { email: user.email, session: None }
+        Self {
+            email: user.email,
+            session: None,
+        }
     }
 }
 
@@ -60,7 +63,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
         AuthorizedUsersDB::get_authorized_users(&pool)
             .await?
             .into_iter()
-            .map(|user| user.email )
+            .map(|user| user.email)
             .collect()
     } else {
         AUTHORIZED_USERS.get_users()

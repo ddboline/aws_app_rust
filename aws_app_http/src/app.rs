@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use anyhow::Error;
-use rweb::{Filter, filters::BoxedFilter, Reply};
-use rweb::openapi::{self, Info};
 use rweb::http::header::CONTENT_TYPE;
+use rweb::openapi::{self, Info};
+use rweb::{filters::BoxedFilter, Filter, Reply};
+use std::sync::Arc;
 use std::{net::SocketAddr, time::Duration};
 use tokio::time::interval;
 
@@ -16,12 +16,12 @@ use super::{
     logged_user::{fill_from_db, get_secrets, TRIGGER_DB_UPDATE},
     routes::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
-        create_access_key, create_image, create_snapshot, create_user, delete_access_key,
-        delete_ecr_image, delete_image, delete_script, delete_snapshot, delete_user, delete_volume,
-        edit_script, get_instances, get_prices, instance_status, list, modify_volume,
-        novnc_launcher, novnc_shutdown, novnc_status, remove_user_from_group, replace_script,
-        request_spot, sync_frontpage, systemd_action, systemd_logs, systemd_restart_all, tag_item,
-        terminate, update, update_dns_name, user, crontab_logs,
+        create_access_key, create_image, create_snapshot, create_user, crontab_logs,
+        delete_access_key, delete_ecr_image, delete_image, delete_script, delete_snapshot,
+        delete_user, delete_volume, edit_script, get_instances, get_prices, instance_status, list,
+        modify_volume, novnc_launcher, novnc_shutdown, novnc_status, remove_user_from_group,
+        replace_script, request_spot, sync_frontpage, systemd_action, systemd_logs,
+        systemd_restart_all, tag_item, terminate, update, update_dns_name, user,
     },
 };
 
@@ -143,8 +143,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
     let (spec, aws_path) = openapi::spec()
         .info(Info {
             title: "Frontend for AWS".into(),
-            description: "Web Frontend for AWS Services"
-                .into(),
+            description: "Web Frontend for AWS Services".into(),
             version: env!("CARGO_PKG_VERSION").into(),
             ..Info::default()
         })

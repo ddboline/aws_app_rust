@@ -130,11 +130,7 @@ async fn insert_result(
         }
     });
     let typ: Result<Vec<_>, Error> = try_join_all(typ).await;
-    let output: Vec<_> = fam?
-        .into_iter()
-        .chain(typ?.into_iter())
-        .flatten()
-        .collect();
+    let output: Vec<_> = fam?.into_iter().chain(typ?.into_iter()).flatten().collect();
     Ok(output)
 }
 

@@ -1,9 +1,13 @@
 use anyhow::format_err;
 use itertools::Itertools;
 use maplit::hashmap;
-use rweb::{
-    get,
-    post, Json, Query, Rejection, Schema,
+use rweb::{get, post, Json, Query, Rejection, Schema};
+use rweb_helper::{
+    content_type_trait::ContentTypeHtml,
+    derive_response_description,
+    html_response::HtmlResponse as HtmlBase,
+    json_response::JsonResponse as JsonBase,
+    status_code_trait::{StatusCodeCreated, StatusCodeOk},
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
@@ -12,13 +16,6 @@ use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
     task::spawn,
-};
-use rweb_helper::{
-    html_response::HtmlResponse as HtmlBase,
-    json_response::JsonResponse as JsonBase,
-    derive_response_description,
-    status_code_trait::{StatusCodeOk, StatusCodeCreated},
-    content_type_trait::ContentTypeHtml,
 };
 
 use aws_app_lib::{
@@ -81,7 +78,8 @@ pub async fn list(
 
 struct FinishedDescription {}
 derive_response_description!(FinishedDescription, "Finished");
-type FinishedResource = HtmlBase<&'static str, Error, StatusCodeOk, ContentTypeHtml, FinishedDescription>;
+type FinishedResource =
+    HtmlBase<&'static str, Error, StatusCodeOk, ContentTypeHtml, FinishedDescription>;
 
 #[get("/aws/terminate")]
 pub async fn terminate(
@@ -99,7 +97,8 @@ pub async fn terminate(
 
 struct CreateImageDescription {}
 derive_response_description!(CreateImageDescription, "Image ID");
-type CreateImageResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CreateImageDescription>;
+type CreateImageResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CreateImageDescription>;
 
 #[get("/aws/create_image")]
 pub async fn create_image(
@@ -230,7 +229,8 @@ pub struct EditData {
 
 struct EditScriptDescription {}
 derive_response_description!(EditScriptDescription, "Edit Script");
-type EditScriptResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, EditScriptDescription>;
+type EditScriptResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, EditScriptDescription>;
 
 #[get("/aws/edit_script")]
 pub async fn edit_script(
@@ -323,7 +323,8 @@ where
 
 struct BuildSpotDescription {}
 derive_response_description!(BuildSpotDescription, "Spot Request");
-type BuildSpotResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, BuildSpotDescription>;
+type BuildSpotResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, BuildSpotDescription>;
 
 #[get("/aws/build_spot_request")]
 pub async fn build_spot_request(
@@ -487,7 +488,8 @@ pub struct CancelSpotRequest {
 
 struct CancelledDescription {}
 derive_response_description!(CancelledDescription, "Cancelled Spot");
-type CancelledResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CancelledDescription>;
+type CancelledResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CancelledDescription>;
 
 #[get("/aws/cancel_spot")]
 pub async fn cancel_spot(
@@ -637,7 +639,8 @@ pub async fn update(
 
 struct InstanceStatusDescription {}
 derive_response_description!(InstanceStatusDescription, "Instance Status");
-type InstanceStatusResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstanceStatusDescription>;
+type InstanceStatusResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstanceStatusDescription>;
 
 #[get("/aws/instance_status")]
 pub async fn instance_status(
@@ -723,7 +726,8 @@ pub struct InstancesRequest {
 
 struct InstancesDescription {}
 derive_response_description!(InstancesDescription, "Describe Instances");
-type InstancesResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstancesDescription>;
+type InstancesResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstancesDescription>;
 
 #[get("/aws/instances")]
 pub async fn get_instances(
@@ -760,7 +764,8 @@ async fn novnc_status_response(
 
 struct NovncStartDescription {}
 derive_response_description!(NovncStartDescription, "Start NoVNC");
-type NovncStartResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStartDescription>;
+type NovncStartResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStartDescription>;
 
 #[get("/aws/novnc/start")]
 pub async fn novnc_launcher(
@@ -783,7 +788,8 @@ pub async fn novnc_launcher(
 
 struct NovncStopDescription {}
 derive_response_description!(NovncStopDescription, "Stop NoVNC");
-type NovncStopResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStopDescription>;
+type NovncStopResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStopDescription>;
 
 #[get("/aws/novnc/stop")]
 pub async fn novnc_shutdown(
@@ -807,7 +813,8 @@ pub async fn novnc_shutdown(
 
 struct NovncStatusDescription {}
 derive_response_description!(NovncStatusDescription, "NoVNC Status");
-type NovncStatusResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStatusDescription>;
+type NovncStatusResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStatusDescription>;
 
 #[get("/aws/novnc/status")]
 pub async fn novnc_status(
@@ -867,7 +874,8 @@ pub async fn create_user(
 
 struct DeleteUserDescription {}
 derive_response_description!(DeleteUserDescription, "Created Iam User");
-type DeleteUserResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteUserDescription>;
+type DeleteUserResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteUserDescription>;
 
 #[get("/aws/delete_user")]
 pub async fn delete_user(
@@ -891,7 +899,8 @@ pub struct AddUserToGroupRequest {
 
 struct AddUserGroupDescription {}
 derive_response_description!(AddUserGroupDescription, "Add User to Group");
-type AddUserGroupResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AddUserGroupDescription>;
+type AddUserGroupResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AddUserGroupDescription>;
 
 #[get("/aws/add_user_to_group")]
 pub async fn add_user_to_group(
@@ -912,7 +921,8 @@ pub async fn add_user_to_group(
 
 struct RemoveUserGroupDescription {}
 derive_response_description!(RemoveUserGroupDescription, "Remove User to Group");
-type RemoveUserGroupResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, RemoveUserGroupDescription>;
+type RemoveUserGroupResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, RemoveUserGroupDescription>;
 
 #[get("/aws/remove_user_from_group")]
 pub async fn remove_user_from_group(
@@ -958,7 +968,8 @@ pub async fn create_access_key(
 
 struct DeleteKeyDescription {}
 derive_response_description!(DeleteKeyDescription, "Delete Access Key");
-type DeleteKeyResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteKeyDescription>;
+type DeleteKeyResponse =
+    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteKeyDescription>;
 
 #[get("/aws/delete_access_key")]
 pub async fn delete_access_key(
@@ -987,7 +998,8 @@ pub struct UpdateDnsNameRequest {
 
 struct UpdateDnsDescription {}
 derive_response_description!(UpdateDnsDescription, "Update Dns");
-type UpdateDnsResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, UpdateDnsDescription>;
+type UpdateDnsResponse =
+    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, UpdateDnsDescription>;
 
 #[get("/aws/update_dns_name")]
 pub async fn update_dns_name(
@@ -1040,7 +1052,8 @@ struct SystemdAction {
 
 struct SystemdActionDescription {}
 derive_response_description!(SystemdActionDescription, "Update Dns");
-type SystemdActionResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdActionDescription>;
+type SystemdActionResponse =
+    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdActionDescription>;
 
 #[get("/aws/systemd_action")]
 pub async fn systemd_action(
@@ -1060,7 +1073,8 @@ pub async fn systemd_action(
 
 struct SystemdRestartAllDescription {}
 derive_response_description!(SystemdRestartAllDescription, "Systemd Restart All");
-type SystemdRestartAllResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdRestartAllDescription>;
+type SystemdRestartAllResponse =
+    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdRestartAllDescription>;
 
 #[get("/aws/systemd_restart_all")]
 pub async fn systemd_restart_all(
@@ -1096,7 +1110,8 @@ pub async fn systemd_restart_all(
 
 struct SystemdLogDescription {}
 derive_response_description!(SystemdLogDescription, "Systemd Logs");
-type SystemdLogResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdLogDescription>;
+type SystemdLogResponse =
+    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdLogDescription>;
 
 #[get("/aws/systemd_logs/{service}")]
 pub async fn systemd_logs(
@@ -1124,7 +1139,8 @@ pub async fn systemd_logs(
 
 struct CrontabLogDescription {}
 derive_response_description!(CrontabLogDescription, "Crontab Logs");
-type CrontabLogResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, CrontabLogDescription>;
+type CrontabLogResponse =
+    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, CrontabLogDescription>;
 
 #[get("/aws/crontab_logs/{crontab_type}")]
 pub async fn crontab_logs(
@@ -1137,8 +1153,12 @@ pub async fn crontab_logs(
         Path::new("/tmp/crontab_root.log")
     };
     let body = if crontab_path.exists() {
-        read_to_string(crontab_path).await.map_err(Into::<Error>::into)?
-    } else {String::new()};
+        read_to_string(crontab_path)
+            .await
+            .map_err(Into::<Error>::into)?
+    } else {
+        String::new()
+    };
     let body = format!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="systemd_logs"
