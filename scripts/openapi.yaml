@@ -3,7 +3,7 @@ openapi: 3.0.1
 info:
   title: Frontend for AWS
   description: Web Frontend for AWS Services
-  version: 0.8.17
+  version: 0.8.18
 paths:
   /aws/index.html:
     get:
@@ -16,10 +16,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/list:
@@ -30,20 +26,20 @@ paths:
           schema:
             type: string
             enum:
-              - Instances
-              - Reserved
-              - Spot
-              - Ami
-              - Volume
-              - Snapshot
-              - Ecr
-              - Key
-              - Script
-              - User
-              - Group
-              - AccessKey
-              - Route53
-              - SystemD
+              - instances
+              - reserved
+              - spot
+              - ami
+              - volume
+              - snapshot
+              - ecr
+              - key
+              - script
+              - user
+              - group
+              - access-key
+              - route53
+              - systemd
       responses:
         "200":
           description: List Resources
@@ -53,10 +49,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/terminate:
@@ -75,10 +67,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/create_image:
@@ -101,10 +89,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/delete_image:
@@ -123,10 +107,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/delete_volume:
@@ -145,10 +125,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/modify_volume:
@@ -171,10 +147,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/delete_snapshot:
@@ -193,10 +165,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/create_snapshot:
@@ -220,10 +188,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/tag_item:
@@ -246,10 +210,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/delete_ecr_image:
@@ -272,10 +232,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/cleanup_ecr_images:
@@ -289,10 +245,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/edit_script:
@@ -311,10 +263,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/replace_script:
@@ -342,10 +290,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/delete_script:
@@ -364,10 +308,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/create_user:
@@ -406,10 +346,6 @@ paths:
                   - tags
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/delete_user:
@@ -428,10 +364,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/add_user_to_group:
@@ -454,10 +386,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/remove_user_from_group:
@@ -480,10 +408,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/create_access_key:
@@ -520,10 +444,6 @@ paths:
                   - user_name
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/delete_access_key:
@@ -546,10 +466,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/build_spot_request:
@@ -579,10 +495,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/request_spot:
@@ -625,10 +537,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/cancel_spot:
@@ -647,10 +555,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/prices:
@@ -670,10 +574,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/update:
@@ -687,10 +587,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/instance_status:
@@ -709,10 +605,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/command:
@@ -740,10 +632,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/instances:
@@ -762,10 +650,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/user:
@@ -784,10 +668,6 @@ paths:
                   - email
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/novnc/start:
@@ -801,10 +681,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/novnc/status:
@@ -818,10 +694,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/novnc/stop:
@@ -835,10 +707,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/update_dns_name:
@@ -871,10 +739,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/systemd_action:
@@ -901,10 +765,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   "/aws/systemd_logs/{service}":
@@ -924,10 +784,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   /aws/systemd_restart_all:
@@ -941,10 +797,6 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
   "/aws/crontab_logs/{crontab_type}":
@@ -964,9 +816,5 @@ paths:
                 type: string
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
-        "405":
-          description: Method not allowed
         "500":
           description: Internal Server Error
