@@ -1,5 +1,8 @@
+use std::sync::Arc;
 use anyhow::Error;
-use rweb::Filter;
+use rweb::{Filter, filters::BoxedFilter, Reply};
+use rweb::openapi::{self, Info};
+use rweb::http::header::CONTENT_TYPE;
 use std::{net::SocketAddr, time::Duration};
 use tokio::time::interval;
 
@@ -34,25 +37,7 @@ pub async fn start_app() -> Result<(), Error> {
     run_app(&config).await
 }
 
-async fn run_app(config: &Config) -> Result<(), Error> {
-    async fn _update_db(pool: PgPool) {
-        let mut i = interval(Duration::from_secs(60));
-        loop {
-            fill_from_db(&pool).await.unwrap_or(());
-            i.tick().await;
-        }
-    }
-
-    TRIGGER_DB_UPDATE.set();
-
-    let pool = PgPool::new(&config.database_url);
-    let app = AppState {
-        aws: AwsAppInterface::new(config.clone(), pool),
-        novnc: NoVncInstance::new(),
-    };
-
-    tokio::task::spawn(_update_db(app.aws.pool.clone()));
-
+fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
     let frontpage_path = sync_frontpage(app.clone()).boxed();
     let list_path = list(app.clone()).boxed();
     let terminate_path = terminate(app.clone()).boxed();
@@ -97,7 +82,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .or(novnc_shutdown_path)
         .boxed();
 
-    let aws_path = frontpage_path
+    frontpage_path
         .or(list_path)
         .or(terminate_path)
         .or(create_image_path)
@@ -133,8 +118,57 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .or(systemd_logs_path)
         .or(systemd_restart_all_path)
         .or(crontab_logs_path)
-        .boxed();
-    let routes = aws_path.recover(error_response);
+        .boxed()
+}
+
+async fn run_app(config: &Config) -> Result<(), Error> {
+    async fn _update_db(pool: PgPool) {
+        let mut i = interval(Duration::from_secs(60));
+        loop {
+            fill_from_db(&pool).await.unwrap_or(());
+            i.tick().await;
+        }
+    }
+
+    TRIGGER_DB_UPDATE.set();
+
+    let pool = PgPool::new(&config.database_url);
+    let app = AppState {
+        aws: AwsAppInterface::new(config.clone(), pool),
+        novnc: NoVncInstance::new(),
+    };
+
+    tokio::task::spawn(_update_db(app.aws.pool.clone()));
+
+    let (spec, aws_path) = openapi::spec()
+        .info(Info {
+            title: "Frontend for AWS".into(),
+            description: "Web Frontend for AWS Services"
+                .into(),
+            version: env!("CARGO_PKG_VERSION").into(),
+            ..Info::default()
+        })
+        .build(|| get_aws_path(&app));
+    let spec = Arc::new(spec);
+    let spec_json_path = rweb::path!("aws" / "openapi" / "json")
+        .and(rweb::path::end())
+        .map({
+            let spec = spec.clone();
+            move || rweb::reply::json(spec.as_ref())
+        });
+
+    let spec_yaml = serde_yaml::to_string(spec.as_ref())?;
+    let spec_yaml_path = rweb::path!("aws" / "openapi" / "yaml")
+        .and(rweb::path::end())
+        .map(move || {
+            let reply = rweb::reply::html(spec_yaml.clone());
+            rweb::reply::with_header(reply, CONTENT_TYPE, "text/yaml")
+        });
+
+    let routes = aws_path
+        .or(spec_json_path)
+        .or(spec_yaml_path)
+        .recover(error_response);
     let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
     rweb::serve(routes).bind(addr).await;
     Ok(())

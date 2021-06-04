@@ -3,10 +3,7 @@ use itertools::Itertools;
 use maplit::hashmap;
 use rweb::{
     get,
-    http::status::StatusCode,
-    hyper::{Body, Response},
-    openapi::{self, Entity, ResponseEntity, Responses},
-    post, Json, Query, Rejection, Reply, Schema,
+    post, Json, Query, Rejection, Schema,
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
@@ -15,6 +12,13 @@ use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
     task::spawn,
+};
+use rweb_helper::{
+    html_response::HtmlResponse as HtmlBase,
+    json_response::JsonResponse as JsonBase,
+    derive_response_description,
+    status_code_trait::{StatusCodeOk, StatusCodeCreated},
+    content_type_trait::ContentTypeHtml,
 };
 
 use aws_app_lib::{
@@ -40,65 +44,19 @@ use super::{
 pub type WarpResult<T> = Result<T, Rejection>;
 pub type HttpResult<T> = Result<T, Error>;
 
-pub struct JsonResponse<T: Serialize + Entity + Send> {
-    data: T,
-    status: StatusCode,
-}
-
-impl<T> JsonResponse<T>
-where
-    T: Serialize + Entity + Send,
-{
-    pub fn new(data: T) -> Self {
-        Self {
-            data,
-            status: StatusCode::OK,
-        }
-    }
-    pub fn with_status(mut self, status: StatusCode) -> Self {
-        self.status = status;
-        self
-    }
-}
-
-impl<T> Reply for JsonResponse<T>
-where
-    T: Serialize + Entity + Send,
-{
-    fn into_response(self) -> Response<Body> {
-        let reply = rweb::reply::json(&self.data);
-        let reply = rweb::reply::with_status(reply, self.status);
-        reply.into_response()
-    }
-}
-
-impl<T> Entity for JsonResponse<T>
-where
-    T: Serialize + Entity + Send,
-{
-    fn describe() -> openapi::Schema {
-        Result::<T, Error>::describe()
-    }
-}
-
-impl<T> ResponseEntity for JsonResponse<T>
-where
-    T: Serialize + Entity + Send,
-{
-    fn describe_responses() -> Responses {
-        Result::<Json<T>, Error>::describe_responses()
-    }
-}
+struct AwsIndexDescription {}
+derive_response_description!(AwsIndexDescription, "Main Page");
+type AwsIndexResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AwsIndexDescription>;
 
 #[get("/aws/index.html")]
 pub async fn sync_frontpage(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<AwsIndexResponse> {
     let results = get_frontpage(ResourceType::Instances, &data.aws).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -106,37 +64,49 @@ pub struct ResourceRequest {
     resource: ResourceType,
 }
 
+struct AwsListDescription {}
+derive_response_description!(AwsListDescription, "List Resources");
+type AwsListResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AwsListDescription>;
+
 #[get("/aws/list")]
 pub async fn list(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<ResourceRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<AwsListResponse> {
     let query = query.into_inner();
     let results = get_frontpage(query.resource, &data.aws).await?;
-    Ok(rweb::reply::html(results.join("\n")))
+    Ok(HtmlBase::new(results.join("\n")))
 }
+
+struct FinishedDescription {}
+derive_response_description!(FinishedDescription, "Finished");
+type FinishedResource = HtmlBase<&'static str, Error, StatusCodeOk, ContentTypeHtml, FinishedDescription>;
 
 #[get("/aws/terminate")]
 pub async fn terminate(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<TerminateRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     data.aws
         .terminate(&[query.instance])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("finished".to_string()))
+    Ok(HtmlBase::new("finished"))
 }
+
+struct CreateImageDescription {}
+derive_response_description!(CreateImageDescription, "Image ID");
+type CreateImageResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CreateImageDescription>;
 
 #[get("/aws/create_image")]
 pub async fn create_image(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateImageRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<CreateImageResponse> {
     let query = query.into_inner();
     let body: String = data
         .aws
@@ -144,7 +114,7 @@ pub async fn create_image(
         .await
         .map_err(Into::<Error>::into)?
         .map_or_else(|| "failed to create ami".into(), |ami_id| ami_id.into());
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
 
 #[get("/aws/delete_image")]
@@ -152,13 +122,13 @@ pub async fn delete_image(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteImageRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     data.aws
         .delete_image(&query.ami)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[get("/aws/delete_volume")]
@@ -166,13 +136,13 @@ pub async fn delete_volume(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteVolumeRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     data.aws
         .delete_ebs_volume(&query.volid)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[get("/aws/modify_volume")]
@@ -180,13 +150,13 @@ pub async fn modify_volume(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<ModifyVolumeRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     data.aws
         .modify_ebs_volume(&query.volid, query.size)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[get("/aws/delete_snapshot")]
@@ -194,13 +164,13 @@ pub async fn delete_snapshot(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteSnapshotRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     data.aws
         .delete_ebs_snapshot(&query.snapid)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[get("/aws/create_snapshot")]
@@ -208,10 +178,10 @@ pub async fn create_snapshot(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateSnapshotRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     query.handle(&data.aws).await?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[get("/aws/tag_item")]
@@ -219,10 +189,10 @@ pub async fn tag_item(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<TagItemRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     query.handle(&data.aws).await?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[get("/aws/delete_ecr_image")]
@@ -230,27 +200,27 @@ pub async fn delete_ecr_image(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteEcrImageRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     data.aws
         .ecr
         .delete_ecr_images(&query.reponame, &[query.imageid])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[get("/aws/cleanup_ecr_images")]
 pub async fn cleanup_ecr_images(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     data.aws
         .ecr
         .cleanup_ecr_images()
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("finished"))
+    Ok(HtmlBase::new("finished"))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -258,12 +228,16 @@ pub struct EditData {
     pub filename: StackString,
 }
 
+struct EditScriptDescription {}
+derive_response_description!(EditScriptDescription, "Edit Script");
+type EditScriptResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, EditScriptDescription>;
+
 #[get("/aws/edit_script")]
 pub async fn edit_script(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<EditData>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<EditScriptResponse> {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
     let text = if filename.exists() {
@@ -287,7 +261,7 @@ pub async fn edit_script(
         fname = &query.filename,
         rows = rows,
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -301,14 +275,14 @@ pub async fn replace_script(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     req: Json<ReplaceData>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let req = req.into_inner();
     let filename = data.aws.config.script_directory.join(&req.filename);
     let mut f = File::create(&filename).await.map_err(Into::<Error>::into)?;
     f.write_all(req.text.as_bytes())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html("done"))
+    Ok(HtmlBase::new("Finished"))
 }
 
 #[get("/aws/delete_script")]
@@ -316,13 +290,13 @@ pub async fn delete_script(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<EditData>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
     if filename.exists() {
         remove_file(&filename).await.map_err(Into::<Error>::into)?;
     }
-    Ok(rweb::reply::html("done"))
+    Ok(HtmlBase::new("Finished"))
 }
 
 #[derive(Serialize, Deserialize, Debug, Schema)]
@@ -347,12 +321,16 @@ where
     }
 }
 
+struct BuildSpotDescription {}
+derive_response_description!(BuildSpotDescription, "Spot Request");
+type BuildSpotResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, BuildSpotDescription>;
+
 #[get("/aws/build_spot_request")]
 pub async fn build_spot_request(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<SpotBuilder>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<BuildSpotResponse> {
     let query = query.into_inner();
     let mut amis: Vec<_> = data
         .aws
@@ -452,7 +430,7 @@ pub async fn build_spot_request(
         key = keys,
         price = data.aws.config.max_spot_price,
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Schema)]
@@ -485,7 +463,7 @@ pub async fn request_spot(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     req: Json<SpotRequestData>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<FinishedResource> {
     let req: SpotRequest = req.into_inner().into();
     let tags = Arc::new(req.tags.clone());
     for spot_id in data
@@ -499,7 +477,7 @@ pub async fn request_spot(
         let tags = tags.clone();
         spawn(async move { ec2.tag_spot_instance(&spot_id, &tags, 1000).await });
     }
-    Ok(rweb::reply::html("done"))
+    Ok(HtmlBase::new("Finished"))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -507,19 +485,23 @@ pub struct CancelSpotRequest {
     pub spot_id: StackString,
 }
 
+struct CancelledDescription {}
+derive_response_description!(CancelledDescription, "Cancelled Spot");
+type CancelledResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CancelledDescription>;
+
 #[get("/aws/cancel_spot")]
 pub async fn cancel_spot(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CancelSpotRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<CancelledResponse> {
     let query = query.into_inner();
     data.aws
         .ec2
         .cancel_spot_instance_request(&[query.spot_id.clone()])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html(format!("cancelled {}", query.spot_id)))
+    Ok(HtmlBase::new(format!("cancelled {}", query.spot_id)))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -527,12 +509,16 @@ pub struct PriceRequest {
     pub search: Option<StackString>,
 }
 
+struct PricesDescription {}
+derive_response_description!(PricesDescription, "Prices");
+type PricesResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, PricesDescription>;
+
 #[get("/aws/prices")]
 pub async fn get_prices(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<PriceRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<PricesResponse> {
     let query = query.into_inner();
     let mut inst_fam = InstanceFamily::get_all(&data.aws.pool)
         .await
@@ -621,14 +607,18 @@ pub async fn get_prices(
         )
     };
 
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
+
+struct UpdateDescription {}
+derive_response_description!(UpdateDescription, "Update");
+type UpdateResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, UpdateDescription>;
 
 #[get("/aws/update")]
 pub async fn update(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<UpdateResponse> {
     let entries: Vec<_> = data
         .aws
         .update()
@@ -642,15 +632,19 @@ pub async fn update(
         entries.len() + 5,
         entries.join("\n"),
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
+
+struct InstanceStatusDescription {}
+derive_response_description!(InstanceStatusDescription, "Instance Status");
+type InstanceStatusResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstanceStatusDescription>;
 
 #[get("/aws/instance_status")]
 pub async fn instance_status(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<StatusRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<InstanceStatusResponse> {
     let query = query.into_inner();
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
@@ -678,15 +672,19 @@ pub async fn instance_status(
         entries.len() + 5,
         entries.join("\n")
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
+
+struct CommandDescription {}
+derive_response_description!(CommandDescription, "Run Command on Instance");
+type CommandResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CommandDescription>;
 
 #[post("/aws/command")]
 pub async fn command(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     payload: Json<CommandRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<CommandResponse> {
     let payload = payload.into_inner();
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
@@ -715,7 +713,7 @@ pub async fn command(
         entries.len() + 5,
         entries.join("\n")
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -723,12 +721,16 @@ pub struct InstancesRequest {
     pub inst: StackString,
 }
 
+struct InstancesDescription {}
+derive_response_description!(InstancesDescription, "Describe Instances");
+type InstancesResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstancesDescription>;
+
 #[get("/aws/instances")]
 pub async fn get_instances(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<InstancesRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<InstancesResponse> {
     let query = query.into_inner();
     let instances = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
         .await
@@ -736,7 +738,7 @@ pub async fn get_instances(
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .join("\n");
-    Ok(rweb::reply::html(instances))
+    Ok(HtmlBase::new(instances))
 }
 
 async fn novnc_status_response(
@@ -756,11 +758,15 @@ async fn novnc_status_response(
     ))
 }
 
+struct NovncStartDescription {}
+derive_response_description!(NovncStartDescription, "Start NoVNC");
+type NovncStartResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStartDescription>;
+
 #[get("/aws/novnc/start")]
 pub async fn novnc_launcher(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<NovncStartResponse> {
     if let Some(novnc_path) = &data.aws.config.novnc_path {
         let certdir = Path::new("/etc/letsencrypt/live/").join(&data.aws.config.domain);
         data.novnc
@@ -769,19 +775,23 @@ pub async fn novnc_launcher(
             .map_err(Into::<Error>::into)?;
         let number = data.novnc.get_novnc_status().await;
         let body = novnc_status_response(&data.novnc, number, &data.aws.config.domain).await?;
-        Ok(rweb::reply::html(body))
+        Ok(HtmlBase::new(body))
     } else {
-        return Ok(rweb::reply::html("NoVNC not configured".to_string()));
+        return Ok(HtmlBase::new("NoVNC not configured".to_string()));
     }
 }
+
+struct NovncStopDescription {}
+derive_response_description!(NovncStopDescription, "Stop NoVNC");
+type NovncStopResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStopDescription>;
 
 #[get("/aws/novnc/stop")]
 pub async fn novnc_shutdown(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<NovncStopResponse> {
     if data.aws.config.novnc_path.is_none() {
-        return Ok(rweb::reply::html("NoVNC not configured".to_string()));
+        return Ok(HtmlBase::new("NoVNC not configured".to_string()));
     }
     let output = data
         .novnc
@@ -792,16 +802,20 @@ pub async fn novnc_shutdown(
         "<textarea cols=100 rows=50>{}</textarea>",
         output.join("\n")
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
+
+struct NovncStatusDescription {}
+derive_response_description!(NovncStatusDescription, "NoVNC Status");
+type NovncStatusResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStatusDescription>;
 
 #[get("/aws/novnc/status")]
 pub async fn novnc_status(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<NovncStatusResponse> {
     if data.aws.config.novnc_path.is_none() {
-        return Ok(rweb::reply::html("NoVNC not configured".to_string()));
+        return Ok(HtmlBase::new("NoVNC not configured".to_string()));
     }
     let number = data.novnc.get_novnc_status().await;
     let body = if number == 0 {
@@ -813,12 +827,16 @@ pub async fn novnc_status(
             .await
             .map_err(Into::<Error>::into)?
     };
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
 
+struct UserDescription {}
+derive_response_description!(UserDescription, "Logged in User");
+type UserResponse = JsonBase<LoggedUser, Error>;
+
 #[get("/aws/user")]
-pub async fn user(#[cookie = "jwt"] user: LoggedUser) -> WarpResult<JsonResponse<LoggedUser>> {
-    Ok(JsonResponse::new(user))
+pub async fn user(#[cookie = "jwt"] user: LoggedUser) -> WarpResult<UserResponse> {
+    Ok(JsonBase::new(user))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -826,12 +844,16 @@ pub struct CreateUserRequest {
     pub user_name: StackString,
 }
 
+struct CreateUserDescription {}
+derive_response_description!(CreateUserDescription, "Created Iam User");
+type CreateUserResponse = JsonBase<IamUser, Error, StatusCodeCreated>;
+
 #[get("/aws/create_user")]
 pub async fn create_user(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateUserRequest>,
-) -> WarpResult<JsonResponse<IamUser>> {
+) -> WarpResult<CreateUserResponse> {
     let query = query.into_inner();
     let user = data
         .aws
@@ -839,22 +861,26 @@ pub async fn create_user(
         .await
         .map_err(Into::<Error>::into)?
         .ok_or_else(|| Error::BadRequest("create user failed".into()))?;
-    let resp = JsonResponse::new(user).with_status(StatusCode::CREATED);
+    let resp = JsonBase::new(user);
     Ok(resp)
 }
+
+struct DeleteUserDescription {}
+derive_response_description!(DeleteUserDescription, "Created Iam User");
+type DeleteUserResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteUserDescription>;
 
 #[get("/aws/delete_user")]
 pub async fn delete_user(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateUserRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<DeleteUserResponse> {
     let query = query.into_inner();
     data.aws
         .delete_user(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html(format!("{} deleted", query.user_name)))
+    Ok(HtmlBase::new(format!("{} deleted", query.user_name)))
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -863,35 +889,43 @@ pub struct AddUserToGroupRequest {
     pub group_name: StackString,
 }
 
+struct AddUserGroupDescription {}
+derive_response_description!(AddUserGroupDescription, "Add User to Group");
+type AddUserGroupResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AddUserGroupDescription>;
+
 #[get("/aws/add_user_to_group")]
 pub async fn add_user_to_group(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<AddUserToGroupRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<AddUserGroupResponse> {
     let query = query.into_inner();
     data.aws
         .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html(format!(
+    Ok(HtmlBase::new(format!(
         "added {} to {}",
         query.user_name, query.group_name
     )))
 }
+
+struct RemoveUserGroupDescription {}
+derive_response_description!(RemoveUserGroupDescription, "Remove User to Group");
+type RemoveUserGroupResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, RemoveUserGroupDescription>;
 
 #[get("/aws/remove_user_from_group")]
 pub async fn remove_user_from_group(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<AddUserToGroupRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<RemoveUserGroupResponse> {
     let query = query.into_inner();
     data.aws
         .remove_user_from_group(query.user_name.as_str(), query.group_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html(format!(
+    Ok(HtmlBase::new(format!(
         "removed {} from {}",
         query.user_name, query.group_name
     )))
@@ -903,34 +937,41 @@ pub struct DeleteAccesssKeyRequest {
     pub access_key_id: StackString,
 }
 
+struct CreateKeyDescription {}
+derive_response_description!(CreateKeyDescription, "Create Access Key");
+type CreateKeyResponse = JsonBase<IamAccessKey, Error, StatusCodeCreated, CreateKeyDescription>;
+
 #[get("/aws/create_access_key")]
 pub async fn create_access_key(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateUserRequest>,
-) -> WarpResult<JsonResponse<IamAccessKey>> {
+) -> WarpResult<CreateKeyResponse> {
     let query = query.into_inner();
     let access_key = data
         .aws
         .create_access_key(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    let resp = JsonResponse::new(access_key).with_status(StatusCode::CREATED);
-    Ok(resp)
+    Ok(JsonBase::new(access_key))
 }
+
+struct DeleteKeyDescription {}
+derive_response_description!(DeleteKeyDescription, "Delete Access Key");
+type DeleteKeyResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteKeyDescription>;
 
 #[get("/aws/delete_access_key")]
 pub async fn delete_access_key(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteAccesssKeyRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<DeleteKeyResponse> {
     let query = query.into_inner();
     data.aws
         .delete_access_key(query.user_name.as_str(), query.access_key_id.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html(format!(
+    Ok(HtmlBase::new(format!(
         "delete {} for {}",
         query.access_key_id, query.user_name
     )))
@@ -944,12 +985,16 @@ pub struct UpdateDnsNameRequest {
     new_ip: Ipv4AddrWrapper,
 }
 
+struct UpdateDnsDescription {}
+derive_response_description!(UpdateDnsDescription, "Update Dns");
+type UpdateDnsResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, UpdateDnsDescription>;
+
 #[get("/aws/update_dns_name")]
 pub async fn update_dns_name(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<UpdateDnsNameRequest>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<UpdateDnsResponse> {
     let query = query.into_inner();
     data.aws
         .route53
@@ -961,7 +1006,7 @@ pub async fn update_dns_name(
         )
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html(format!(
+    Ok(HtmlBase::new(format!(
         "update {} from {} to {}",
         query.dns_name, query.old_ip, query.new_ip
     )))
@@ -993,12 +1038,16 @@ struct SystemdAction {
     service: StackString,
 }
 
+struct SystemdActionDescription {}
+derive_response_description!(SystemdActionDescription, "Update Dns");
+type SystemdActionResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdActionDescription>;
+
 #[get("/aws/systemd_action")]
 pub async fn systemd_action(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<SystemdAction>,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<SystemdActionResponse> {
     let query = query.into_inner();
     let output = data
         .aws
@@ -1006,14 +1055,18 @@ pub async fn systemd_action(
         .service_action(query.action.as_str(), &query.service)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(rweb::reply::html(output.to_string()))
+    Ok(HtmlBase::new(output.to_string()))
 }
+
+struct SystemdRestartAllDescription {}
+derive_response_description!(SystemdRestartAllDescription, "Systemd Restart All");
+type SystemdRestartAllResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdRestartAllDescription>;
 
 #[get("/aws/systemd_restart_all")]
 pub async fn systemd_restart_all(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<SystemdRestartAllResponse> {
     let mut output = Vec::new();
     let blacklist_service = &["nginx"];
     let aws_service = "aws-app-http".into();
@@ -1038,15 +1091,19 @@ pub async fn systemd_restart_all(
                 .map_err(Into::<Error>::into)?,
         );
     }
-    Ok(rweb::reply::html(output.join("\n")))
+    Ok(HtmlBase::new(output.join("\n")))
 }
+
+struct SystemdLogDescription {}
+derive_response_description!(SystemdLogDescription, "Systemd Logs");
+type SystemdLogResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdLogDescription>;
 
 #[get("/aws/systemd_logs/{service}")]
 pub async fn systemd_logs(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
     service: StackString,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<SystemdLogResponse> {
     let entries = data
         .aws
         .systemd
@@ -1062,14 +1119,18 @@ pub async fn systemd_logs(
             rows=50 cols=100>{}</textarea>"#,
         entries
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
+
+struct CrontabLogDescription {}
+derive_response_description!(CrontabLogDescription, "Crontab Logs");
+type CrontabLogResponse = HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, CrontabLogDescription>;
 
 #[get("/aws/crontab_logs/{crontab_type}")]
 pub async fn crontab_logs(
     #[cookie = "jwt"] _: LoggedUser,
     crontab_type: StackString,
-) -> WarpResult<impl Reply> {
+) -> WarpResult<CrontabLogResponse> {
     let crontab_path = if crontab_type == "user" {
         Path::new("/tmp/crontab.log")
     } else {
@@ -1084,5 +1145,5 @@ pub async fn crontab_logs(
             rows=50 cols=100>{}</textarea>"#,
         body
     );
-    Ok(rweb::reply::html(body))
+    Ok(HtmlBase::new(body))
 }
