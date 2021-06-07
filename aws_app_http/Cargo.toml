@@ -31,7 +31,7 @@ smallvec = "1.6"
 derive_more = "0.99"
 indexmap = "1.0"
 serde_yaml = "0.8"
-rweb_helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.1.0"}
+rweb_helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.2.2"}
 authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.5.4"}
 stack-string = { version="0.2", features=["diesel_types", "rweb-openapi"] }
 

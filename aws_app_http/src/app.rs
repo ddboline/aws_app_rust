@@ -1,9 +1,11 @@
 use anyhow::Error;
-use rweb::http::header::CONTENT_TYPE;
-use rweb::openapi::{self, Info};
-use rweb::{filters::BoxedFilter, Filter, Reply};
-use std::sync::Arc;
-use std::{net::SocketAddr, time::Duration};
+use rweb::{
+    filters::BoxedFilter,
+    http::header::CONTENT_TYPE,
+    openapi::{self, Info},
+    Filter, Reply,
+};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::time::interval;
 
 use aws_app_lib::{

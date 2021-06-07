@@ -3,11 +3,9 @@ use itertools::Itertools;
 use maplit::hashmap;
 use rweb::{get, post, Json, Query, Rejection, Schema};
 use rweb_helper::{
-    content_type_trait::ContentTypeHtml,
-    derive_response_description,
     html_response::HtmlResponse as HtmlBase,
     json_response::JsonResponse as JsonBase,
-    status_code_trait::{StatusCodeCreated, StatusCodeOk},
+    RwebResponse,
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
@@ -41,9 +39,9 @@ use super::{
 pub type WarpResult<T> = Result<T, Rejection>;
 pub type HttpResult<T> = Result<T, Error>;
 
-struct AwsIndexDescription {}
-derive_response_description!(AwsIndexDescription, "Main Page");
-type AwsIndexResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AwsIndexDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Main Page", content = "html")]
+struct AwsIndexResponse(HtmlBase<String, Error>);
 
 #[get("/aws/index.html")]
 pub async fn sync_frontpage(
@@ -53,7 +51,7 @@ pub async fn sync_frontpage(
     let results = get_frontpage(ResourceType::Instances, &data.aws).await?;
     let body =
         include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -61,9 +59,9 @@ pub struct ResourceRequest {
     resource: ResourceType,
 }
 
-struct AwsListDescription {}
-derive_response_description!(AwsListDescription, "List Resources");
-type AwsListResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AwsListDescription>;
+#[derive(RwebResponse)]
+#[response(description = "List Resources", content = "html")]
+struct AwsListResponse(HtmlBase<String, Error>);
 
 #[get("/aws/list")]
 pub async fn list(
@@ -73,13 +71,12 @@ pub async fn list(
 ) -> WarpResult<AwsListResponse> {
     let query = query.into_inner();
     let results = get_frontpage(query.resource, &data.aws).await?;
-    Ok(HtmlBase::new(results.join("\n")))
+    Ok(HtmlBase::new(results.join("\n")).into())
 }
 
-struct FinishedDescription {}
-derive_response_description!(FinishedDescription, "Finished");
-type FinishedResource =
-    HtmlBase<&'static str, Error, StatusCodeOk, ContentTypeHtml, FinishedDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Finished", content = "html")]
+struct FinishedResource(HtmlBase<&'static str, Error>);
 
 #[get("/aws/terminate")]
 pub async fn terminate(
@@ -92,13 +89,12 @@ pub async fn terminate(
         .terminate(&[query.instance])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
-struct CreateImageDescription {}
-derive_response_description!(CreateImageDescription, "Image ID");
-type CreateImageResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CreateImageDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Image ID", content = "html")]
+struct CreateImageResponse(HtmlBase<String, Error>);
 
 #[get("/aws/create_image")]
 pub async fn create_image(
@@ -113,7 +109,7 @@ pub async fn create_image(
         .await
         .map_err(Into::<Error>::into)?
         .map_or_else(|| "failed to create ami".into(), |ami_id| ami_id.into());
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
 #[get("/aws/delete_image")]
@@ -127,7 +123,7 @@ pub async fn delete_image(
         .delete_image(&query.ami)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/delete_volume")]
@@ -141,7 +137,7 @@ pub async fn delete_volume(
         .delete_ebs_volume(&query.volid)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/modify_volume")]
@@ -155,7 +151,7 @@ pub async fn modify_volume(
         .modify_ebs_volume(&query.volid, query.size)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/delete_snapshot")]
@@ -169,7 +165,7 @@ pub async fn delete_snapshot(
         .delete_ebs_snapshot(&query.snapid)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/create_snapshot")]
@@ -180,7 +176,7 @@ pub async fn create_snapshot(
 ) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     query.handle(&data.aws).await?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/tag_item")]
@@ -191,7 +187,7 @@ pub async fn tag_item(
 ) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     query.handle(&data.aws).await?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/delete_ecr_image")]
@@ -206,7 +202,7 @@ pub async fn delete_ecr_image(
         .delete_ecr_images(&query.reponame, &[query.imageid])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/cleanup_ecr_images")]
@@ -219,7 +215,7 @@ pub async fn cleanup_ecr_images(
         .cleanup_ecr_images()
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -227,10 +223,9 @@ pub struct EditData {
     pub filename: StackString,
 }
 
-struct EditScriptDescription {}
-derive_response_description!(EditScriptDescription, "Edit Script");
-type EditScriptResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, EditScriptDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Edit Script", content = "html")]
+struct EditScriptResponse(HtmlBase<String, Error>);
 
 #[get("/aws/edit_script")]
 pub async fn edit_script(
@@ -261,7 +256,7 @@ pub async fn edit_script(
         fname = &query.filename,
         rows = rows,
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -282,7 +277,7 @@ pub async fn replace_script(
     f.write_all(req.text.as_bytes())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("Finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[get("/aws/delete_script")]
@@ -296,7 +291,7 @@ pub async fn delete_script(
     if filename.exists() {
         remove_file(&filename).await.map_err(Into::<Error>::into)?;
     }
-    Ok(HtmlBase::new("Finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[derive(Serialize, Deserialize, Debug, Schema)]
@@ -321,10 +316,9 @@ where
     }
 }
 
-struct BuildSpotDescription {}
-derive_response_description!(BuildSpotDescription, "Spot Request");
-type BuildSpotResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, BuildSpotDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Spot Request", content = "html")]
+struct BuildSpotResponse(HtmlBase<String, Error>);
 
 #[get("/aws/build_spot_request")]
 pub async fn build_spot_request(
@@ -431,7 +425,7 @@ pub async fn build_spot_request(
         key = keys,
         price = data.aws.config.max_spot_price,
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Schema)]
@@ -478,7 +472,7 @@ pub async fn request_spot(
         let tags = tags.clone();
         spawn(async move { ec2.tag_spot_instance(&spot_id, &tags, 1000).await });
     }
-    Ok(HtmlBase::new("Finished"))
+    Ok(HtmlBase::new("Finished").into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -486,10 +480,9 @@ pub struct CancelSpotRequest {
     pub spot_id: StackString,
 }
 
-struct CancelledDescription {}
-derive_response_description!(CancelledDescription, "Cancelled Spot");
-type CancelledResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CancelledDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Cancelled Spot", content = "html")]
+struct CancelledResponse(HtmlBase<String, Error>);
 
 #[get("/aws/cancel_spot")]
 pub async fn cancel_spot(
@@ -503,7 +496,7 @@ pub async fn cancel_spot(
         .cancel_spot_instance_request(&[query.spot_id.clone()])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!("cancelled {}", query.spot_id)))
+    Ok(HtmlBase::new(format!("cancelled {}", query.spot_id)).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -511,9 +504,9 @@ pub struct PriceRequest {
     pub search: Option<StackString>,
 }
 
-struct PricesDescription {}
-derive_response_description!(PricesDescription, "Prices");
-type PricesResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, PricesDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Prices", content = "html")]
+struct PricesResponse(HtmlBase<String, Error>);
 
 #[get("/aws/prices")]
 pub async fn get_prices(
@@ -609,12 +602,12 @@ pub async fn get_prices(
         )
     };
 
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
-struct UpdateDescription {}
-derive_response_description!(UpdateDescription, "Update");
-type UpdateResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, UpdateDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Update", content = "html")]
+struct UpdateResponse(HtmlBase<String, Error>);
 
 #[get("/aws/update")]
 pub async fn update(
@@ -634,13 +627,12 @@ pub async fn update(
         entries.len() + 5,
         entries.join("\n"),
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
-struct InstanceStatusDescription {}
-derive_response_description!(InstanceStatusDescription, "Instance Status");
-type InstanceStatusResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstanceStatusDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Instance Status", content = "html")]
+struct InstanceStatusResponse(HtmlBase<String, Error>);
 
 #[get("/aws/instance_status")]
 pub async fn instance_status(
@@ -675,12 +667,12 @@ pub async fn instance_status(
         entries.len() + 5,
         entries.join("\n")
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
-struct CommandDescription {}
-derive_response_description!(CommandDescription, "Run Command on Instance");
-type CommandResponse = HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, CommandDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Run Command on Instance", content = "html")]
+struct CommandResponse(HtmlBase<String, Error>);
 
 #[post("/aws/command")]
 pub async fn command(
@@ -716,7 +708,7 @@ pub async fn command(
         entries.len() + 5,
         entries.join("\n")
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -724,10 +716,9 @@ pub struct InstancesRequest {
     pub inst: StackString,
 }
 
-struct InstancesDescription {}
-derive_response_description!(InstancesDescription, "Describe Instances");
-type InstancesResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, InstancesDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Describe Instances", content = "html")]
+struct InstancesResponse(HtmlBase<String, Error>);
 
 #[get("/aws/instances")]
 pub async fn get_instances(
@@ -742,7 +733,7 @@ pub async fn get_instances(
         .into_iter()
         .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .join("\n");
-    Ok(HtmlBase::new(instances))
+    Ok(HtmlBase::new(instances).into())
 }
 
 async fn novnc_status_response(
@@ -762,10 +753,9 @@ async fn novnc_status_response(
     ))
 }
 
-struct NovncStartDescription {}
-derive_response_description!(NovncStartDescription, "Start NoVNC");
-type NovncStartResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStartDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Start NoVNC", content = "html")]
+struct NovncStartResponse(HtmlBase<String, Error>);
 
 #[get("/aws/novnc/start")]
 pub async fn novnc_launcher(
@@ -780,16 +770,15 @@ pub async fn novnc_launcher(
             .map_err(Into::<Error>::into)?;
         let number = data.novnc.get_novnc_status().await;
         let body = novnc_status_response(&data.novnc, number, &data.aws.config.domain).await?;
-        Ok(HtmlBase::new(body))
+        Ok(HtmlBase::new(body).into())
     } else {
-        return Ok(HtmlBase::new("NoVNC not configured".to_string()));
+        return Ok(HtmlBase::new("NoVNC not configured".to_string()).into());
     }
 }
 
-struct NovncStopDescription {}
-derive_response_description!(NovncStopDescription, "Stop NoVNC");
-type NovncStopResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStopDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Stop NoVNC", content = "html")]
+struct NovncStopResponse(HtmlBase<String, Error>);
 
 #[get("/aws/novnc/stop")]
 pub async fn novnc_shutdown(
@@ -797,7 +786,7 @@ pub async fn novnc_shutdown(
     #[data] data: AppState,
 ) -> WarpResult<NovncStopResponse> {
     if data.aws.config.novnc_path.is_none() {
-        return Ok(HtmlBase::new("NoVNC not configured".to_string()));
+        return Ok(HtmlBase::new("NoVNC not configured".to_string()).into());
     }
     let output = data
         .novnc
@@ -808,13 +797,12 @@ pub async fn novnc_shutdown(
         "<textarea cols=100 rows=50>{}</textarea>",
         output.join("\n")
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
-struct NovncStatusDescription {}
-derive_response_description!(NovncStatusDescription, "NoVNC Status");
-type NovncStatusResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, NovncStatusDescription>;
+#[derive(RwebResponse)]
+#[response(description = "NoVNC Status", content = "html")]
+struct NovncStatusResponse(HtmlBase<String, Error>);
 
 #[get("/aws/novnc/status")]
 pub async fn novnc_status(
@@ -822,7 +810,7 @@ pub async fn novnc_status(
     #[data] data: AppState,
 ) -> WarpResult<NovncStatusResponse> {
     if data.aws.config.novnc_path.is_none() {
-        return Ok(HtmlBase::new("NoVNC not configured".to_string()));
+        return Ok(HtmlBase::new("NoVNC not configured".to_string()).into());
     }
     let number = data.novnc.get_novnc_status().await;
     let body = if number == 0 {
@@ -834,16 +822,16 @@ pub async fn novnc_status(
             .await
             .map_err(Into::<Error>::into)?
     };
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
-struct UserDescription {}
-derive_response_description!(UserDescription, "Logged in User");
-type UserResponse = JsonBase<LoggedUser, Error>;
+#[derive(RwebResponse)]
+#[response(description = "Logged in User")]
+struct UserResponse(JsonBase<LoggedUser, Error>);
 
 #[get("/aws/user")]
 pub async fn user(#[cookie = "jwt"] user: LoggedUser) -> WarpResult<UserResponse> {
-    Ok(JsonBase::new(user))
+    Ok(JsonBase::new(user).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -851,9 +839,9 @@ pub struct CreateUserRequest {
     pub user_name: StackString,
 }
 
-struct CreateUserDescription {}
-derive_response_description!(CreateUserDescription, "Created Iam User");
-type CreateUserResponse = JsonBase<IamUser, Error, StatusCodeCreated>;
+#[derive(RwebResponse)]
+#[response(description = "Created Iam User", status = "CREATED")]
+struct CreateUserResponse(JsonBase<IamUser, Error>);
 
 #[get("/aws/create_user")]
 pub async fn create_user(
@@ -869,13 +857,12 @@ pub async fn create_user(
         .map_err(Into::<Error>::into)?
         .ok_or_else(|| Error::BadRequest("create user failed".into()))?;
     let resp = JsonBase::new(user);
-    Ok(resp)
+    Ok(resp.into())
 }
 
-struct DeleteUserDescription {}
-derive_response_description!(DeleteUserDescription, "Created Iam User");
-type DeleteUserResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteUserDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Delete Iam User", content = "html")]
+struct DeleteUserResponse(HtmlBase<String, Error>);
 
 #[get("/aws/delete_user")]
 pub async fn delete_user(
@@ -888,7 +875,7 @@ pub async fn delete_user(
         .delete_user(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!("{} deleted", query.user_name)))
+    Ok(HtmlBase::new(format!("{} deleted", query.user_name)).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -897,10 +884,9 @@ pub struct AddUserToGroupRequest {
     pub group_name: StackString,
 }
 
-struct AddUserGroupDescription {}
-derive_response_description!(AddUserGroupDescription, "Add User to Group");
-type AddUserGroupResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, AddUserGroupDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Add User to Group", content = "html")]
+struct AddUserGroupResponse(HtmlBase<String, Error>);
 
 #[get("/aws/add_user_to_group")]
 pub async fn add_user_to_group(
@@ -913,16 +899,12 @@ pub async fn add_user_to_group(
         .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!(
-        "added {} to {}",
-        query.user_name, query.group_name
-    )))
+    Ok(HtmlBase::new(format!("added {} to {}", query.user_name, query.group_name)).into())
 }
 
-struct RemoveUserGroupDescription {}
-derive_response_description!(RemoveUserGroupDescription, "Remove User to Group");
-type RemoveUserGroupResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, RemoveUserGroupDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Remove User to Group", content = "html")]
+struct RemoveUserGroupResponse(HtmlBase<String, Error>);
 
 #[get("/aws/remove_user_from_group")]
 pub async fn remove_user_from_group(
@@ -938,7 +920,8 @@ pub async fn remove_user_from_group(
     Ok(HtmlBase::new(format!(
         "removed {} from {}",
         query.user_name, query.group_name
-    )))
+    ))
+    .into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -947,9 +930,9 @@ pub struct DeleteAccesssKeyRequest {
     pub access_key_id: StackString,
 }
 
-struct CreateKeyDescription {}
-derive_response_description!(CreateKeyDescription, "Create Access Key");
-type CreateKeyResponse = JsonBase<IamAccessKey, Error, StatusCodeCreated, CreateKeyDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Create Access Key", status = "CREATED")]
+struct CreateKeyResponse(JsonBase<IamAccessKey, Error>);
 
 #[get("/aws/create_access_key")]
 pub async fn create_access_key(
@@ -963,13 +946,12 @@ pub async fn create_access_key(
         .create_access_key(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(JsonBase::new(access_key))
+    Ok(JsonBase::new(access_key).into())
 }
 
-struct DeleteKeyDescription {}
-derive_response_description!(DeleteKeyDescription, "Delete Access Key");
-type DeleteKeyResponse =
-    HtmlBase<String, Error, StatusCodeOk, ContentTypeHtml, DeleteKeyDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Delete Access Key", content = "html")]
+struct DeleteKeyResponse(HtmlBase<String, Error>);
 
 #[get("/aws/delete_access_key")]
 pub async fn delete_access_key(
@@ -985,7 +967,8 @@ pub async fn delete_access_key(
     Ok(HtmlBase::new(format!(
         "delete {} for {}",
         query.access_key_id, query.user_name
-    )))
+    ))
+    .into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -996,10 +979,9 @@ pub struct UpdateDnsNameRequest {
     new_ip: Ipv4AddrWrapper,
 }
 
-struct UpdateDnsDescription {}
-derive_response_description!(UpdateDnsDescription, "Update Dns");
-type UpdateDnsResponse =
-    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, UpdateDnsDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Update Dns", status = "CREATED", content = "html")]
+struct UpdateDnsResponse(HtmlBase<String, Error>);
 
 #[get("/aws/update_dns_name")]
 pub async fn update_dns_name(
@@ -1021,7 +1003,8 @@ pub async fn update_dns_name(
     Ok(HtmlBase::new(format!(
         "update {} from {} to {}",
         query.dns_name, query.old_ip, query.new_ip
-    )))
+    ))
+    .into())
 }
 
 #[derive(Serialize, Deserialize, Schema, Clone, Copy)]
@@ -1050,10 +1033,13 @@ struct SystemdAction {
     service: StackString,
 }
 
-struct SystemdActionDescription {}
-derive_response_description!(SystemdActionDescription, "Update Dns");
-type SystemdActionResponse =
-    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdActionDescription>;
+#[derive(RwebResponse)]
+#[response(
+    description = "Systemd Action Output",
+    status = "CREATED",
+    content = "html"
+)]
+struct SystemdActionResponse(HtmlBase<String, Error>);
 
 #[get("/aws/systemd_action")]
 pub async fn systemd_action(
@@ -1068,13 +1054,16 @@ pub async fn systemd_action(
         .service_action(query.action.as_str(), &query.service)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(output.to_string()))
+    Ok(HtmlBase::new(output.to_string()).into())
 }
 
-struct SystemdRestartAllDescription {}
-derive_response_description!(SystemdRestartAllDescription, "Systemd Restart All");
-type SystemdRestartAllResponse =
-    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdRestartAllDescription>;
+#[derive(RwebResponse)]
+#[response(
+    description = "Systemd Restart All",
+    status = "CREATED",
+    content = "html"
+)]
+struct SystemdRestartAllResponse(HtmlBase<String, Error>);
 
 #[get("/aws/systemd_restart_all")]
 pub async fn systemd_restart_all(
@@ -1105,13 +1094,12 @@ pub async fn systemd_restart_all(
                 .map_err(Into::<Error>::into)?,
         );
     }
-    Ok(HtmlBase::new(output.join("\n")))
+    Ok(HtmlBase::new(output.join("\n")).into())
 }
 
-struct SystemdLogDescription {}
-derive_response_description!(SystemdLogDescription, "Systemd Logs");
-type SystemdLogResponse =
-    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, SystemdLogDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Systemd Logs", content = "html")]
+struct SystemdLogResponse(HtmlBase<String, Error>);
 
 #[get("/aws/systemd_logs/{service}")]
 pub async fn systemd_logs(
@@ -1134,13 +1122,12 @@ pub async fn systemd_logs(
             rows=50 cols=100>{}</textarea>"#,
         entries
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
 
-struct CrontabLogDescription {}
-derive_response_description!(CrontabLogDescription, "Crontab Logs");
-type CrontabLogResponse =
-    HtmlBase<String, Error, StatusCodeCreated, ContentTypeHtml, CrontabLogDescription>;
+#[derive(RwebResponse)]
+#[response(description = "Crontab Logs", content = "html")]
+struct CrontabLogResponse(HtmlBase<String, Error>);
 
 #[get("/aws/crontab_logs/{crontab_type}")]
 pub async fn crontab_logs(
@@ -1165,5 +1152,5 @@ pub async fn crontab_logs(
             rows=50 cols=100>{}</textarea>"#,
         body
     );
-    Ok(HtmlBase::new(body))
+    Ok(HtmlBase::new(body).into())
 }
