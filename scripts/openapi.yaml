@@ -319,7 +319,7 @@ paths:
             type: string
       responses:
         "201":
-          description: ""
+          description: Created Iam User
           content:
             application/json:
               schema:
@@ -357,7 +357,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Created Iam User
+          description: Delete Iam User
           content:
             text/html:
               schema:
@@ -656,7 +656,7 @@ paths:
     get:
       responses:
         "200":
-          description: ""
+          description: Logged in User
           content:
             application/json:
               schema:
@@ -758,7 +758,7 @@ paths:
             type: string
       responses:
         "201":
-          description: Update Dns
+          description: Systemd Action Output
           content:
             text/html:
               schema:
@@ -776,8 +776,8 @@ paths:
           schema:
             type: string
       responses:
-        "201":
-          description: Systemd Logs
+        "200":
+          description: Get Systemd Logs
           content:
             text/html:
               schema:
@@ -808,8 +808,8 @@ paths:
           schema:
             type: string
       responses:
-        "201":
-          description: Crontab Logs
+        "200":
+          description: Get Crontab Logs
           content:
             text/html:
               schema:

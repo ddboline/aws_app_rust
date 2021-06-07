@@ -1096,7 +1096,7 @@ pub async fn systemd_restart_all(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Systemd Logs", content = "html")]
+#[response(description = "Get Systemd Logs", content = "html")]
 struct SystemdLogResponse(HtmlBase<String, Error>);
 
 #[get("/aws/systemd_logs/{service}")]
@@ -1124,7 +1124,7 @@ pub async fn systemd_logs(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Crontab Logs", content = "html")]
+#[response(description = "Get Crontab Logs", content = "html")]
 struct CrontabLogResponse(HtmlBase<String, Error>);
 
 #[get("/aws/crontab_logs/{crontab_type}")]
