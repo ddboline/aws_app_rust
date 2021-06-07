@@ -3,9 +3,7 @@ use itertools::Itertools;
 use maplit::hashmap;
 use rweb::{get, post, Json, Query, Rejection, Schema};
 use rweb_helper::{
-    html_response::HtmlResponse as HtmlBase,
-    json_response::JsonResponse as JsonBase,
-    RwebResponse,
+    html_response::HtmlResponse as HtmlBase, json_response::JsonResponse as JsonBase, RwebResponse,
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
