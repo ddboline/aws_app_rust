@@ -334,6 +334,8 @@ pub async fn build_spot_request(
         .map(Arc::new)
         .collect();
 
+    move_element_to_front(&mut amis, |ami| ami.name.contains("tmpfs"));
+
     if let Some(query_ami) = &query.ami {
         move_element_to_front(&mut amis, |ami| &ami.id == query_ami);
     }
