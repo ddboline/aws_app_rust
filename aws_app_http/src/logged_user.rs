@@ -27,15 +27,6 @@ impl From<AuthorizedUser> for LoggedUser {
     }
 }
 
-impl From<LoggedUser> for AuthorizedUser {
-    fn from(user: LoggedUser) -> Self {
-        Self {
-            email: user.email,
-            session: None,
-        }
-    }
-}
-
 impl TryFrom<Token> for LoggedUser {
     type Error = Error;
     fn try_from(token: Token) -> Result<Self, Self::Error> {
@@ -87,7 +78,7 @@ mod tests {
         let email = "test@localhost";
         let user = AuthorizedUser {
             email: email.into(),
-            session: None,
+            ..AuthorizedUser::default()
         };
 
         let user: LoggedUser = user.into();
