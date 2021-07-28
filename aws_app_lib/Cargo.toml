@@ -17,12 +17,12 @@ dotenv = "0.15"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-rusoto_core = {version = "0.46", default_features = false, features=["rustls"]}
-rusoto_ec2 = {version = "0.46", default_features = false, features=["rustls"]}
-rusoto_ecr = {version = "0.46", default_features = false, features=["rustls"]}
-rusoto_iam = {version = "0.46", default_features = false, features=["rustls"]}
-rusoto_pricing = {version = "0.46", default_features = false, features=["rustls"]}
-rusoto_route53 = {version = "0.46", default_features = false, features=["rustls"]}
+rusoto_core = {version = "0.47", default_features = false, features=["rustls"]}
+rusoto_ec2 = {version = "0.47", default_features = false, features=["rustls"]}
+rusoto_ecr = {version = "0.47", default_features = false, features=["rustls"]}
+rusoto_iam = {version = "0.47", default_features = false, features=["rustls"]}
+rusoto_pricing = {version = "0.47", default_features = false, features=["rustls"]}
+rusoto_route53 = {version = "0.47", default_features = false, features=["rustls"]}
 sts_profile_auth = "0.6"
 structopt = "0.3"
 base64 = "0.13"
@@ -35,7 +35,7 @@ url = "2.2"
 thiserror = "1.0"
 anyhow = "1.0"
 dirs = "3.0"
-tokio = { version="1.6", features=["full"]}
+tokio = { version="1.9", features=["full"]}
 futures = "0.3"
 derive_more = "0.99"
 envy = "0.4"
@@ -44,9 +44,8 @@ maplit = "1.0"
 itertools = "0.10"
 smallvec = "1.6"
 deadqueue = "0.2"
-env_logger = "0.8"
-rweb = {version="0.12", features=["openapi"]}
-stack-string = { version="0.2", features=["diesel_types", "rweb-openapi"] }
+env_logger = "0.9"
+stack-string = { version="0.2", features=["diesel_types"] }
 stdout-channel = "0.4"
 
 [dev-dependencies]

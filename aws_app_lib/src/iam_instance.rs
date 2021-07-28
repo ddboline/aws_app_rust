@@ -7,13 +7,12 @@ use rusoto_iam::{
     ListAccessKeysRequest, ListGroupsForUserRequest, ListGroupsRequest, ListUsersRequest,
     RemoveUserFromGroupRequest, User,
 };
-use rweb::Schema;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::collections::HashMap;
 use sts_profile_auth::get_client_sts;
 
-use crate::{config::Config, datetime_wrapper::DateTimeWrapper};
+use crate::config::Config;
 
 #[derive(Clone)]
 pub struct IamInstance {
@@ -170,10 +169,10 @@ impl IamInstance {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Schema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct IamUser {
     pub arn: StackString,
-    pub create_date: DateTimeWrapper,
+    pub create_date: DateTime<Utc>,
     pub user_id: StackString,
     pub user_name: StackString,
     pub tags: HashMap<String, StackString>,
@@ -218,10 +217,10 @@ impl From<Group> for IamGroup {
     }
 }
 
-#[derive(Serialize, Deserialize, Schema)]
+#[derive(Serialize, Deserialize)]
 pub struct IamAccessKey {
     pub access_key_id: StackString,
-    pub create_date: DateTimeWrapper,
+    pub create_date: DateTime<Utc>,
     pub access_key_secret: StackString,
     pub status: StackString,
     pub user_name: StackString,

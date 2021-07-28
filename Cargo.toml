@@ -22,9 +22,9 @@ CLI and Web app frontend for aws"""
 aws_app_lib = {path="aws_app_lib"}
 aws_app_http = {path="aws_app_http"}
 log = "0.4"
-env_logger = "0.8"
+env_logger = "0.9"
 anyhow = "1.0"
-tokio = {version="1.6", features=["full"]}
+tokio = {version="1.9", features=["full"]}
 
 [workspace]
 members = [

@@ -16,7 +16,6 @@ use tokio::{
 
 use aws_app_lib::{
     ec2_instance::SpotRequest,
-    iam_instance::{IamAccessKey, IamUser},
     models::{InstanceFamily, InstanceList},
     novnc_instance::NoVncInstance,
     resource_type::ResourceType,
@@ -32,6 +31,7 @@ use super::{
         DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest,
         ModifyVolumeRequest, StatusRequest, TagItemRequest, TerminateRequest,
     },
+    IamAccessKeyWrapper, IamUserWrapper, ResourceTypeWrapper,
 };
 
 pub type WarpResult<T> = Result<T, Rejection>;
@@ -54,7 +54,7 @@ pub async fn sync_frontpage(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct ResourceRequest {
-    resource: ResourceType,
+    resource: ResourceTypeWrapper,
 }
 
 #[derive(RwebResponse)]
@@ -68,7 +68,7 @@ pub async fn list(
     query: Query<ResourceRequest>,
 ) -> WarpResult<AwsListResponse> {
     let query = query.into_inner();
-    let results = get_frontpage(query.resource, &data.aws).await?;
+    let results = get_frontpage(query.resource.into(), &data.aws).await?;
     Ok(HtmlBase::new(results.join("\n")).into())
 }
 
@@ -841,7 +841,7 @@ pub struct CreateUserRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "Created Iam User", status = "CREATED")]
-struct CreateUserResponse(JsonBase<IamUser, Error>);
+struct CreateUserResponse(JsonBase<IamUserWrapper, Error>);
 
 #[get("/aws/create_user")]
 pub async fn create_user(
@@ -856,7 +856,7 @@ pub async fn create_user(
         .await
         .map_err(Into::<Error>::into)?
         .ok_or_else(|| Error::BadRequest("create user failed".into()))?;
-    let resp = JsonBase::new(user);
+    let resp = JsonBase::new(user.into());
     Ok(resp.into())
 }
 
@@ -932,7 +932,7 @@ pub struct DeleteAccesssKeyRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "Create Access Key", status = "CREATED")]
-struct CreateKeyResponse(JsonBase<IamAccessKey, Error>);
+struct CreateKeyResponse(JsonBase<IamAccessKeyWrapper, Error>);
 
 #[get("/aws/create_access_key")]
 pub async fn create_access_key(
@@ -946,7 +946,7 @@ pub async fn create_access_key(
         .create_access_key(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(JsonBase::new(access_key).into())
+    Ok(JsonBase::new(access_key.into()).into())
 }
 
 #[derive(RwebResponse)]

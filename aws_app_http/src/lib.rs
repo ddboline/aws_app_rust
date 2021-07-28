@@ -9,8 +9,137 @@
 #![allow(clippy::default_trait_access)]
 
 pub mod app;
+pub mod datetime_wrapper;
 pub mod errors;
 pub mod ipv4addr_wrapper;
 pub mod logged_user;
 pub mod requests;
 pub mod routes;
+
+use rweb::Schema;
+use serde::{Deserialize, Serialize};
+use stack_string::StackString;
+use std::collections::HashMap;
+
+use aws_app_lib::{
+    iam_instance::{IamAccessKey, IamUser},
+    resource_type::ResourceType,
+};
+
+use crate::datetime_wrapper::DateTimeWrapper;
+
+#[derive(Debug, Serialize, Deserialize, Schema)]
+pub struct IamUserWrapper {
+    pub arn: StackString,
+    pub create_date: DateTimeWrapper,
+    pub user_id: StackString,
+    pub user_name: StackString,
+    pub tags: HashMap<String, StackString>,
+}
+
+impl From<IamUser> for IamUserWrapper {
+    fn from(item: IamUser) -> Self {
+        Self {
+            arn: item.arn,
+            create_date: item.create_date.into(),
+            user_id: item.user_id,
+            user_name: item.user_name,
+            tags: item.tags,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Schema)]
+pub struct IamAccessKeyWrapper {
+    pub access_key_id: StackString,
+    pub create_date: DateTimeWrapper,
+    pub access_key_secret: StackString,
+    pub status: StackString,
+    pub user_name: StackString,
+}
+
+impl From<IamAccessKey> for IamAccessKeyWrapper {
+    fn from(item: IamAccessKey) -> Self {
+        Self {
+            access_key_id: item.access_key_id,
+            create_date: item.create_date.into(),
+            access_key_secret: item.access_key_secret,
+            status: item.status,
+            user_name: item.user_name,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, Schema)]
+pub enum ResourceTypeWrapper {
+    #[serde(rename = "instances")]
+    Instances,
+    #[serde(rename = "reserved")]
+    Reserved,
+    #[serde(rename = "spot")]
+    Spot,
+    #[serde(rename = "ami")]
+    Ami,
+    #[serde(rename = "volume")]
+    Volume,
+    #[serde(rename = "snapshot")]
+    Snapshot,
+    #[serde(rename = "ecr")]
+    Ecr,
+    #[serde(rename = "key")]
+    Key,
+    #[serde(rename = "script")]
+    Script,
+    #[serde(rename = "user")]
+    User,
+    #[serde(rename = "group")]
+    Group,
+    #[serde(rename = "access-key")]
+    AccessKey,
+    #[serde(rename = "route53")]
+    Route53,
+    #[serde(rename = "systemd")]
+    SystemD,
+}
+
+impl From<ResourceType> for ResourceTypeWrapper {
+    fn from(item: ResourceType) -> Self {
+        match item {
+            ResourceType::Instances => Self::Instances,
+            ResourceType::Reserved => Self::Reserved,
+            ResourceType::Spot => Self::Spot,
+            ResourceType::Ami => Self::Ami,
+            ResourceType::Volume => Self::Volume,
+            ResourceType::Snapshot => Self::Snapshot,
+            ResourceType::Ecr => Self::Ecr,
+            ResourceType::Key => Self::Key,
+            ResourceType::Script => Self::Script,
+            ResourceType::User => Self::User,
+            ResourceType::Group => Self::Group,
+            ResourceType::AccessKey => Self::AccessKey,
+            ResourceType::Route53 => Self::Route53,
+            ResourceType::SystemD => Self::SystemD,
+        }
+    }
+}
+
+impl From<ResourceTypeWrapper> for ResourceType {
+    fn from(item: ResourceTypeWrapper) -> Self {
+        match item {
+            ResourceTypeWrapper::Instances => Self::Instances,
+            ResourceTypeWrapper::Reserved => Self::Reserved,
+            ResourceTypeWrapper::Spot => Self::Spot,
+            ResourceTypeWrapper::Ami => Self::Ami,
+            ResourceTypeWrapper::Volume => Self::Volume,
+            ResourceTypeWrapper::Snapshot => Self::Snapshot,
+            ResourceTypeWrapper::Ecr => Self::Ecr,
+            ResourceTypeWrapper::Key => Self::Key,
+            ResourceTypeWrapper::Script => Self::Script,
+            ResourceTypeWrapper::User => Self::User,
+            ResourceTypeWrapper::Group => Self::Group,
+            ResourceTypeWrapper::AccessKey => Self::AccessKey,
+            ResourceTypeWrapper::Route53 => Self::Route53,
+            ResourceTypeWrapper::SystemD => Self::SystemD,
+        }
+    }
+}

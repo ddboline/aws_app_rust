@@ -16,7 +16,6 @@ extern crate diesel;
 pub mod aws_app_interface;
 pub mod aws_app_opts;
 pub mod config;
-pub mod datetime_wrapper;
 pub mod ec2_instance;
 pub mod ecr_instance;
 pub mod iam_instance;
