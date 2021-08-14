@@ -54,6 +54,7 @@ pub async fn sync_frontpage(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct ResourceRequest {
+    #[schema(description="Resource Type")]
     resource: ResourceTypeWrapper,
 }
 
@@ -217,7 +218,8 @@ pub async fn cleanup_ecr_images(
 }
 
 #[derive(Serialize, Deserialize, Schema)]
-pub struct EditData {
+pub struct ScriptFilename {
+    #[schema(description="Script Filename")]
     pub filename: StackString,
 }
 
@@ -229,7 +231,7 @@ struct EditScriptResponse(HtmlBase<String, Error>);
 pub async fn edit_script(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-    query: Query<EditData>,
+    query: Query<ScriptFilename>,
 ) -> WarpResult<EditScriptResponse> {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
@@ -259,7 +261,9 @@ pub async fn edit_script(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct ReplaceData {
+    #[schema(description="Script Filename")]
     pub filename: StackString,
+    #[schema(description="Script Text")]
     pub text: StackString,
 }
 
@@ -282,7 +286,7 @@ pub async fn replace_script(
 pub async fn delete_script(
     #[cookie = "jwt"] _: LoggedUser,
     #[data] data: AppState,
-    query: Query<EditData>,
+    query: Query<ScriptFilename>,
 ) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
@@ -294,8 +298,11 @@ pub async fn delete_script(
 
 #[derive(Serialize, Deserialize, Debug, Schema)]
 pub struct SpotBuilder {
+    #[schema(description="AMI ID")]
     pub ami: Option<StackString>,
+    #[schema(description="Instance Type")]
     pub inst: Option<StackString>,
+    #[schema(description="Script")]
     pub script: Option<StackString>,
 }
 
@@ -430,12 +437,19 @@ pub async fn build_spot_request(
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Schema)]
 pub struct SpotRequestData {
+    #[schema(description="Ami ID")]
     pub ami: StackString,
+    #[schema(description="Instance Type")]
     pub instance_type: StackString,
+    #[schema(description="Security Group")]
     pub security_group: StackString,
+    #[schema(description="Script Filename")]
     pub script: StackString,
+    #[schema(description="SSH Key Name")]
     pub key_name: StackString,
+    #[schema(description="Spot Price")]
     pub price: StackString,
+    #[schema(description="Spot Request Name Tag")]
     pub name: StackString,
 }
 
@@ -477,6 +491,7 @@ pub async fn request_spot(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct CancelSpotRequest {
+    #[schema(description="Spot Request ID")]
     pub spot_id: StackString,
 }
 
@@ -501,6 +516,7 @@ pub async fn cancel_spot(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct PriceRequest {
+    #[schema(description="Search String")]
     pub search: Option<StackString>,
 }
 
@@ -713,6 +729,7 @@ pub async fn command(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct InstancesRequest {
+    #[schema(description="Instance ID or Name Tag")]
     pub inst: StackString,
 }
 
@@ -836,6 +853,7 @@ pub async fn user(#[cookie = "jwt"] user: LoggedUser) -> WarpResult<UserResponse
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct CreateUserRequest {
+    #[schema(description="User Name")]
     pub user_name: StackString,
 }
 
@@ -880,7 +898,9 @@ pub async fn delete_user(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct AddUserToGroupRequest {
+    #[schema(description="User Name")]
     pub user_name: StackString,
+    #[schema(description="Group Name")]
     pub group_name: StackString,
 }
 
@@ -926,7 +946,9 @@ pub async fn remove_user_from_group(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteAccesssKeyRequest {
+    #[schema(description="User Name")]
     pub user_name: StackString,
+    #[schema(description="Access Key ID")]
     pub access_key_id: StackString,
 }
 
@@ -973,9 +995,13 @@ pub async fn delete_access_key(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct UpdateDnsNameRequest {
+    #[schema(description="Route53 Zone")]
     zone: StackString,
+    #[schema(description="DNS Name")]
     dns_name: StackString,
+    #[schema(description="Old IPv4 Address")]
     old_ip: Ipv4AddrWrapper,
+    #[schema(description="New IPv4 Address")]
     new_ip: Ipv4AddrWrapper,
 }
 
@@ -1029,7 +1055,9 @@ impl SystemdActions {
 
 #[derive(Serialize, Deserialize, Schema)]
 struct SystemdAction {
+    #[schema(description="SystemD Action")]
     action: SystemdActions,
+    #[schema(description="SystemD Service")]
     service: StackString,
 }
 
@@ -1059,7 +1087,7 @@ pub async fn systemd_action(
 
 #[derive(RwebResponse)]
 #[response(
-    description = "Systemd Restart All",
+    description = "Restart All Systemd Services",
     status = "CREATED",
     content = "html"
 )]

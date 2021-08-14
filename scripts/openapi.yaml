@@ -3,7 +3,7 @@ openapi: 3.0.1
 info:
   title: Frontend for AWS
   description: Web Frontend for AWS Services
-  version: 0.8.18
+  version: 0.8.22
 paths:
   /aws/index.html:
     get:
@@ -23,7 +23,9 @@ paths:
       parameters:
         - name: resource
           in: query
+          required: true
           schema:
+            description: Resource Type
             type: string
             enum:
               - instances
@@ -56,7 +58,9 @@ paths:
       parameters:
         - name: instance
           in: query
+          required: true
           schema:
+            description: Instance ID or Name Tag
             type: string
       responses:
         "200":
@@ -74,11 +78,15 @@ paths:
       parameters:
         - name: inst_id
           in: query
+          required: true
           schema:
+            description: Instance ID or Name Tag
             type: string
         - name: name
           in: query
+          required: true
           schema:
+            description: Ami Name
             type: string
       responses:
         "200":
@@ -96,7 +104,9 @@ paths:
       parameters:
         - name: ami
           in: query
+          required: true
           schema:
+            description: Ami ID
             type: string
       responses:
         "200":
@@ -114,7 +124,9 @@ paths:
       parameters:
         - name: volid
           in: query
+          required: true
           schema:
+            description: Volume ID
             type: string
       responses:
         "200":
@@ -132,11 +144,15 @@ paths:
       parameters:
         - name: volid
           in: query
+          required: true
           schema:
+            description: Volume ID
             type: string
         - name: size
           in: query
+          required: true
           schema:
+            description: Volume Size GiB
             type: integer
       responses:
         "200":
@@ -154,7 +170,9 @@ paths:
       parameters:
         - name: snapid
           in: query
+          required: true
           schema:
+            description: Snapshot ID
             type: string
       responses:
         "200":
@@ -172,11 +190,15 @@ paths:
       parameters:
         - name: volid
           in: query
+          required: true
           schema:
+            description: Volume ID
             type: string
         - name: name
           in: query
+          required: false
           schema:
+            description: Snapshot Name
             nullable: true
             type: string
       responses:
@@ -195,11 +217,15 @@ paths:
       parameters:
         - name: id
           in: query
+          required: true
           schema:
+            description: Resource ID
             type: string
         - name: tag
           in: query
+          required: true
           schema:
+            description: Tag
             type: string
       responses:
         "200":
@@ -217,11 +243,15 @@ paths:
       parameters:
         - name: reponame
           in: query
+          required: true
           schema:
+            description: ECR Repository Name
             type: string
         - name: imageid
           in: query
+          required: true
           schema:
+            description: Container Image ID
             type: string
       responses:
         "200":
@@ -252,7 +282,9 @@ paths:
       parameters:
         - name: filename
           in: query
+          required: true
           schema:
+            description: Script Filename
             type: string
       responses:
         "200":
@@ -273,8 +305,10 @@ paths:
             schema:
               properties:
                 filename:
+                  description: Script Filename
                   type: string
                 text:
+                  description: Script Text
                   type: string
               type: object
               required:
@@ -297,7 +331,9 @@ paths:
       parameters:
         - name: filename
           in: query
+          required: true
           schema:
+            description: Script Filename
             type: string
       responses:
         "200":
@@ -315,7 +351,9 @@ paths:
       parameters:
         - name: user_name
           in: query
+          required: true
           schema:
+            description: User Name
             type: string
       responses:
         "201":
@@ -325,15 +363,20 @@ paths:
               schema:
                 properties:
                   arn:
+                    description: Iam Arn
                     type: string
                   create_date:
-                    format: datetime
+                    description: Created DateTime
+                    format: date-time
                     type: string
                   user_id:
+                    description: User ID
                     type: string
                   user_name:
+                    description: User Name
                     type: string
                   tags:
+                    description: Tags
                     additionalProperties:
                       type: string
                     type: object
@@ -353,7 +396,9 @@ paths:
       parameters:
         - name: user_name
           in: query
+          required: true
           schema:
+            description: User Name
             type: string
       responses:
         "200":
@@ -371,11 +416,15 @@ paths:
       parameters:
         - name: user_name
           in: query
+          required: true
           schema:
+            description: User Name
             type: string
         - name: group_name
           in: query
+          required: true
           schema:
+            description: Group Name
             type: string
       responses:
         "200":
@@ -393,11 +442,15 @@ paths:
       parameters:
         - name: user_name
           in: query
+          required: true
           schema:
+            description: User Name
             type: string
         - name: group_name
           in: query
+          required: true
           schema:
+            description: Group Name
             type: string
       responses:
         "200":
@@ -415,7 +468,9 @@ paths:
       parameters:
         - name: user_name
           in: query
+          required: true
           schema:
+            description: User Name
             type: string
       responses:
         "201":
@@ -425,15 +480,20 @@ paths:
               schema:
                 properties:
                   access_key_id:
+                    description: Access Key ID
                     type: string
                   create_date:
-                    format: datetime
+                    description: Created DateTime
+                    format: date-time
                     type: string
                   access_key_secret:
+                    description: Access Secret Key
                     type: string
                   status:
+                    description: Status
                     type: string
                   user_name:
+                    description: User Name
                     type: string
                 type: object
                 required:
@@ -451,11 +511,15 @@ paths:
       parameters:
         - name: user_name
           in: query
+          required: true
           schema:
+            description: User Name
             type: string
         - name: access_key_id
           in: query
+          required: true
           schema:
+            description: Access Key ID
             type: string
       responses:
         "200":
@@ -473,17 +537,23 @@ paths:
       parameters:
         - name: ami
           in: query
+          required: false
           schema:
+            description: AMI ID
             nullable: true
             type: string
         - name: inst
           in: query
+          required: false
           schema:
+            description: Instance Type
             nullable: true
             type: string
         - name: script
           in: query
+          required: false
           schema:
+            description: Script
             nullable: true
             type: string
       responses:
@@ -505,18 +575,25 @@ paths:
             schema:
               properties:
                 ami:
+                  description: Ami ID
                   type: string
                 instance_type:
+                  description: Instance Type
                   type: string
                 security_group:
+                  description: Security Group
                   type: string
                 script:
+                  description: Script Filename
                   type: string
                 key_name:
+                  description: SSH Key Name
                   type: string
                 price:
+                  description: Spot Price
                   type: string
                 name:
+                  description: Spot Request Name Tag
                   type: string
               type: object
               required:
@@ -544,7 +621,9 @@ paths:
       parameters:
         - name: spot_id
           in: query
+          required: true
           schema:
+            description: Spot Request ID
             type: string
       responses:
         "200":
@@ -562,7 +641,9 @@ paths:
       parameters:
         - name: search
           in: query
+          required: false
           schema:
+            description: Search String
             nullable: true
             type: string
       responses:
@@ -594,7 +675,9 @@ paths:
       parameters:
         - name: instance
           in: query
+          required: true
           schema:
+            description: Instance ID or Name Tag
             type: string
       responses:
         "200":
@@ -615,8 +698,10 @@ paths:
             schema:
               properties:
                 instance:
+                  description: Instance ID or Name Tag
                   type: string
                 command:
+                  description: Command String
                   type: string
               type: object
               required:
@@ -639,7 +724,9 @@ paths:
       parameters:
         - name: inst
           in: query
+          required: true
           schema:
+            description: Instance ID or Name Tag
             type: string
       responses:
         "200":
@@ -662,6 +749,7 @@ paths:
               schema:
                 properties:
                   email:
+                    description: Email Address
                     type: string
                 type: object
                 required:
@@ -714,20 +802,28 @@ paths:
       parameters:
         - name: zone
           in: query
+          required: true
           schema:
+            description: Route53 Zone
             type: string
         - name: dns_name
           in: query
+          required: true
           schema:
+            description: DNS Name
             type: string
         - name: old_ip
           in: query
+          required: true
           schema:
+            description: Old IPv4 Address
             format: ipv4_address
             type: string
         - name: new_ip
           in: query
+          required: true
           schema:
+            description: New IPv4 Address
             format: ipv4_address
             type: string
       responses:
@@ -746,7 +842,9 @@ paths:
       parameters:
         - name: action
           in: query
+          required: true
           schema:
+            description: SystemD Action
             type: string
             enum:
               - start
@@ -754,7 +852,9 @@ paths:
               - restart
         - name: service
           in: query
+          required: true
           schema:
+            description: SystemD Service
             type: string
       responses:
         "201":
@@ -790,7 +890,7 @@ paths:
     get:
       responses:
         "201":
-          description: Systemd Restart All
+          description: Restart All Systemd Services
           content:
             text/html:
               schema:
@@ -818,3 +918,4 @@ paths:
           description: Bad Request
         "500":
           description: Internal Server Error
+components: {}

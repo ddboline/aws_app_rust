@@ -9,7 +9,6 @@
 #![allow(clippy::default_trait_access)]
 
 pub mod app;
-pub mod datetime_wrapper;
 pub mod errors;
 pub mod ipv4addr_wrapper;
 pub mod logged_user;
@@ -20,20 +19,24 @@ use rweb::Schema;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::collections::HashMap;
+use chrono::{DateTime, Utc};
 
 use aws_app_lib::{
     iam_instance::{IamAccessKey, IamUser},
     resource_type::ResourceType,
 };
 
-use crate::datetime_wrapper::DateTimeWrapper;
-
 #[derive(Debug, Serialize, Deserialize, Schema)]
 pub struct IamUserWrapper {
+    #[schema(description="Iam Arn")]
     pub arn: StackString,
-    pub create_date: DateTimeWrapper,
+    #[schema(description="Created DateTime")]
+    pub create_date: DateTime<Utc>,
+    #[schema(description="User ID")]
     pub user_id: StackString,
+    #[schema(description="User Name")]
     pub user_name: StackString,
+    #[schema(description="Tags")]
     pub tags: HashMap<String, StackString>,
 }
 
@@ -51,10 +54,15 @@ impl From<IamUser> for IamUserWrapper {
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct IamAccessKeyWrapper {
+    #[schema(description="Access Key ID")]
     pub access_key_id: StackString,
-    pub create_date: DateTimeWrapper,
+    #[schema(description="Created DateTime")]
+    pub create_date: DateTime<Utc>,
+    #[schema(description="Access Secret Key")]
     pub access_key_secret: StackString,
+    #[schema(description="Status")]
     pub status: StackString,
+    #[schema(description="User Name")]
     pub user_name: StackString,
 }
 
