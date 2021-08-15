@@ -463,7 +463,7 @@ impl AwsAppInterface {
         if let Some(host) = id_host_map.get(inst_id) {
             SSHInstance::new("ubuntu", host.as_ref(), 22)
                 .await
-                .run_command_stream_stdout(&command)
+                .run_command_stream_stdout(command)
                 .await
         } else {
             Ok(Vec::new())
@@ -586,7 +586,7 @@ impl AwsAppInterface {
         if let Some(a) = ami_map.get(&req.ami) {
             req.ami = a.clone();
         }
-        if let Some(spot_id) = self.ec2.request_spot_instance(&req).await?.pop() {
+        if let Some(spot_id) = self.ec2.request_spot_instance(req).await?.pop() {
             self.ec2.tag_spot_instance(&spot_id, &req.tags, 20).await?;
         }
         Ok(())
@@ -598,7 +598,7 @@ impl AwsAppInterface {
             req.ami = a.clone();
         }
 
-        self.ec2.run_ec2_instance(&req).await
+        self.ec2.run_ec2_instance(req).await
     }
 
     pub async fn create_image(
@@ -609,7 +609,7 @@ impl AwsAppInterface {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let inst_id = map_or_val(&name_map, inst_id);
-        self.ec2.create_image(&inst_id, name).await
+        self.ec2.create_image(inst_id, name).await
     }
 
     async fn get_snapshot_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
@@ -646,7 +646,7 @@ impl AwsAppInterface {
     pub async fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.delete_ebs_volume(&volid).await
+        self.ec2.delete_ebs_volume(volid).await
     }
 
     pub async fn attach_ebs_volume(
@@ -660,19 +660,19 @@ impl AwsAppInterface {
         let name_map = get_name_map().await?;
         let volid = map_or_val(&vol_map, volid);
         let instid = map_or_val(&name_map, instid);
-        self.ec2.attach_ebs_volume(&volid, &instid, device).await
+        self.ec2.attach_ebs_volume(volid, instid, device).await
     }
 
     pub async fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.detach_ebs_volume(&volid).await
+        self.ec2.detach_ebs_volume(volid).await
     }
 
     pub async fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.modify_ebs_volume(&volid, size).await
+        self.ec2.modify_ebs_volume(volid, size).await
     }
 
     pub async fn create_ebs_snapshot(
@@ -682,7 +682,7 @@ impl AwsAppInterface {
     ) -> Result<Option<StackString>, Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, volid);
-        self.ec2.create_ebs_snapshot(&volid, tags).await
+        self.ec2.create_ebs_snapshot(volid, tags).await
     }
 
     pub async fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {

@@ -184,15 +184,11 @@ impl AwsAppOpts {
             } => {
                 let resources = Arc::new(resources);
                 if all_regions {
-                    let regions: Vec<_> = app
-                        .ec2
-                        .get_all_regions()
-                        .await?
-                        .into_iter()
-                        .map(|(k, _)| k)
-                        .collect();
-
-                    let futures = regions.into_iter().map(|region| {
+                    let futures = app
+                    .ec2
+                    .get_all_regions()
+                    .await?
+                    .into_iter().map(|(region, _)| {
                         let mut app_ = app.clone();
                         let resources = resources.clone();
                         async move {
@@ -244,7 +240,7 @@ impl AwsAppOpts {
                 instances.sort_by(|x, y| {
                     let x = x.instance_type.split('.').next().unwrap_or("");
                     let y = y.instance_type.split('.').next().unwrap_or("");
-                    x.cmp(&y)
+                    x.cmp(y)
                 });
                 for inst in instances {
                     app.stdout.send(format!(

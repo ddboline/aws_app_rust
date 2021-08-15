@@ -7,6 +7,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::used_underscore_binding)]
 #![allow(clippy::default_trait_access)]
+#![allow(clippy::unused_async)]
 
 pub mod app;
 pub mod errors;
@@ -44,7 +45,7 @@ impl From<IamUser> for IamUserWrapper {
     fn from(item: IamUser) -> Self {
         Self {
             arn: item.arn,
-            create_date: item.create_date.into(),
+            create_date: item.create_date,
             user_id: item.user_id,
             user_name: item.user_name,
             tags: item.tags,
@@ -70,7 +71,7 @@ impl From<IamAccessKey> for IamAccessKeyWrapper {
     fn from(item: IamAccessKey) -> Self {
         Self {
             access_key_id: item.access_key_id,
-            create_date: item.create_date.into(),
+            create_date: item.create_date,
             access_key_secret: item.access_key_secret,
             status: item.status,
             user_name: item.user_name,

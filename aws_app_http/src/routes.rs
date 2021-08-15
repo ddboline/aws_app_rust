@@ -782,14 +782,14 @@ pub async fn novnc_launcher(
     if let Some(novnc_path) = &data.aws.config.novnc_path {
         let certdir = Path::new("/etc/letsencrypt/live/").join(&data.aws.config.domain);
         data.novnc
-            .novnc_start(&novnc_path, &certdir)
+            .novnc_start(novnc_path, &certdir)
             .await
             .map_err(Into::<Error>::into)?;
         let number = data.novnc.get_novnc_status().await;
         let body = novnc_status_response(&data.novnc, number, &data.aws.config.domain).await?;
         Ok(HtmlBase::new(body).into())
     } else {
-        return Ok(HtmlBase::new("NoVNC not configured".to_string()).into());
+        Ok(HtmlBase::new("NoVNC not configured".to_string()).into())
     }
 }
 

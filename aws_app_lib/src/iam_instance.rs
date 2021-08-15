@@ -189,7 +189,7 @@ impl From<User> for IamUser {
             .collect();
         IamUser {
             arn: user.arn.into(),
-            create_date: create_date.into(),
+            create_date,
             user_id: user.user_id.into(),
             user_name: user.user_name.into(),
             tags,
@@ -234,7 +234,7 @@ impl From<AccessKey> for IamAccessKey {
             .unwrap_or_else(Utc::now);
         Self {
             access_key_id: key.access_key_id.into(),
-            create_date: create_date.into(),
+            create_date,
             access_key_secret: key.secret_access_key.into(),
             status: key.status.into(),
             user_name: key.user_name.into(),

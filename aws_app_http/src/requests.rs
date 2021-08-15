@@ -138,12 +138,12 @@ pub async fn get_frontpage(
         }
         ResourceType::Ami => {
             let ubuntu_ami = async {
-                get_latest_ubuntu_ami(&app, &app.config.ubuntu_release, "amd64")
+                get_latest_ubuntu_ami(app, &app.config.ubuntu_release, "amd64")
                     .await
                     .map_err(Into::into)
             };
             let ubuntu_ami_arm64 = async {
-                get_latest_ubuntu_ami(&app, &app.config.ubuntu_release, "arm64")
+                get_latest_ubuntu_ami(app, &app.config.ubuntu_release, "arm64")
                     .await
                     .map_err(Into::into)
             };
@@ -292,7 +292,7 @@ pub async fn get_frontpage(
             snapshots.sort_by(|x, y| {
                 let x = x.tags.get("Name").map_or("", StackString::as_str);
                 let y = y.tags.get("Name").map_or("", StackString::as_str);
-                x.cmp(&y)
+                x.cmp(y)
             });
             output.push(
                 r#"<table border="1" class="dataframe"><thead><tr>
@@ -347,7 +347,7 @@ pub async fn get_frontpage(
                     .into(),
             );
 
-            let futures = repos.iter().map(|repo| get_ecr_images(app, &repo));
+            let futures = repos.iter().map(|repo| get_ecr_images(app, repo));
             let results: Vec<_> = try_join_all(futures)
                 .await?
                 .into_iter()
@@ -749,7 +749,7 @@ async fn get_ecr_images(
     repo: &str,
 ) -> Result<impl Iterator<Item = StackString>, Error> {
     app.ecr
-        .get_all_images(&repo)
+        .get_all_images(repo)
         .await
         .map_err(Into::into)
         .map(|it| it.map(|image| image.get_html_string()))

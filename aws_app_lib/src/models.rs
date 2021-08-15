@@ -160,7 +160,7 @@ impl InstanceList {
         pool.transaction(|conn| {
             let existing_entries = Self::_get_by_instance_type(self.instance_type.as_ref(), conn)?;
             if existing_entries.is_empty() {
-                self._insert_entry(&conn)?;
+                self._insert_entry(conn)?;
                 Ok((self, true))
             } else {
                 Ok((self, false))
@@ -263,13 +263,13 @@ impl InstancePricingInsert {
             let existing_entries = InstancePricing::_existing_entries(
                 self.instance_type.as_ref(),
                 self.price_type.as_ref(),
-                &conn,
+                conn,
             )?;
             if existing_entries.is_empty() {
-                self._insert_entry(&conn)?;
+                self._insert_entry(conn)?;
                 Ok((self, true))
             } else {
-                self._update_entry(&conn)?;
+                self._update_entry(conn)?;
                 Ok((self, false))
             }
         })
