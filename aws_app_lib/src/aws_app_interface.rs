@@ -688,7 +688,7 @@ impl AwsAppInterface {
     pub async fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
         let snap_map = self.get_snapshot_map().await?;
         let snapid = map_or_val(&snap_map, snapid);
-        self.ec2.delete_ebs_snapshot(&snapid).await
+        self.ec2.delete_ebs_snapshot(snapid).await
     }
 
     pub async fn get_all_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
