@@ -2,14 +2,16 @@ use anyhow::{format_err, Error};
 use futures::future::try_join_all;
 use itertools::Itertools;
 use stack_string::StackString;
-use std::{net::Ipv4Addr, string::ToString, sync::Arc};
+use std::{net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
 use structopt::StructOpt;
+use tokio::io::{stdin, AsyncReadExt};
 
 use crate::{
     aws_app_interface::AwsAppInterface,
     config::Config,
     instance_opt::InstanceOpt,
     models::{InstanceFamily, InstanceList},
+    novnc_instance::NoVncInstance,
     pgpool::PgPool,
     resource_type::ResourceType,
     spot_request_opt::{get_tags, SpotRequestOpt},
@@ -162,6 +164,12 @@ pub enum AwsAppOpts {
         #[structopt(short, long)]
         pattern: Option<StackString>,
     },
+    NoVnc {
+        #[structopt(short, long)]
+        cert: Option<PathBuf>,
+        #[structopt(short, long)]
+        key: Option<PathBuf>,
+    },
 }
 
 impl AwsAppOpts {
@@ -184,18 +192,19 @@ impl AwsAppOpts {
             } => {
                 let resources = Arc::new(resources);
                 if all_regions {
-                    let futures = app
-                    .ec2
-                    .get_all_regions()
-                    .await?
-                    .into_iter().map(|(region, _)| {
-                        let mut app_ = app.clone();
-                        let resources = resources.clone();
-                        async move {
-                            app_.set_region(&region)?;
-                            app_.list(resources.iter()).await
-                        }
-                    });
+                    let futures =
+                        app.ec2
+                            .get_all_regions()
+                            .await?
+                            .into_iter()
+                            .map(|(region, _)| {
+                                let mut app_ = app.clone();
+                                let resources = resources.clone();
+                                async move {
+                                    app_.set_region(&region)?;
+                                    app_.list(resources.iter()).await
+                                }
+                            });
                     try_join_all(futures).await?;
                     Ok(())
                 } else {
@@ -370,6 +379,23 @@ impl AwsAppOpts {
                         }
                     }
                 }
+                Ok(())
+            }
+            Self::NoVnc { cert, key } => {
+                let novnc_path = app
+                    .config
+                    .novnc_path
+                    .as_ref()
+                    .ok_or_else(|| format_err!("novnc_path not set"))?;
+                let cert = cert.ok_or_else(|| format_err!("No cert"))?;
+                let key = key.ok_or_else(|| format_err!("No key"))?;
+                let novnc = NoVncInstance::new();
+                novnc.novnc_start(&novnc_path, &cert, &key).await?;
+                app.stdout.send("Press any key");
+                let mut buf = Vec::new();
+                stdin().read(&mut buf).await?;
+                let lines = novnc.novnc_stop_request().await?;
+                app.stdout.send(lines.join("\n"));
                 Ok(())
             }
         };
