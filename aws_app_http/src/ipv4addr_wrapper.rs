@@ -1,5 +1,5 @@
 use derive_more::{Deref, Display, From, FromStr, Into};
-use rweb::openapi::{Entity, Schema, Type, ComponentDescriptor, ComponentOrInlineSchema};
+use rweb::openapi::{ComponentDescriptor, ComponentOrInlineSchema, Entity, Schema, Type};
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
 
@@ -28,12 +28,10 @@ impl Entity for Ipv4AddrWrapper {
     }
     #[inline]
     fn describe(_: &mut ComponentDescriptor) -> ComponentOrInlineSchema {
-        ComponentOrInlineSchema::Inline(
-            Schema {
-                schema_type: Some(Type::String),
-                format: "ipv4_address".into(),
-                ..Schema::default()
-            }
-        )
+        ComponentOrInlineSchema::Inline(Schema {
+            schema_type: Some(Type::String),
+            format: "ipv4_address".into(),
+            ..Schema::default()
+        })
     }
 }

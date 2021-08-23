@@ -4,7 +4,9 @@ use http::StatusCode;
 use indexmap::IndexMap;
 use log::error;
 use rweb::{
-    openapi::{Entity, Response, ResponseEntity, Responses, ComponentDescriptor, ComponentOrInlineSchema},
+    openapi::{
+        ComponentDescriptor, ComponentOrInlineSchema, Entity, Response, ResponseEntity, Responses,
+    },
     reject::{InvalidHeader, MissingCookie, Reject},
     Rejection, Reply,
 };

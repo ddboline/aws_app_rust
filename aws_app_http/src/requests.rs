@@ -764,49 +764,49 @@ fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct TerminateRequest {
-    #[schema(description="Instance ID or Name Tag")]
+    #[schema(description = "Instance ID or Name Tag")]
     pub instance: StackString,
 }
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct CreateImageRequest {
-    #[schema(description="Instance ID or Name Tag")]
+    #[schema(description = "Instance ID or Name Tag")]
     pub inst_id: StackString,
-    #[schema(description="Ami Name")]
+    #[schema(description = "Ami Name")]
     pub name: StackString,
 }
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteImageRequest {
-    #[schema(description="Ami ID")]
+    #[schema(description = "Ami ID")]
     pub ami: StackString,
 }
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteVolumeRequest {
-    #[schema(description="Volume ID")]
+    #[schema(description = "Volume ID")]
     pub volid: StackString,
 }
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct ModifyVolumeRequest {
-    #[schema(description="Volume ID")]
+    #[schema(description = "Volume ID")]
     pub volid: StackString,
-    #[schema(description="Volume Size GiB")]
+    #[schema(description = "Volume Size GiB")]
     pub size: i64,
 }
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteSnapshotRequest {
-    #[schema(description="Snapshot ID")]
+    #[schema(description = "Snapshot ID")]
     pub snapid: StackString,
 }
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct CreateSnapshotRequest {
-    #[schema(description="Volume ID")]
+    #[schema(description = "Volume ID")]
     pub volid: StackString,
-    #[schema(description="Snapshot Name")]
+    #[schema(description = "Snapshot Name")]
     pub name: Option<StackString>,
 }
 
@@ -826,9 +826,9 @@ impl CreateSnapshotRequest {
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct TagItemRequest {
-    #[schema(description="Resource ID")]
+    #[schema(description = "Resource ID")]
     pub id: StackString,
-    #[schema(description="Tag")]
+    #[schema(description = "Tag")]
     pub tag: StackString,
 }
 
@@ -848,23 +848,23 @@ impl TagItemRequest {
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteEcrImageRequest {
-    #[schema(description="ECR Repository Name")]
+    #[schema(description = "ECR Repository Name")]
     pub reponame: StackString,
-    #[schema(description="Container Image ID")]
+    #[schema(description = "Container Image ID")]
     pub imageid: StackString,
 }
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct StatusRequest {
-    #[schema(description="Instance ID or Name Tag")]
+    #[schema(description = "Instance ID or Name Tag")]
     pub instance: StackString,
 }
 
 #[derive(Serialize, Deserialize, Debug, Schema)]
 pub struct CommandRequest {
-    #[schema(description="Instance ID or Name Tag")]
+    #[schema(description = "Instance ID or Name Tag")]
     pub instance: StackString,
-    #[schema(description="Command String")]
+    #[schema(description = "Command String")]
     pub command: StackString,
 }
 
