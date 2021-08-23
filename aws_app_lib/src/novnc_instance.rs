@@ -19,14 +19,17 @@ impl NoVncInstance {
         }
     }
 
-    pub async fn novnc_start(&self, novnc_path: &Path, certdir: &Path) -> Result<(), Error> {
+    pub async fn novnc_start(
+        &self,
+        novnc_path: &Path,
+        cert: &Path,
+        key: &Path,
+    ) -> Result<(), Error> {
         let home_dir = dirs::home_dir().expect("No home directory");
         let x11vnc = Path::new("/usr/bin/x11vnc");
         // let vncserver = Path::new("/usr/bin/vncserver");
         let vncpwd = home_dir.join(".vnc/passwd");
         let websockify = Path::new("/usr/bin/websockify");
-        let cert = certdir.join("fullchain.pem");
-        let key = certdir.join("privkey.pem");
 
         if !x11vnc.exists()
             || !websockify.exists()

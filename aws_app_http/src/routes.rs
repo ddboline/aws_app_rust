@@ -54,7 +54,7 @@ pub async fn sync_frontpage(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct ResourceRequest {
-    #[schema(description="Resource Type")]
+    #[schema(description = "Resource Type")]
     resource: ResourceTypeWrapper,
 }
 
@@ -219,7 +219,7 @@ pub async fn cleanup_ecr_images(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct ScriptFilename {
-    #[schema(description="Script Filename")]
+    #[schema(description = "Script Filename")]
     pub filename: StackString,
 }
 
@@ -261,9 +261,9 @@ pub async fn edit_script(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct ReplaceData {
-    #[schema(description="Script Filename")]
+    #[schema(description = "Script Filename")]
     pub filename: StackString,
-    #[schema(description="Script Text")]
+    #[schema(description = "Script Text")]
     pub text: StackString,
 }
 
@@ -298,11 +298,11 @@ pub async fn delete_script(
 
 #[derive(Serialize, Deserialize, Debug, Schema)]
 pub struct SpotBuilder {
-    #[schema(description="AMI ID")]
+    #[schema(description = "AMI ID")]
     pub ami: Option<StackString>,
-    #[schema(description="Instance Type")]
+    #[schema(description = "Instance Type")]
     pub inst: Option<StackString>,
-    #[schema(description="Script")]
+    #[schema(description = "Script")]
     pub script: Option<StackString>,
 }
 
@@ -437,19 +437,19 @@ pub async fn build_spot_request(
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Schema)]
 pub struct SpotRequestData {
-    #[schema(description="Ami ID")]
+    #[schema(description = "Ami ID")]
     pub ami: StackString,
-    #[schema(description="Instance Type")]
+    #[schema(description = "Instance Type")]
     pub instance_type: StackString,
-    #[schema(description="Security Group")]
+    #[schema(description = "Security Group")]
     pub security_group: StackString,
-    #[schema(description="Script Filename")]
+    #[schema(description = "Script Filename")]
     pub script: StackString,
-    #[schema(description="SSH Key Name")]
+    #[schema(description = "SSH Key Name")]
     pub key_name: StackString,
-    #[schema(description="Spot Price")]
+    #[schema(description = "Spot Price")]
     pub price: StackString,
-    #[schema(description="Spot Request Name Tag")]
+    #[schema(description = "Spot Request Name Tag")]
     pub name: StackString,
 }
 
@@ -491,7 +491,7 @@ pub async fn request_spot(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct CancelSpotRequest {
-    #[schema(description="Spot Request ID")]
+    #[schema(description = "Spot Request ID")]
     pub spot_id: StackString,
 }
 
@@ -516,7 +516,7 @@ pub async fn cancel_spot(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct PriceRequest {
-    #[schema(description="Search String")]
+    #[schema(description = "Search String")]
     pub search: Option<StackString>,
 }
 
@@ -729,7 +729,7 @@ pub async fn command(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct InstancesRequest {
-    #[schema(description="Instance ID or Name Tag")]
+    #[schema(description = "Instance ID or Name Tag")]
     pub inst: StackString,
 }
 
@@ -781,8 +781,10 @@ pub async fn novnc_launcher(
 ) -> WarpResult<NovncStartResponse> {
     if let Some(novnc_path) = &data.aws.config.novnc_path {
         let certdir = Path::new("/etc/letsencrypt/live/").join(&data.aws.config.domain);
+        let cert = certdir.join("fullchain.pem");
+        let key = certdir.join("privkey.pem");
         data.novnc
-            .novnc_start(novnc_path, &certdir)
+            .novnc_start(novnc_path, &cert, &key)
             .await
             .map_err(Into::<Error>::into)?;
         let number = data.novnc.get_novnc_status().await;
@@ -853,7 +855,7 @@ pub async fn user(#[cookie = "jwt"] user: LoggedUser) -> WarpResult<UserResponse
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct CreateUserRequest {
-    #[schema(description="User Name")]
+    #[schema(description = "User Name")]
     pub user_name: StackString,
 }
 
@@ -898,9 +900,9 @@ pub async fn delete_user(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct AddUserToGroupRequest {
-    #[schema(description="User Name")]
+    #[schema(description = "User Name")]
     pub user_name: StackString,
-    #[schema(description="Group Name")]
+    #[schema(description = "Group Name")]
     pub group_name: StackString,
 }
 
@@ -946,9 +948,9 @@ pub async fn remove_user_from_group(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct DeleteAccesssKeyRequest {
-    #[schema(description="User Name")]
+    #[schema(description = "User Name")]
     pub user_name: StackString,
-    #[schema(description="Access Key ID")]
+    #[schema(description = "Access Key ID")]
     pub access_key_id: StackString,
 }
 
@@ -995,13 +997,13 @@ pub async fn delete_access_key(
 
 #[derive(Serialize, Deserialize, Schema)]
 pub struct UpdateDnsNameRequest {
-    #[schema(description="Route53 Zone")]
+    #[schema(description = "Route53 Zone")]
     zone: StackString,
-    #[schema(description="DNS Name")]
+    #[schema(description = "DNS Name")]
     dns_name: StackString,
-    #[schema(description="Old IPv4 Address")]
+    #[schema(description = "Old IPv4 Address")]
     old_ip: Ipv4AddrWrapper,
-    #[schema(description="New IPv4 Address")]
+    #[schema(description = "New IPv4 Address")]
     new_ip: Ipv4AddrWrapper,
 }
 
@@ -1055,9 +1057,9 @@ impl SystemdActions {
 
 #[derive(Serialize, Deserialize, Schema)]
 struct SystemdAction {
-    #[schema(description="SystemD Action")]
+    #[schema(description = "SystemD Action")]
     action: SystemdActions,
-    #[schema(description="SystemD Service")]
+    #[schema(description = "SystemD Service")]
     service: StackString,
 }
 
