@@ -390,7 +390,7 @@ impl AwsAppOpts {
                 let cert = cert.ok_or_else(|| format_err!("No cert"))?;
                 let key = key.ok_or_else(|| format_err!("No key"))?;
                 let novnc = NoVncInstance::new();
-                novnc.novnc_start(&novnc_path, &cert, &key).await?;
+                novnc.novnc_start(novnc_path, &cert, &key).await?;
                 app.stdout.send("Press any key");
                 let mut buf = Vec::new();
                 stdin().read(&mut buf).await?;
