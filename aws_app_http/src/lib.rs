@@ -18,13 +18,11 @@ pub mod routes;
 
 use chrono::{DateTime, Utc};
 use derive_more::{From, Into};
-use rweb::{
-    openapi::{ComponentDescriptor, ComponentOrInlineSchema, Entity},
-    Schema,
-};
+use rweb::Schema;
+use rweb_helper::derive_rweb_schema;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::{borrow::Cow, collections::HashMap};
+use std::collections::HashMap;
 
 use aws_app_lib::{
     iam_instance::{IamAccessKey, IamUser},
@@ -34,14 +32,7 @@ use aws_app_lib::{
 #[derive(Debug, Serialize, Deserialize, Into, From)]
 pub struct IamUserWrapper(IamUser);
 
-impl Entity for IamUserWrapper {
-    fn type_name() -> Cow<'static, str> {
-        _IamUserWrapper::type_name()
-    }
-    fn describe(comp_d: &mut ComponentDescriptor) -> ComponentOrInlineSchema {
-        _IamUserWrapper::describe(comp_d)
-    }
-}
+derive_rweb_schema!(IamUserWrapper, _IamUserWrapper);
 
 #[allow(dead_code)]
 #[derive(Schema)]
@@ -61,14 +52,7 @@ struct _IamUserWrapper {
 #[derive(Serialize, Deserialize, Into, From)]
 pub struct IamAccessKeyWrapper(IamAccessKey);
 
-impl Entity for IamAccessKeyWrapper {
-    fn type_name() -> Cow<'static, str> {
-        _IamAccessKeyWrapper::type_name()
-    }
-    fn describe(comp_d: &mut ComponentDescriptor) -> ComponentOrInlineSchema {
-        _IamAccessKeyWrapper::describe(comp_d)
-    }
-}
+derive_rweb_schema!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
 
 #[allow(dead_code)]
 #[derive(Schema)]
@@ -88,14 +72,7 @@ struct _IamAccessKeyWrapper {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, Into, From)]
 pub struct ResourceTypeWrapper(ResourceType);
 
-impl Entity for ResourceTypeWrapper {
-    fn type_name() -> Cow<'static, str> {
-        _ResourceTypeWrapper::type_name()
-    }
-    fn describe(comp_d: &mut ComponentDescriptor) -> ComponentOrInlineSchema {
-        _ResourceTypeWrapper::describe(comp_d)
-    }
-}
+derive_rweb_schema!(ResourceTypeWrapper, _ResourceTypeWrapper);
 
 #[allow(dead_code)]
 #[derive(Schema, Serialize)]
