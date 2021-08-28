@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.8.24"
+version = "0.8.25"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -32,11 +32,11 @@ derive_more = "0.99"
 indexmap = "1.0"
 serde_yaml = "0.8"
 rweb_helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.3.0"}
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.6.0"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.6.1"}
 stack-string = { version="0.3", features=["diesel_types", "rweb-openapi"] }
 
 [dev-dependencies]
 reqwest = {version = "0.11", features=["cookies", "rustls-tls", "gzip", "json"]}
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.6.0"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.6.0"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.6.1"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.6.1"}
 env_logger = "0.9"
