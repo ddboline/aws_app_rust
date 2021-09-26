@@ -6,7 +6,7 @@ use rweb::{
     Filter, Reply,
 };
 use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tokio::time::interval;
+use tokio::{task::spawn, time::interval};
 
 use aws_app_lib::{
     aws_app_interface::AwsAppInterface, config::Config, novnc_instance::NoVncInstance,
@@ -140,7 +140,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         novnc: NoVncInstance::new(),
     };
 
-    tokio::task::spawn(_update_db(app.aws.pool.clone()));
+    let update_handle = spawn(_update_db(app.aws.pool.clone()));
 
     let (spec, aws_path) = openapi::spec()
         .info(Info {
@@ -172,14 +172,18 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .recover(error_response);
     let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
     rweb::serve(routes).bind(addr).await;
-    Ok(())
+    update_handle.await.map_err(Into::into)
 }
 
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
     use maplit::hashmap;
-    use std::env::{remove_var, set_var};
+    use std::{
+        env::{remove_var, set_var},
+        time::Duration,
+    };
+    use tokio::{task::spawn, time::sleep};
 
     use auth_server_http::app::run_test_app;
 
@@ -210,19 +214,19 @@ mod tests {
         SECRET_KEY.set(secret_key);
 
         println!("spawning auth");
-        tokio::task::spawn(async move { run_test_app(config).await.unwrap() });
+        let test_app_handle = spawn(async move { run_test_app(config).await.unwrap() });
 
         let test_port: u32 = 12345;
         set_var("PORT", test_port.to_string());
         let config = Config::init_config()?;
 
         println!("spawning aws");
-        tokio::task::spawn(async move {
+        let app_handle = spawn(async move {
             env_logger::init();
             run_app(&config).await.unwrap()
         });
         println!("sleeping");
-        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+        sleep(Duration::from_secs(10)).await;
 
         let client = reqwest::Client::builder().cookie_store(true).build()?;
         let url = format!("http://localhost:{}/api/auth", auth_port);
@@ -283,6 +287,8 @@ mod tests {
         }
 
         remove_var("TESTENV");
+        test_app_handle.abort();
+        app_handle.abort();
 
         Ok(())
     }
