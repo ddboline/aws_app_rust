@@ -849,7 +849,7 @@ pub async fn novnc_status(
 struct UserResponse(JsonBase<LoggedUser, Error>);
 
 #[get("/aws/user")]
-pub async fn user(#[cookie = "jwt"] user: LoggedUser) -> WarpResult<UserResponse> {
+pub async fn user(#[filter = "LoggedUser::filter"] user: LoggedUser) -> WarpResult<UserResponse> {
     Ok(JsonBase::new(user).into())
 }
 
