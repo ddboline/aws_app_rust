@@ -43,7 +43,7 @@ struct AwsIndexResponse(HtmlBase<String, Error>);
 
 #[get("/aws/index.html")]
 pub async fn sync_frontpage(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<AwsIndexResponse> {
     let results = get_frontpage(ResourceType::Instances, &data.aws).await?;
@@ -64,7 +64,7 @@ struct AwsListResponse(HtmlBase<String, Error>);
 
 #[get("/aws/list")]
 pub async fn list(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<ResourceRequest>,
 ) -> WarpResult<AwsListResponse> {
@@ -79,7 +79,7 @@ struct FinishedResource(HtmlBase<&'static str, Error>);
 
 #[get("/aws/terminate")]
 pub async fn terminate(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<TerminateRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -97,7 +97,7 @@ struct CreateImageResponse(HtmlBase<String, Error>);
 
 #[get("/aws/create_image")]
 pub async fn create_image(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateImageRequest>,
 ) -> WarpResult<CreateImageResponse> {
@@ -113,7 +113,7 @@ pub async fn create_image(
 
 #[get("/aws/delete_image")]
 pub async fn delete_image(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteImageRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -127,7 +127,7 @@ pub async fn delete_image(
 
 #[get("/aws/delete_volume")]
 pub async fn delete_volume(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteVolumeRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -141,7 +141,7 @@ pub async fn delete_volume(
 
 #[get("/aws/modify_volume")]
 pub async fn modify_volume(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<ModifyVolumeRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -155,7 +155,7 @@ pub async fn modify_volume(
 
 #[get("/aws/delete_snapshot")]
 pub async fn delete_snapshot(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteSnapshotRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -169,7 +169,7 @@ pub async fn delete_snapshot(
 
 #[get("/aws/create_snapshot")]
 pub async fn create_snapshot(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateSnapshotRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -180,7 +180,7 @@ pub async fn create_snapshot(
 
 #[get("/aws/tag_item")]
 pub async fn tag_item(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<TagItemRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -191,7 +191,7 @@ pub async fn tag_item(
 
 #[get("/aws/delete_ecr_image")]
 pub async fn delete_ecr_image(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteEcrImageRequest>,
 ) -> WarpResult<FinishedResource> {
@@ -206,7 +206,7 @@ pub async fn delete_ecr_image(
 
 #[get("/aws/cleanup_ecr_images")]
 pub async fn cleanup_ecr_images(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<FinishedResource> {
     data.aws
@@ -229,7 +229,7 @@ struct EditScriptResponse(HtmlBase<String, Error>);
 
 #[get("/aws/edit_script")]
 pub async fn edit_script(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<ScriptFilename>,
 ) -> WarpResult<EditScriptResponse> {
@@ -269,7 +269,7 @@ pub struct ReplaceData {
 
 #[post("/aws/replace_script")]
 pub async fn replace_script(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     req: Json<ReplaceData>,
 ) -> WarpResult<FinishedResource> {
@@ -284,7 +284,7 @@ pub async fn replace_script(
 
 #[get("/aws/delete_script")]
 pub async fn delete_script(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<ScriptFilename>,
 ) -> WarpResult<FinishedResource> {
@@ -327,7 +327,7 @@ struct BuildSpotResponse(HtmlBase<String, Error>);
 
 #[get("/aws/build_spot_request")]
 pub async fn build_spot_request(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<SpotBuilder>,
 ) -> WarpResult<BuildSpotResponse> {
@@ -469,7 +469,7 @@ impl From<SpotRequestData> for SpotRequest {
 
 #[post("/aws/request_spot")]
 pub async fn request_spot(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     req: Json<SpotRequestData>,
 ) -> WarpResult<FinishedResource> {
@@ -501,7 +501,7 @@ struct CancelledResponse(HtmlBase<String, Error>);
 
 #[get("/aws/cancel_spot")]
 pub async fn cancel_spot(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CancelSpotRequest>,
 ) -> WarpResult<CancelledResponse> {
@@ -526,7 +526,7 @@ struct PricesResponse(HtmlBase<String, Error>);
 
 #[get("/aws/prices")]
 pub async fn get_prices(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<PriceRequest>,
 ) -> WarpResult<PricesResponse> {
@@ -627,7 +627,7 @@ struct UpdateResponse(HtmlBase<String, Error>);
 
 #[get("/aws/update")]
 pub async fn update(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<UpdateResponse> {
     let entries: Vec<_> = data
@@ -652,7 +652,7 @@ struct InstanceStatusResponse(HtmlBase<String, Error>);
 
 #[get("/aws/instance_status")]
 pub async fn instance_status(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<StatusRequest>,
 ) -> WarpResult<InstanceStatusResponse> {
@@ -692,7 +692,7 @@ struct CommandResponse(HtmlBase<String, Error>);
 
 #[post("/aws/command")]
 pub async fn command(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     payload: Json<CommandRequest>,
 ) -> WarpResult<CommandResponse> {
@@ -739,7 +739,7 @@ struct InstancesResponse(HtmlBase<String, Error>);
 
 #[get("/aws/instances")]
 pub async fn get_instances(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<InstancesRequest>,
 ) -> WarpResult<InstancesResponse> {
@@ -776,7 +776,7 @@ struct NovncStartResponse(HtmlBase<String, Error>);
 
 #[get("/aws/novnc/start")]
 pub async fn novnc_launcher(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<NovncStartResponse> {
     if let Some(novnc_path) = &data.aws.config.novnc_path {
@@ -801,7 +801,7 @@ struct NovncStopResponse(HtmlBase<String, Error>);
 
 #[get("/aws/novnc/stop")]
 pub async fn novnc_shutdown(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<NovncStopResponse> {
     if data.aws.config.novnc_path.is_none() {
@@ -825,7 +825,7 @@ struct NovncStatusResponse(HtmlBase<String, Error>);
 
 #[get("/aws/novnc/status")]
 pub async fn novnc_status(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<NovncStatusResponse> {
     if data.aws.config.novnc_path.is_none() {
@@ -865,7 +865,7 @@ struct CreateUserResponse(JsonBase<IamUserWrapper, Error>);
 
 #[get("/aws/create_user")]
 pub async fn create_user(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateUserRequest>,
 ) -> WarpResult<CreateUserResponse> {
@@ -886,7 +886,7 @@ struct DeleteUserResponse(HtmlBase<String, Error>);
 
 #[get("/aws/delete_user")]
 pub async fn delete_user(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateUserRequest>,
 ) -> WarpResult<DeleteUserResponse> {
@@ -912,7 +912,7 @@ struct AddUserGroupResponse(HtmlBase<String, Error>);
 
 #[get("/aws/add_user_to_group")]
 pub async fn add_user_to_group(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<AddUserToGroupRequest>,
 ) -> WarpResult<AddUserGroupResponse> {
@@ -930,7 +930,7 @@ struct RemoveUserGroupResponse(HtmlBase<String, Error>);
 
 #[get("/aws/remove_user_from_group")]
 pub async fn remove_user_from_group(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<AddUserToGroupRequest>,
 ) -> WarpResult<RemoveUserGroupResponse> {
@@ -960,7 +960,7 @@ struct CreateKeyResponse(JsonBase<IamAccessKeyWrapper, Error>);
 
 #[get("/aws/create_access_key")]
 pub async fn create_access_key(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<CreateUserRequest>,
 ) -> WarpResult<CreateKeyResponse> {
@@ -979,7 +979,7 @@ struct DeleteKeyResponse(HtmlBase<String, Error>);
 
 #[get("/aws/delete_access_key")]
 pub async fn delete_access_key(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteAccesssKeyRequest>,
 ) -> WarpResult<DeleteKeyResponse> {
@@ -1013,7 +1013,7 @@ struct UpdateDnsResponse(HtmlBase<String, Error>);
 
 #[get("/aws/update_dns_name")]
 pub async fn update_dns_name(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<UpdateDnsNameRequest>,
 ) -> WarpResult<UpdateDnsResponse> {
@@ -1073,7 +1073,7 @@ struct SystemdActionResponse(HtmlBase<String, Error>);
 
 #[get("/aws/systemd_action")]
 pub async fn systemd_action(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<SystemdAction>,
 ) -> WarpResult<SystemdActionResponse> {
@@ -1097,7 +1097,7 @@ struct SystemdRestartAllResponse(HtmlBase<String, Error>);
 
 #[get("/aws/systemd_restart_all")]
 pub async fn systemd_restart_all(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<SystemdRestartAllResponse> {
     let mut output = Vec::new();
@@ -1133,7 +1133,7 @@ struct SystemdLogResponse(HtmlBase<String, Error>);
 
 #[get("/aws/systemd_logs/{service}")]
 pub async fn systemd_logs(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     service: StackString,
 ) -> WarpResult<SystemdLogResponse> {
@@ -1161,7 +1161,7 @@ struct CrontabLogResponse(HtmlBase<String, Error>);
 
 #[get("/aws/crontab_logs/{crontab_type}")]
 pub async fn crontab_logs(
-    #[cookie = "jwt"] _: LoggedUser,
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
     crontab_type: StackString,
 ) -> WarpResult<CrontabLogResponse> {
     let crontab_path = if crontab_type == "user" {
