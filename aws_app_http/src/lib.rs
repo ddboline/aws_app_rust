@@ -9,6 +9,8 @@
 #![allow(clippy::default_trait_access)]
 #![allow(clippy::unused_async)]
 
+#![recursion_limit="256"]
+
 pub mod app;
 pub mod errors;
 pub mod ipv4addr_wrapper;
