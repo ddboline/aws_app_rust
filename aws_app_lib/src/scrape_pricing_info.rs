@@ -23,9 +23,9 @@ pub async fn scrape_pricing_info(
     let results = parse_json(js, ptype);
     output.push(format!("{}", results.len()).into());
 
-    let results = results.into_iter().map(|r| async move {
-        r.upsert_entry(pool).await
-    });
+    let results = results
+        .into_iter()
+        .map(|r| async move { r.upsert_entry(pool).await });
     try_join_all(results).await?;
     Ok(output)
 }
@@ -109,12 +109,7 @@ fn get_instance_pricing(
                 .attributes
                 .get("aws:ec2:instanceType")
                 .ok_or_else(|| format_err!("No instance type {:?}", price_entry))?;
-            let i = InstancePricing::new(
-                instance_type.as_str(),
-                price,
-                "ondemand",
-                Utc::now(),
-            );
+            let i = InstancePricing::new(instance_type.as_str(), price, "ondemand", Utc::now());
             Ok(i)
         }
         PricingType::Reserved => {
@@ -128,12 +123,7 @@ fn get_instance_pricing(
                 .attributes
                 .get("aws:ec2:instanceType")
                 .ok_or_else(|| format_err!("No instance type"))?;
-            let i = InstancePricing::new(
-                instance_type.as_str(),
-                price,
-                "reserved",
-                Utc::now(),
-            );
+            let i = InstancePricing::new(instance_type.as_str(), price, "reserved", Utc::now());
             Ok(i)
         }
         PricingType::Spot => Err(format_err!("nothing")),

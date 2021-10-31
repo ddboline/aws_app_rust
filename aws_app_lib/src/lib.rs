@@ -10,7 +10,6 @@
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::default_trait_access)]
 
-
 pub mod aws_app_interface;
 pub mod aws_app_opts;
 pub mod config;

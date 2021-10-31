@@ -1,11 +1,11 @@
 use anyhow::{format_err, Error};
 use futures::future::try_join_all;
 use itertools::Itertools;
+use refinery::embed_migrations;
 use stack_string::StackString;
 use std::{net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
 use structopt::StructOpt;
 use tokio::io::{stdin, AsyncReadExt};
-use refinery::embed_migrations;
 
 use crate::{
     aws_app_interface::AwsAppInterface,

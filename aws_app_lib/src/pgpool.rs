@@ -1,7 +1,7 @@
 use anyhow::Error;
+use deadpool_postgres::{Client, Config, Pool};
 use derive_more::Deref;
 use std::{fmt, sync::Arc};
-use deadpool_postgres::{Client, Config, Pool};
 use tokio_postgres::{Config as PgConfig, NoTls};
 
 pub use tokio_postgres::Transaction as PgTransaction;
@@ -46,8 +46,8 @@ impl PgPool {
         Self {
             pgurl: Arc::new(pgurl.into()),
             pool: config
-            .create_pool(None, NoTls)
-            .unwrap_or_else(|_| panic!("Failed to create pool {}", pgurl)),
+                .create_pool(None, NoTls)
+                .unwrap_or_else(|_| panic!("Failed to create pool {}", pgurl)),
         }
     }
 

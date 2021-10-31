@@ -1,10 +1,10 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
+use postgres_query::{client::GenericClient, query, FromSqlRow};
 use stack_string::StackString;
 use std::fmt;
-use postgres_query::{client::GenericClient, query, FromSqlRow};
 
-use crate::{pgpool::{PgPool, PgTransaction}};
+use crate::pgpool::{PgPool, PgTransaction};
 
 #[derive(FromSqlRow, Clone, Debug)]
 pub struct InstanceFamily {
@@ -15,7 +15,8 @@ pub struct InstanceFamily {
 
 impl InstanceFamily {
     async fn get_by_family_name<C>(family_name: &str, conn: &C) -> Result<Option<Self>, Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -38,7 +39,8 @@ impl InstanceFamily {
     }
 
     async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -54,7 +56,8 @@ impl InstanceFamily {
     }
 
     async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -62,9 +65,9 @@ impl InstanceFamily {
                 SET family_type=$family_type,data_url=$data_url
                 WHERE family_name=$family_name
             "#,
-            family_name=self.family_name,
-            family_type=self.family_type,
-            data_url=self.data_url,
+            family_name = self.family_name,
+            family_type = self.family_type,
+            data_url = self.data_url,
         );
         query.execute(conn).await?;
         Ok(())
@@ -124,11 +127,9 @@ impl InstanceList {
         query.fetch(&conn).await.map_err(Into::into)
     }
 
-    async fn _get_by_instance_type<C>(
-        instance_type: &str,
-        conn: &C,
-    ) -> Result<Option<Self>, Error>
-    where C: GenericClient + Sync,
+    async fn _get_by_instance_type<C>(instance_type: &str, conn: &C) -> Result<Option<Self>, Error>
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -144,11 +145,14 @@ impl InstanceList {
         pool: &PgPool,
     ) -> Result<Option<Self>, Error> {
         let conn = pool.get().await?;
-        Self::_get_by_instance_type(instance_type, &conn).await.map_err(Into::into)
+        Self::_get_by_instance_type(instance_type, &conn)
+            .await
+            .map_err(Into::into)
     }
 
     async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -169,7 +173,8 @@ impl InstanceList {
     }
 
     async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -214,9 +219,18 @@ pub struct InstancePricing {
 }
 
 impl InstancePricing {
-    pub fn new(instance_type: &str, price: f64, price_type: &str, price_timestamp: DateTime<Utc>) -> Self {
+    pub fn new(
+        instance_type: &str,
+        price: f64,
+        price_type: &str,
+        price_timestamp: DateTime<Utc>,
+    ) -> Self {
         Self {
-            id: -1, instance_type: instance_type.into(), price, price_type: price_type.into(), price_timestamp,
+            id: -1,
+            instance_type: instance_type.into(),
+            price,
+            price_type: price_type.into(),
+            price_timestamp,
         }
     }
 
@@ -225,7 +239,8 @@ impl InstancePricing {
         price_type: &str,
         conn: &C,
     ) -> Result<Vec<Self>, Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -245,7 +260,9 @@ impl InstancePricing {
         pool: &PgPool,
     ) -> Result<Vec<Self>, Error> {
         let conn = pool.get().await?;
-        Self::_existing_entries(instance_type, price_type, &conn).await.map_err(Into::into)
+        Self::_existing_entries(instance_type, price_type, &conn)
+            .await
+            .map_err(Into::into)
     }
 
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
@@ -255,7 +272,8 @@ impl InstancePricing {
     }
 
     async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -275,7 +293,8 @@ impl InstancePricing {
     }
 
     async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
-    where C: GenericClient + Sync,
+    where
+        C: GenericClient + Sync,
     {
         let query = query!(
             r#"
@@ -298,7 +317,8 @@ impl InstancePricing {
         let tran = conn.transaction().await?;
         let conn: &PgTransaction = &tran;
 
-        let existing_entries = Self::_existing_entries(&self.instance_type, &self.price_type, conn).await?;
+        let existing_entries =
+            Self::_existing_entries(&self.instance_type, &self.price_type, conn).await?;
 
         if existing_entries.is_empty() {
             self._insert_entry(conn).await?;

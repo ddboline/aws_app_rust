@@ -8,8 +8,7 @@
 #![allow(clippy::used_underscore_binding)]
 #![allow(clippy::default_trait_access)]
 #![allow(clippy::unused_async)]
-
-#![recursion_limit="256"]
+#![recursion_limit = "256"]
 
 pub mod app;
 pub mod errors;

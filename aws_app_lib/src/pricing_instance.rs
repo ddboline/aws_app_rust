@@ -133,8 +133,7 @@ impl PricingInstance {
         instance_type: &str,
     ) -> Result<HashMap<(StackString, PricingType), InstancePricing>, Error> {
         let mut next_token = None;
-        let mut entries: HashMap<(StackString, PricingType), InstancePricing> =
-            HashMap::new();
+        let mut entries: HashMap<(StackString, PricingType), InstancePricing> = HashMap::new();
         loop {
             let input = GetProductsRequest {
                 format_version: Some("aws_v1".into()),
