@@ -341,7 +341,7 @@ fn extract_instance_type_object_hvm(
         .as_ref()
         .replace("*", "")
         .into();
-    let family_name = instance_type.split('.').next().unwrap_or_else(|| "").into();
+    let family_name = instance_type.split('.').next().unwrap_or("").into();
     let n_cpu: i32 = row[(indicies.n_cpu - idx)]
         .as_ref()
         .replace("*", "")
@@ -374,7 +374,7 @@ fn extract_instance_type_object_pv(
         .as_ref()
         .replace("*", "")
         .into();
-    let family_name = instance_type.split('.').next().unwrap_or_else(|| "").into();
+    let family_name = instance_type.split('.').next().unwrap_or("").into();
     let n_cpu: i32 = row[(indicies.n_cpu - idx)]
         .as_ref()
         .replace("*", "")
