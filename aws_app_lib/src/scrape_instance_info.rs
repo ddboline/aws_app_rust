@@ -11,7 +11,7 @@ use stack_string::StackString;
 use std::collections::HashMap;
 
 use crate::{
-    models::{AwsGeneration, InstanceFamilyInsert, InstanceList},
+    models::{AwsGeneration, InstanceFamily, InstanceList},
     pgpool::PgPool,
 };
 
@@ -37,7 +37,7 @@ pub async fn scrape_instance_info(
 fn parse_result(
     text: &str,
     generation: AwsGeneration,
-) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
+) -> Result<(Vec<InstanceFamily>, Vec<InstanceList>), Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let mut data_urls = HashMap::new();
@@ -57,7 +57,7 @@ fn parse_result(
                     if family_name.contains(' ') {
                         continue;
                     }
-                    let ifam = InstanceFamilyInsert {
+                    let ifam = InstanceFamily {
                         family_name,
                         family_type: family_type.clone(),
                         data_url: None,
@@ -110,20 +110,20 @@ fn parse_result(
 }
 
 async fn insert_result(
-    instance_families: Vec<InstanceFamilyInsert>,
+    instance_families: Vec<InstanceFamily>,
     instance_types: Vec<InstanceList>,
     pool: &PgPool,
 ) -> Result<Vec<StackString>, Error> {
-    let fam = instance_families.into_iter().map(|t| async {
-        if let (t, true) = t.insert_entry(pool).await? {
+    let fam = instance_families.into_iter().map(|t| async move {
+        if t.upsert_entry(pool).await?.is_some() {
             Ok(Some(format!("{:?}", t).into()))
         } else {
             Ok(None)
         }
     });
     let fam: Result<Vec<_>, Error> = try_join_all(fam).await;
-    let typ = instance_types.into_iter().map(|t| async {
-        if let (t, true) = t.insert_entry(pool).await? {
+    let typ = instance_types.into_iter().map(|t| async move {
+        if t.upsert_entry(pool).await?.is_some() {
             Ok(Some(format!("{:?}", t).into()))
         } else {
             Ok(None)
@@ -144,7 +144,7 @@ struct ColumnIndicies {
 
 fn extract_instance_types_pv(
     table: &Node,
-) -> Result<(Vec<InstanceFamilyInsert>, Vec<InstanceList>), Error> {
+) -> Result<(Vec<InstanceFamily>, Vec<InstanceList>), Error> {
     fn indicies_to_struct(indicies: &[Option<usize>; 4]) -> Option<ColumnIndicies> {
         Some(ColumnIndicies {
             instance_family: indicies[0]?,
@@ -208,7 +208,7 @@ fn extract_instance_types_pv(
 fn extract_instance_family_object_pv(
     row: &[impl AsRef<str>],
     indicies: ColumnIndicies,
-) -> Result<InstanceFamilyInsert, Error> {
+) -> Result<InstanceFamily, Error> {
     let family_type = row[indicies.instance_family].as_ref().into();
     let family_name = row[indicies.instance_type]
         .as_ref()
@@ -216,7 +216,7 @@ fn extract_instance_family_object_pv(
         .next()
         .ok_or_else(|| format_err!("No family type"))?
         .into();
-    Ok(InstanceFamilyInsert {
+    Ok(InstanceFamily {
         family_name,
         family_type,
         data_url: None,
@@ -337,10 +337,11 @@ fn extract_instance_type_object_hvm(
         0
     };
 
-    let instance_type = row[(indicies.instance_type - idx)]
+    let instance_type: StackString = row[(indicies.instance_type - idx)]
         .as_ref()
         .replace("*", "")
         .into();
+    let family_name = instance_type.split('.').next().unwrap_or("").into();
     let n_cpu: i32 = row[(indicies.n_cpu - idx)]
         .as_ref()
         .replace("*", "")
@@ -352,6 +353,7 @@ fn extract_instance_type_object_hvm(
 
     Ok(InstanceList {
         instance_type,
+        family_name,
         n_cpu,
         memory_gib,
         generation: AwsGeneration::HVM.into(),
@@ -368,10 +370,11 @@ fn extract_instance_type_object_pv(
         0
     };
 
-    let instance_type = row[(indicies.instance_type - idx)]
+    let instance_type: StackString = row[(indicies.instance_type - idx)]
         .as_ref()
         .replace("*", "")
         .into();
+    let family_name = instance_type.split('.').next().unwrap_or("").into();
     let n_cpu: i32 = row[(indicies.n_cpu - idx)]
         .as_ref()
         .replace("*", "")
@@ -383,6 +386,7 @@ fn extract_instance_type_object_pv(
 
     Ok(InstanceList {
         instance_type,
+        family_name,
         n_cpu,
         memory_gib,
         generation: AwsGeneration::PV.to_string().into(),
