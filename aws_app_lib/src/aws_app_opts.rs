@@ -5,6 +5,7 @@ use stack_string::StackString;
 use std::{net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
 use structopt::StructOpt;
 use tokio::io::{stdin, AsyncReadExt};
+use refinery::embed_migrations;
 
 use crate::{
     aws_app_interface::AwsAppInterface,
@@ -17,6 +18,8 @@ use crate::{
     spot_request_opt::{get_tags, SpotRequestOpt},
     systemd_instance::SystemdInstance,
 };
+
+embed_migrations!("../migrations");
 
 #[derive(StructOpt, Debug, Clone)]
 pub enum AwsAppOpts {
@@ -170,6 +173,7 @@ pub enum AwsAppOpts {
         #[structopt(short, long)]
         key: Option<PathBuf>,
     },
+    RunMigrations,
 }
 
 impl AwsAppOpts {
@@ -396,6 +400,11 @@ impl AwsAppOpts {
                 stdin().read(&mut buf).await?;
                 let lines = novnc.novnc_stop_request().await?;
                 app.stdout.send(lines.join("\n"));
+                Ok(())
+            }
+            Self::RunMigrations => {
+                let mut client = app.pool.get().await?;
+                migrations::runner().run_async(&mut **client).await?;
                 Ok(())
             }
         };
