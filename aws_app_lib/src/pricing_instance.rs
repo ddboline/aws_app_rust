@@ -12,7 +12,7 @@ use sts_profile_auth::get_client_sts;
 
 use crate::{
     config::Config,
-    models::{InstanceList, InstancePricingInsert, PricingType},
+    models::{InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
     rate_limiter::RateLimiter,
 };
@@ -131,9 +131,9 @@ impl PricingInstance {
     pub async fn get_prices(
         &self,
         instance_type: &str,
-    ) -> Result<HashMap<(StackString, PricingType), InstancePricingInsert>, Error> {
+    ) -> Result<HashMap<(StackString, PricingType), InstancePricing>, Error> {
         let mut next_token = None;
-        let mut entries: HashMap<(StackString, PricingType), InstancePricingInsert> =
+        let mut entries: HashMap<(StackString, PricingType), InstancePricing> =
             HashMap::new();
         loop {
             let input = GetProductsRequest {
@@ -226,12 +226,12 @@ impl PricingInstance {
                                             continue;
                                         }
                                     }
-                                    let i = InstancePricingInsert {
-                                        instance_type: instance_type.clone(),
+                                    let i = InstancePricing::new(
+                                        instance_type.as_str(),
                                         price,
-                                        price_type: price_type.into(),
-                                        price_timestamp: price_dimensions.effective_date,
-                                    };
+                                        price_type.to_str(),
+                                        price_dimensions.effective_date,
+                                    );
                                     entries.insert((instance_type, price_type), i);
                                 }
                             }
@@ -268,12 +268,12 @@ impl PricingInstance {
                                             continue;
                                         }
                                     }
-                                    let i = InstancePricingInsert {
-                                        instance_type: instance_type.clone(),
+                                    let i = InstancePricing::new(
+                                        instance_type.as_str(),
                                         price,
-                                        price_type: price_type.into(),
+                                        price_type.to_str(),
                                         price_timestamp,
-                                    };
+                                    );
                                     entries.insert((instance_type, price_type), i);
                                 }
                             }

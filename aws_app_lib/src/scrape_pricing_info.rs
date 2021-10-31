@@ -8,7 +8,7 @@ use stack_string::StackString;
 use std::collections::HashMap;
 
 use crate::{
-    models::{InstancePricingInsert, PricingType},
+    models::{InstancePricing, PricingType},
     pgpool::PgPool,
 };
 
@@ -23,7 +23,9 @@ pub async fn scrape_pricing_info(
     let results = parse_json(js, ptype);
     output.push(format!("{}", results.len()).into());
 
-    let results = results.into_iter().map(|r| r.upsert_entry(pool));
+    let results = results.into_iter().map(|r| async move {
+        r.upsert_entry(pool).await
+    });
     try_join_all(results).await?;
     Ok(output)
 }
@@ -61,7 +63,7 @@ fn parse_json_url_body(body: &str) -> Result<Url, Error> {
         .ok_or_else(|| format_err!("No url"))
 }
 
-fn parse_json(js: PricingJson, ptype: PricingType) -> Vec<InstancePricingInsert> {
+fn parse_json(js: PricingJson, ptype: PricingType) -> Vec<InstancePricing> {
     fn preserved_filter(p: &PricingEntry) -> bool {
         fn _cmp(os: Option<&StackString>, s: &str) -> bool {
             os.map(Into::into) == Some(s)
@@ -95,7 +97,7 @@ fn parse_json(js: PricingJson, ptype: PricingType) -> Vec<InstancePricingInsert>
 fn get_instance_pricing(
     price_entry: &PricingEntry,
     ptype: PricingType,
-) -> Result<InstancePricingInsert, Error> {
+) -> Result<InstancePricing, Error> {
     match ptype {
         PricingType::OnDemand => {
             let price: f64 = price_entry
@@ -106,14 +108,13 @@ fn get_instance_pricing(
             let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
-                .ok_or_else(|| format_err!("No instance type {:?}", price_entry))?
-                .clone();
-            let i = InstancePricingInsert {
-                instance_type,
+                .ok_or_else(|| format_err!("No instance type {:?}", price_entry))?;
+            let i = InstancePricing::new(
+                instance_type.as_str(),
                 price,
-                price_type: "ondemand".into(),
-                price_timestamp: Utc::now(),
-            };
+                "ondemand",
+                Utc::now(),
+            );
             Ok(i)
         }
         PricingType::Reserved => {
@@ -126,14 +127,13 @@ fn get_instance_pricing(
             let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
-                .ok_or_else(|| format_err!("No instance type"))?
-                .clone();
-            let i = InstancePricingInsert {
-                instance_type,
+                .ok_or_else(|| format_err!("No instance type"))?;
+            let i = InstancePricing::new(
+                instance_type.as_str(),
                 price,
-                price_type: "reserved".into(),
-                price_timestamp: Utc::now(),
-            };
+                "reserved",
+                Utc::now(),
+            );
             Ok(i)
         }
         PricingType::Spot => Err(format_err!("nothing")),

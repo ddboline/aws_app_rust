@@ -10,8 +10,6 @@
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::default_trait_access)]
 
-#[macro_use]
-extern crate diesel;
 
 pub mod aws_app_interface;
 pub mod aws_app_opts;
@@ -28,7 +26,6 @@ pub mod pricing_instance;
 pub mod rate_limiter;
 pub mod resource_type;
 pub mod route53_instance;
-pub mod schema;
 pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
 pub mod spot_request_opt;
