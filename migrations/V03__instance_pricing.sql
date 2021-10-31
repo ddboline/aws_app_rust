@@ -4,6 +4,5 @@ CREATE TABLE instance_pricing (
     instance_type TEXT NOT NULL,
     price DOUBLE PRECISION NOT NULL,
     price_type TEXT NOT NULL,
-    price_timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    FOREIGN KEY (instance_type) REFERENCES instance_list(instance_type)
+    price_timestamp TIMESTAMP WITH TIME ZONE NOT NULL
 )
