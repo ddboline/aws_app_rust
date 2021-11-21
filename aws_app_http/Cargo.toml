@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
-rweb = {version="0.14", features=["openapi", "chrono", "uuid"], default-features=false}
+rweb = {version="0.15", features=["openapi", "chrono", "uuid"], default-features=false}
 http = "0.2"
 chrono = "0.4"
 futures = "0.3"
@@ -32,12 +32,12 @@ derive_more = "0.99"
 indexmap = "1.0"
 serde_yaml = "0.8"
 uuid = "0.8"
-rweb_helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.3.4"}
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.7.14"}
-stack-string = { version="0.3", features=["postgres_types", "rweb-openapi"] }
+rweb_helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.4.0"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.7.16"}
+stack-string = { version="0.4", features=["postgres_types", "rweb-openapi"] }
 
 [dev-dependencies]
 reqwest = {version = "0.11", features=["cookies", "rustls-tls", "gzip", "json"], default-features=false}
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.7.14"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.7.14"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.7.16"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.7.16"}
 env_logger = "0.9"
