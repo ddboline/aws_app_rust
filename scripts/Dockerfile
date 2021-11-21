@@ -17,6 +17,8 @@ FROM alpine:3.14
 
 COPY --from=buildstage /aws_app_rust/bin/* /usr/bin/
 
+RUN apk add openssh-client
+
 STOPSIGNAL SIGTERM
 
 EXPOSE 3096
