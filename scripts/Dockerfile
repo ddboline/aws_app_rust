@@ -21,5 +21,4 @@ STOPSIGNAL SIGTERM
 
 EXPOSE 3097
 
-CMD ["/usr/bin/auth-server-rust"]
-
+CMD ["/usr/bin/aws-app-http"]
