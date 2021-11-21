@@ -19,6 +19,6 @@ COPY --from=buildstage /aws_app_rust/bin/* /usr/bin/
 
 STOPSIGNAL SIGTERM
 
-EXPOSE 3097
+EXPOSE 3096
 
 CMD ["/usr/bin/aws-app-http"]
