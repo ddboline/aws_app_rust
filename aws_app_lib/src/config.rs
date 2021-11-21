@@ -28,6 +28,8 @@ pub struct ConfigInner {
     pub script_directory: PathBuf,
     #[serde(default = "default_ubuntu_release")]
     pub ubuntu_release: StackString,
+    #[serde(default = "default_host")]
+    pub host: StackString,
     #[serde(default = "default_port")]
     pub port: u32,
     #[serde(default = "default_domain")]
@@ -55,6 +57,9 @@ fn default_script_directory() -> PathBuf {
 }
 fn default_ubuntu_release() -> StackString {
     "bionic-18.04".into()
+}
+fn default_host() -> StackString {
+    "0.0.0.0".into()
 }
 fn default_port() -> u32 {
     3096

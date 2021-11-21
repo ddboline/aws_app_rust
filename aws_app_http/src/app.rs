@@ -170,7 +170,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .or(spec_json_path)
         .or(spec_yaml_path)
         .recover(error_response);
-    let addr: SocketAddr = format!("127.0.0.1:{}", config.port).parse()?;
+    let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
     rweb::serve(routes).bind(addr).await;
     update_handle.await.map_err(Into::into)
 }
