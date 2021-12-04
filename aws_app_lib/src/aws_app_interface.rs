@@ -72,10 +72,10 @@ impl AwsAppInterface {
         }
     }
 
-    pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
+    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
         self.ec2
-            .set_region(region)
-            .and_then(|_| self.ecr.set_region(region))
+            .set_region(&region)
+            .and_then(|_| self.ecr.set_region(&region))
             .and_then(|_| self.route53.set_region(region))
     }
 
@@ -270,7 +270,7 @@ impl AwsAppInterface {
                     .map(|repo| async move {
                         let lines = self
                             .ecr
-                            .get_all_images(repo.as_ref())
+                            .get_all_images(repo.as_str())
                             .await?
                             .map(|image| {
                                 format!(
@@ -327,10 +327,11 @@ impl AwsAppInterface {
                 self.stdout.send(format!("---\nGroups:\n{}", groups));
             }
             ResourceType::AccessKey => {
-                let futures =
-                    self.iam.list_users().await?.map(|user| async move {
-                        self.iam.list_access_keys(&user.user_name).await
-                    });
+                let futures = self
+                    .iam
+                    .list_users()
+                    .await?
+                    .map(|user| async move { self.iam.list_access_keys(user.user_name).await });
                 let results: Result<Vec<Vec<_>>, Error> = try_join_all(futures).await;
                 let keys = results?
                     .into_iter()
@@ -430,38 +431,41 @@ impl AwsAppInterface {
         let name_map = get_name_map().await?;
         let mapped_inst_ids: Vec<_> = instance_ids
             .into_iter()
-            .map(|id| map_or_val(&name_map, id.as_ref()).to_string())
+            .map(|id| map_or_val(&name_map, &id).to_string())
             .collect();
         self.ec2.terminate_instance(&mapped_inst_ids).await
     }
 
-    pub async fn connect(&self, instance_id: &str) -> Result<(), Error> {
+    pub async fn connect(&self, instance_id: impl AsRef<str>) -> Result<(), Error> {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let id_host_map = get_id_host_map().await?;
-        let inst_id = map_or_val(&name_map, instance_id);
+        let inst_id = map_or_val(&name_map, &instance_id);
         if let Some(host) = id_host_map.get(inst_id) {
             self.stdout.send(format!("ssh ubuntu@{}", host));
         }
         Ok(())
     }
 
-    pub async fn get_status(&self, instance_id: &str) -> Result<Vec<StackString>, Error> {
+    pub async fn get_status(
+        &self,
+        instance_id: impl AsRef<str>,
+    ) -> Result<Vec<StackString>, Error> {
         self.run_command(instance_id, "tail /var/log/cloud-init-output.log")
             .await
     }
 
     pub async fn run_command(
         &self,
-        instance_id: &str,
-        command: &str,
+        instance_id: impl AsRef<str>,
+        command: impl AsRef<str>,
     ) -> Result<Vec<StackString>, Error> {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
         let id_host_map = get_id_host_map().await?;
-        let inst_id = map_or_val(&name_map, instance_id);
+        let inst_id = map_or_val(&name_map, &instance_id);
         if let Some(host) = id_host_map.get(inst_id) {
-            SSHInstance::new("ubuntu", host.as_ref(), 22)
+            SSHInstance::new("ubuntu", host, 22)
                 .await
                 .run_command_stream_stdout(command)
                 .await
@@ -603,12 +607,12 @@ impl AwsAppInterface {
 
     pub async fn create_image(
         &self,
-        inst_id: &str,
-        name: &str,
+        inst_id: impl AsRef<str>,
+        name: impl Into<String>,
     ) -> Result<Option<StackString>, Error> {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
-        let inst_id = map_or_val(&name_map, inst_id);
+        let inst_id = map_or_val(&name_map, &inst_id);
         self.ec2.create_image(inst_id, name).await
     }
 
@@ -624,12 +628,12 @@ impl AwsAppInterface {
 
     pub async fn create_ebs_volume(
         &self,
-        zoneid: &str,
+        zoneid: impl Into<String>,
         size: Option<i64>,
         snapid: Option<impl AsRef<str>>,
     ) -> Result<Option<StackString>, Error> {
         let snap_map = self.get_snapshot_map().await?;
-        let snapid = snapid.map(|s| map_or_val(&snap_map, s.as_ref()).to_string());
+        let snapid = snapid.map(|s| map_or_val(&snap_map, &s).to_string());
         self.ec2.create_ebs_volume(zoneid, size, snapid).await
     }
 
@@ -643,51 +647,51 @@ impl AwsAppInterface {
         Ok(volume_map)
     }
 
-    pub async fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+    pub async fn delete_ebs_volume(&self, volid: impl AsRef<str>) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
-        let volid = map_or_val(&vol_map, volid);
+        let volid = map_or_val(&vol_map, &volid);
         self.ec2.delete_ebs_volume(volid).await
     }
 
     pub async fn attach_ebs_volume(
         &self,
-        volid: &str,
-        instid: &str,
-        device: &str,
+        volid: impl AsRef<str>,
+        instid: impl AsRef<str>,
+        device: impl Into<String>,
     ) -> Result<(), Error> {
         self.fill_instance_list().await?;
         let vol_map = self.get_volume_map().await?;
         let name_map = get_name_map().await?;
-        let volid = map_or_val(&vol_map, volid);
-        let instid = map_or_val(&name_map, instid);
+        let volid = map_or_val(&vol_map, &volid);
+        let instid = map_or_val(&name_map, &instid);
         self.ec2.attach_ebs_volume(volid, instid, device).await
     }
 
-    pub async fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+    pub async fn detach_ebs_volume(&self, volid: impl AsRef<str>) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
-        let volid = map_or_val(&vol_map, volid);
+        let volid = map_or_val(&vol_map, &volid);
         self.ec2.detach_ebs_volume(volid).await
     }
 
-    pub async fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
+    pub async fn modify_ebs_volume(&self, volid: impl AsRef<str>, size: i64) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
-        let volid = map_or_val(&vol_map, volid);
+        let volid = map_or_val(&vol_map, &volid);
         self.ec2.modify_ebs_volume(volid, size).await
     }
 
     pub async fn create_ebs_snapshot(
         &self,
-        volid: &str,
+        volid: impl AsRef<str>,
         tags: &HashMap<StackString, StackString>,
     ) -> Result<Option<StackString>, Error> {
         let vol_map = self.get_volume_map().await?;
-        let volid = map_or_val(&vol_map, volid);
+        let volid = map_or_val(&vol_map, &volid);
         self.ec2.create_ebs_snapshot(volid, tags).await
     }
 
-    pub async fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
+    pub async fn delete_ebs_snapshot(&self, snapid: impl AsRef<str>) -> Result<(), Error> {
         let snap_map = self.get_snapshot_map().await?;
-        let snapid = map_or_val(&snap_map, snapid);
+        let snapid = map_or_val(&snap_map, &snapid);
         self.ec2.delete_ebs_snapshot(snapid).await
     }
 
@@ -712,34 +716,44 @@ impl AwsAppInterface {
         Ok(ami_tags)
     }
 
-    pub async fn create_user(&self, user_name: &str) -> Result<Option<IamUser>, Error> {
+    pub async fn create_user(
+        &self,
+        user_name: impl Into<String>,
+    ) -> Result<Option<IamUser>, Error> {
         self.iam.create_user(user_name).await
     }
 
-    pub async fn delete_user(&self, user_name: &str) -> Result<(), Error> {
+    pub async fn delete_user(&self, user_name: impl Into<String>) -> Result<(), Error> {
         self.iam.delete_user(user_name).await
     }
 
-    pub async fn add_user_to_group(&self, user_name: &str, group_name: &str) -> Result<(), Error> {
+    pub async fn add_user_to_group(
+        &self,
+        user_name: impl Into<String>,
+        group_name: impl Into<String>,
+    ) -> Result<(), Error> {
         self.iam.add_user_to_group(user_name, group_name).await
     }
 
     pub async fn remove_user_from_group(
         &self,
-        user_name: &str,
-        group_name: &str,
+        user_name: impl Into<String>,
+        group_name: impl Into<String>,
     ) -> Result<(), Error> {
         self.iam.remove_user_from_group(user_name, group_name).await
     }
 
-    pub async fn create_access_key(&self, user_name: &str) -> Result<IamAccessKey, Error> {
+    pub async fn create_access_key(
+        &self,
+        user_name: impl Into<String>,
+    ) -> Result<IamAccessKey, Error> {
         self.iam.create_access_key(user_name).await
     }
 
     pub async fn delete_access_key(
         &self,
-        user_name: &str,
-        access_key_id: &str,
+        user_name: impl Into<String>,
+        access_key_id: impl Into<String>,
     ) -> Result<(), Error> {
         self.iam.delete_access_key(user_name, access_key_id).await
     }
@@ -750,7 +764,11 @@ fn print_tags(tags: &HashMap<impl Display, impl Display>) -> StackString {
     results.join(", ").into()
 }
 
-fn map_or_val<'a>(name_map: &'a HashMap<StackString, StackString>, id: &'a str) -> &'a str {
+fn map_or_val<'a>(
+    name_map: &'a HashMap<StackString, impl AsRef<str>>,
+    id: &'a impl AsRef<str>,
+) -> &'a str {
+    let id = id.as_ref();
     name_map.get(id).map_or(id, |id_| id_.as_ref())
 }
 

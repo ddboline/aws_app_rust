@@ -20,11 +20,19 @@ pub struct SSHInstance {
 }
 
 impl SSHInstance {
-    pub async fn new(user: &str, host: &str, port: u16) -> Self {
-        LOCK_CACHE.write().await.insert(host.into(), Mutex::new(()));
+    pub async fn new(
+        user: impl Into<StackString>,
+        host: impl Into<StackString>,
+        port: u16,
+    ) -> Self {
+        let host = host.into();
+        LOCK_CACHE
+            .write()
+            .await
+            .insert(host.clone(), Mutex::new(()));
         Self {
             user: user.into(),
-            host: host.into(),
+            host,
             port,
         }
     }
@@ -39,7 +47,11 @@ impl SSHInstance {
         Ok(ssh_str)
     }
 
-    pub async fn run_command_stream_stdout(&self, cmd: &str) -> Result<Vec<StackString>, Error> {
+    pub async fn run_command_stream_stdout(
+        &self,
+        cmd: impl AsRef<str>,
+    ) -> Result<Vec<StackString>, Error> {
+        let cmd = cmd.as_ref();
         if let Some(host_lock) = LOCK_CACHE.read().await.get(&self.host) {
             let _lock = host_lock.lock().await;
             debug!("cmd {}", cmd);

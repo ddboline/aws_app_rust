@@ -7,7 +7,7 @@ use rweb_helper::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::{path::Path, sync::Arc};
+use std::{fmt::Display, path::Path, sync::Arc};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -104,7 +104,7 @@ pub async fn create_image(
     let query = query.into_inner();
     let body: String = data
         .aws
-        .create_image(&query.inst_id, &query.name)
+        .create_image(query.inst_id, query.name)
         .await
         .map_err(Into::<Error>::into)?
         .map_or_else(|| "failed to create ami".into(), |ami_id| ami_id.into());
@@ -756,7 +756,7 @@ pub async fn get_instances(
 async fn novnc_status_response(
     novnc: &NoVncInstance,
     number: usize,
-    domain: &str,
+    domain: impl Display,
 ) -> Result<String, Error> {
     let pids = novnc.get_websock_pids().await?;
     Ok(format!(
@@ -766,7 +766,7 @@ async fn novnc_status_response(
             <br>
             <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
         "#,
-        number, pids, &domain,
+        number, pids, domain,
     ))
 }
 

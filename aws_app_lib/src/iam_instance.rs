@@ -51,10 +51,10 @@ impl IamInstance {
         Ok(users)
     }
 
-    pub async fn get_user(&self, user_name: Option<impl AsRef<str>>) -> Result<IamUser, Error> {
+    pub async fn get_user(&self, user_name: Option<impl Into<String>>) -> Result<IamUser, Error> {
         self.iam_client
             .get_user(GetUserRequest {
-                user_name: user_name.map(|s| s.as_ref().into()),
+                user_name: user_name.map(|s| s.into()),
             })
             .await
             .map(|x| x.user.into())
@@ -74,7 +74,7 @@ impl IamInstance {
 
     pub async fn list_groups_for_user(
         &self,
-        user_name: &str,
+        user_name: impl Into<String>,
     ) -> Result<impl Iterator<Item = IamGroup>, Error> {
         let groups = self
             .iam_client
@@ -89,7 +89,10 @@ impl IamInstance {
         Ok(groups)
     }
 
-    pub async fn create_user(&self, user_name: &str) -> Result<Option<IamUser>, Error> {
+    pub async fn create_user(
+        &self,
+        user_name: impl Into<String>,
+    ) -> Result<Option<IamUser>, Error> {
         self.iam_client
             .create_user(CreateUserRequest {
                 user_name: user_name.into(),
@@ -100,7 +103,7 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
-    pub async fn delete_user(&self, user_name: &str) -> Result<(), Error> {
+    pub async fn delete_user(&self, user_name: impl Into<String>) -> Result<(), Error> {
         self.iam_client
             .delete_user(DeleteUserRequest {
                 user_name: user_name.into(),
@@ -109,7 +112,11 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
-    pub async fn add_user_to_group(&self, user_name: &str, group_name: &str) -> Result<(), Error> {
+    pub async fn add_user_to_group(
+        &self,
+        user_name: impl Into<String>,
+        group_name: impl Into<String>,
+    ) -> Result<(), Error> {
         self.iam_client
             .add_user_to_group(AddUserToGroupRequest {
                 user_name: user_name.into(),
@@ -121,8 +128,8 @@ impl IamInstance {
 
     pub async fn remove_user_from_group(
         &self,
-        user_name: &str,
-        group_name: &str,
+        user_name: impl Into<String>,
+        group_name: impl Into<String>,
     ) -> Result<(), Error> {
         self.iam_client
             .remove_user_from_group(RemoveUserFromGroupRequest {
@@ -133,7 +140,10 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
-    pub async fn list_access_keys(&self, user_name: &str) -> Result<Vec<AccessKeyMetadata>, Error> {
+    pub async fn list_access_keys(
+        &self,
+        user_name: impl Into<String>,
+    ) -> Result<Vec<AccessKeyMetadata>, Error> {
         self.iam_client
             .list_access_keys(ListAccessKeysRequest {
                 user_name: Some(user_name.into()),
@@ -144,7 +154,10 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
-    pub async fn create_access_key(&self, user_name: &str) -> Result<IamAccessKey, Error> {
+    pub async fn create_access_key(
+        &self,
+        user_name: impl Into<String>,
+    ) -> Result<IamAccessKey, Error> {
         self.iam_client
             .create_access_key(CreateAccessKeyRequest {
                 user_name: Some(user_name.into()),
@@ -156,8 +169,8 @@ impl IamInstance {
 
     pub async fn delete_access_key(
         &self,
-        user_name: &str,
-        access_key_id: &str,
+        user_name: impl Into<String>,
+        access_key_id: impl Into<String>,
     ) -> Result<(), Error> {
         self.iam_client
             .delete_access_key(DeleteAccessKeyRequest {

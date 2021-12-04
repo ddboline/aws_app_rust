@@ -49,9 +49,12 @@ impl SystemdInstance {
         Ok(services)
     }
 
-    pub async fn get_service_status(&self, service: &str) -> Result<ServiceStatus, Error> {
+    pub async fn get_service_status(
+        &self,
+        service: impl AsRef<str>,
+    ) -> Result<ServiceStatus, Error> {
         let command = Command::new("systemctl")
-            .args(&["show", service])
+            .args(&["show", service.as_ref()])
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&command.stdout);
@@ -75,9 +78,21 @@ impl SystemdInstance {
         Ok(status)
     }
 
-    pub async fn get_service_logs(&self, service: &str) -> Result<Vec<ServiceLogEntry>, Error> {
+    pub async fn get_service_logs(
+        &self,
+        service: impl AsRef<str>,
+    ) -> Result<Vec<ServiceLogEntry>, Error> {
         let command = Command::new("journalctl")
-            .args(&["-b", "-u", service, "-o", "json", "-n", "100", "-r"])
+            .args(&[
+                "-b",
+                "-u",
+                service.as_ref(),
+                "-o",
+                "json",
+                "-n",
+                "100",
+                "-r",
+            ])
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&command.stdout);
@@ -91,9 +106,13 @@ impl SystemdInstance {
             .collect()
     }
 
-    pub async fn service_action(&self, action: &str, service: &str) -> Result<StackString, Error> {
+    pub async fn service_action(
+        &self,
+        action: impl AsRef<str>,
+        service: impl AsRef<str>,
+    ) -> Result<StackString, Error> {
         let command = Command::new("sudo")
-            .args(&["systemctl", action, service])
+            .args(&["systemctl", action.as_ref(), service.as_ref()])
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&command.stdout);

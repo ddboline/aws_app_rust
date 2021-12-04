@@ -35,13 +35,13 @@ pub async fn scrape_instance_info(
 }
 
 fn parse_result(
-    text: &str,
+    text: impl AsRef<str>,
     generation: AwsGeneration,
 ) -> Result<(Vec<InstanceFamily>, Vec<InstanceList>), Error> {
     let mut instance_families = Vec::new();
     let mut instance_types = Vec::new();
     let mut data_urls = HashMap::new();
-    let doc = Document::from(text);
+    let doc = Document::from(text.as_ref());
 
     match generation {
         AwsGeneration::HVM => {

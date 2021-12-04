@@ -53,11 +53,9 @@ impl SpotRequestOpt {
     }
 }
 
-pub(crate) fn get_tags<T, U>(tags: T) -> HashMap<StackString, StackString>
-where
-    T: IntoIterator<Item = U>,
-    U: AsRef<str>,
-{
+pub(crate) fn get_tags(
+    tags: impl IntoIterator<Item = impl AsRef<str>>,
+) -> HashMap<StackString, StackString> {
     tags.into_iter()
         .map(|tag| {
             let mut key = "Name";

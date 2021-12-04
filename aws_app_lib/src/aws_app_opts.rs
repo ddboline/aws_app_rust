@@ -264,10 +264,7 @@ impl AwsAppOpts {
                 Ok(())
             }
             Self::CreateImage { instance_id, name } => {
-                if let Some(id) = app
-                    .create_image(instance_id.as_ref(), name.as_ref())
-                    .await?
-                {
+                if let Some(id) = app.create_image(instance_id, name).await? {
                     app.stdout.send(format!("New id {}", id));
                 }
                 Ok(())
@@ -280,22 +277,19 @@ impl AwsAppOpts {
             } => {
                 app.stdout
                     .send(format!("{:?} {} {:?}", size, zoneid, snapid));
-                if let Some(id) = app.create_ebs_volume(zoneid.as_ref(), size, snapid).await? {
+                if let Some(id) = app.create_ebs_volume(zoneid, size, snapid).await? {
                     app.stdout.send(format!("Created Volume {}", id));
                 }
                 Ok(())
             }
-            Self::DeleteVolume { volid } => app.delete_ebs_volume(volid.as_ref()).await,
+            Self::DeleteVolume { volid } => app.delete_ebs_volume(volid).await,
             Self::AttachVolume {
                 volid,
                 instance_id,
                 device_id,
-            } => {
-                app.attach_ebs_volume(volid.as_ref(), instance_id.as_ref(), device_id.as_ref())
-                    .await
-            }
-            Self::DetachVolume { volid } => app.detach_ebs_volume(volid.as_ref()).await,
-            Self::ModifyVolume { volid, size } => app.modify_ebs_volume(volid.as_ref(), size).await,
+            } => app.attach_ebs_volume(volid, instance_id, device_id).await,
+            Self::DetachVolume { volid } => app.detach_ebs_volume(volid).await,
+            Self::ModifyVolume { volid, size } => app.modify_ebs_volume(volid, size).await,
             Self::CreateUser { user_name } => {
                 if let Some(user) = app.create_user(user_name.as_str()).await? {
                     app.stdout.send(format!("{:?}", user));
@@ -303,29 +297,20 @@ impl AwsAppOpts {
                 Ok(())
             }
             Self::CreateSnapshot { volid, tags } => {
-                if let Some(id) = app
-                    .create_ebs_snapshot(volid.as_ref(), &get_tags(&tags))
-                    .await?
-                {
+                if let Some(id) = app.create_ebs_snapshot(volid, &get_tags(&tags)).await? {
                     app.stdout.send(format!("Created snapshot {}", id));
                 }
                 Ok(())
             }
-            Self::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(snapid.as_ref()).await,
-            Self::Tag { id, tags } => {
-                app.ec2
-                    .tag_ec2_instance(id.as_ref(), &get_tags(&tags))
-                    .await
-            }
+            Self::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(snapid).await,
+            Self::Tag { id, tags } => app.ec2.tag_ec2_instance(id, &get_tags(&tags)).await,
             Self::DeleteEcrImages { reponame, imageids } => {
-                app.ecr
-                    .delete_ecr_images(reponame.as_ref(), &imageids)
-                    .await
+                app.ecr.delete_ecr_images(reponame, &imageids).await
             }
             Self::CleanupEcrImages => app.ecr.cleanup_ecr_images().await,
-            Self::Connect { instance_id } => app.connect(instance_id.as_ref()).await,
+            Self::Connect { instance_id } => app.connect(instance_id).await,
             Self::Status { instance_id } => {
-                for line in app.get_status(instance_id.as_ref()).await? {
+                for line in app.get_status(instance_id).await? {
                     app.stdout.send(line);
                 }
                 Ok(())

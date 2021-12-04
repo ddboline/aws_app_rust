@@ -73,13 +73,13 @@ impl Ec2Instance {
         }
     }
 
-    pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
-        self.region = region.parse()?;
+    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
+        self.region = region.as_ref().parse()?;
         self.ec2_client = get_client_sts!(Ec2Client, self.region.clone())?;
         Ok(())
     }
 
-    pub fn set_owner_id(&mut self, owner_id: &str) -> Option<StackString> {
+    pub fn set_owner_id(&mut self, owner_id: impl Into<StackString>) -> Option<StackString> {
         self.my_owner_id.replace(owner_id.into())
     }
 
@@ -123,8 +123,8 @@ impl Ec2Instance {
 
     pub async fn get_latest_ubuntu_ami(
         &self,
-        ubuntu_release: &str,
-        arch: &str,
+        ubuntu_release: impl fmt::Display,
+        arch: impl fmt::Display,
     ) -> Result<Option<AmiInfo>, Error> {
         let request = DescribeImagesRequest {
             filters: Some(vec![
@@ -452,11 +452,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn terminate_instance<T, U>(&self, instance_ids: T) -> Result<(), Error>
-    where
-        T: IntoIterator<Item = U>,
-        U: AsRef<str>,
-    {
+    pub async fn terminate_instance(
+        &self,
+        instance_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<(), Error> {
         let instance_ids = instance_ids
             .into_iter()
             .map(|s| s.as_ref().to_string())
@@ -501,11 +500,12 @@ impl Ec2Instance {
 
     pub async fn tag_ami_snapshot(
         &self,
-        inst_id: &str,
-        name: &str,
+        inst_id: impl AsRef<str>,
+        name: impl Into<StackString>,
         iterations: usize,
     ) -> Result<(), Error> {
         sleep(time::Duration::from_secs(2)).await;
+        let inst_id = inst_id.as_ref();
         for i in 0..iterations {
             if let Some(ami) = self
                 .get_ami_tags()
@@ -553,7 +553,7 @@ impl Ec2Instance {
                 .collect();
             if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id) {
                 debug!("tag {} with {:?}", instance_id, tags);
-                self.tag_ec2_instance(instance_id.as_ref(), tags).await?;
+                self.tag_ec2_instance(instance_id, tags).await?;
                 if let Some(inst) = instances.get(instance_id) {
                     if !inst.volumes.is_empty() {
                         for vol in &inst.volumes {
@@ -575,11 +575,10 @@ impl Ec2Instance {
         Ok(())
     }
 
-    pub async fn cancel_spot_instance_request<T, U>(&self, inst_ids: T) -> Result<(), Error>
-    where
-        T: IntoIterator<Item = U>,
-        U: AsRef<str>,
-    {
+    pub async fn cancel_spot_instance_request(
+        &self,
+        inst_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<(), Error> {
         let inst_ids = inst_ids
             .into_iter()
             .map(|s| s.as_ref().to_string())
@@ -596,12 +595,12 @@ impl Ec2Instance {
 
     pub async fn tag_ec2_instance(
         &self,
-        inst_id: &str,
+        inst_id: impl Into<String>,
         tags: &HashMap<StackString, StackString>,
     ) -> Result<(), Error> {
         self.ec2_client
             .create_tags(CreateTagsRequest {
-                resources: vec![inst_id.to_string()],
+                resources: vec![inst_id.into()],
                 tags: tags
                     .iter()
                     .map(|(k, v)| Tag {
@@ -642,13 +641,14 @@ impl Ec2Instance {
 
     pub async fn create_image(
         &self,
-        inst_id: &str,
-        name: &str,
+        inst_id: impl Into<String>,
+        name: impl Into<String>,
     ) -> Result<Option<StackString>, Error> {
+        let name = name.into();
         self.ec2_client
             .create_image(CreateImageRequest {
-                instance_id: inst_id.to_string(),
-                name: name.to_string(),
+                instance_id: inst_id.into(),
+                name: name.clone(),
                 ..CreateImageRequest::default()
             })
             .await
@@ -657,7 +657,6 @@ impl Ec2Instance {
                 r.image_id.map(|image_id| {
                     {
                         let image_id = image_id.clone();
-                        let name = name.to_string();
                         let ec2 = self.clone();
                         spawn(async move { ec2.tag_ami_snapshot(&image_id, &name, 100).await });
                     }
@@ -666,26 +665,26 @@ impl Ec2Instance {
             })
     }
 
-    pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
+    pub async fn delete_image(&self, ami: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .deregister_image(DeregisterImageRequest {
-                image_id: ami.to_string(),
+                image_id: ami.into(),
                 ..DeregisterImageRequest::default()
             })
             .await
             .map_err(Into::into)
     }
 
-    pub async fn create_ebs_volume<T: AsRef<str>>(
+    pub async fn create_ebs_volume(
         &self,
-        zoneid: &str,
+        zoneid: impl Into<String>,
         size: Option<i64>,
-        snapid: Option<T>,
+        snapid: Option<impl AsRef<str>>,
     ) -> Result<Option<StackString>, Error> {
         let snapid = snapid.as_ref().map(|s| s.as_ref().to_string());
         self.ec2_client
             .create_volume(CreateVolumeRequest {
-                availability_zone: zoneid.to_string(),
+                availability_zone: zoneid.into(),
                 size,
                 snapshot_id: snapid,
                 volume_type: Some("standard".to_string()),
@@ -696,10 +695,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn delete_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+    pub async fn delete_ebs_volume(&self, volid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .delete_volume(DeleteVolumeRequest {
-                volume_id: volid.to_string(),
+                volume_id: volid.into(),
                 ..DeleteVolumeRequest::default()
             })
             .await
@@ -708,15 +707,15 @@ impl Ec2Instance {
 
     pub async fn attach_ebs_volume(
         &self,
-        volid: &str,
-        instid: &str,
-        device: &str,
+        volid: impl Into<String>,
+        instid: impl Into<String>,
+        device: impl Into<String>,
     ) -> Result<(), Error> {
         self.ec2_client
             .attach_volume(AttachVolumeRequest {
-                device: device.to_string(),
-                instance_id: instid.to_string(),
-                volume_id: volid.to_string(),
+                device: device.into(),
+                instance_id: instid.into(),
+                volume_id: volid.into(),
                 ..AttachVolumeRequest::default()
             })
             .await
@@ -724,10 +723,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn detach_ebs_volume(&self, volid: &str) -> Result<(), Error> {
+    pub async fn detach_ebs_volume(&self, volid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .detach_volume(DetachVolumeRequest {
-                volume_id: volid.to_string(),
+                volume_id: volid.into(),
                 ..DetachVolumeRequest::default()
             })
             .await
@@ -735,10 +734,14 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn modify_ebs_volume(&self, volid: &str, size: i64) -> Result<(), Error> {
+    pub async fn modify_ebs_volume(
+        &self,
+        volid: impl Into<String>,
+        size: i64,
+    ) -> Result<(), Error> {
         self.ec2_client
             .modify_volume(ModifyVolumeRequest {
-                volume_id: volid.to_string(),
+                volume_id: volid.into(),
                 size: Some(size),
                 ..ModifyVolumeRequest::default()
             })
@@ -749,12 +752,12 @@ impl Ec2Instance {
 
     pub async fn create_ebs_snapshot(
         &self,
-        volid: &str,
+        volid: impl Into<String>,
         tags: &HashMap<StackString, StackString>,
     ) -> Result<Option<StackString>, Error> {
         self.ec2_client
             .create_snapshot(CreateSnapshotRequest {
-                volume_id: volid.to_string(),
+                volume_id: volid.into(),
                 tag_specifications: if tags.is_empty() {
                     None
                 } else {
@@ -787,10 +790,10 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
-    pub async fn delete_ebs_snapshot(&self, snapid: &str) -> Result<(), Error> {
+    pub async fn delete_ebs_snapshot(&self, snapid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .delete_snapshot(DeleteSnapshotRequest {
-                snapshot_id: snapid.to_string(),
+                snapshot_id: snapid.into(),
                 ..DeleteSnapshotRequest::default()
             })
             .await
@@ -896,11 +899,14 @@ pub struct SnapshotInfo {
     pub tags: HashMap<StackString, StackString>,
 }
 
-pub fn get_user_data_from_script(default_dir: &Path, script: &str) -> Result<StackString, Error> {
-    let fname = if Path::new(script).exists() {
-        Path::new(script).to_path_buf()
+pub fn get_user_data_from_script(
+    default_dir: impl AsRef<Path>,
+    script: impl AsRef<Path>,
+) -> Result<StackString, Error> {
+    let fname = if Path::new(script.as_ref()).exists() {
+        Path::new(script.as_ref()).to_path_buf()
     } else {
-        let fname = default_dir.join(script);
+        let fname = default_dir.as_ref().join(script);
         if !fname.exists() {
             return Ok(include_str!("../../templates/setup_aws.sh").into());
         }

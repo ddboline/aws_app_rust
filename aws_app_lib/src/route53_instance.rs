@@ -46,8 +46,8 @@ impl Route53Instance {
         }
     }
 
-    pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
-        self.region = region.parse()?;
+    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
+        self.region = region.as_ref().parse()?;
         self.route53_client = get_client_sts!(Route53Client, self.region.clone())?;
         Ok(())
     }
@@ -60,7 +60,10 @@ impl Route53Instance {
             .map(|r| r.hosted_zones)
     }
 
-    pub async fn list_record_sets(&self, id: &str) -> Result<Vec<ResourceRecordSet>, Error> {
+    pub async fn list_record_sets(
+        &self,
+        id: impl Into<String>,
+    ) -> Result<Vec<ResourceRecordSet>, Error> {
         let request = ListResourceRecordSetsRequest {
             hosted_zone_id: id.into(),
             ..ListResourceRecordSetsRequest::default()
@@ -72,7 +75,10 @@ impl Route53Instance {
             .map(|r| r.resource_record_sets)
     }
 
-    pub async fn list_dns_records(&self, id: &str) -> Result<Vec<(String, String)>, Error> {
+    pub async fn list_dns_records(
+        &self,
+        id: impl Into<String>,
+    ) -> Result<Vec<(String, String)>, Error> {
         self.list_record_sets(id).await.map(|result| {
             result
                 .into_iter()

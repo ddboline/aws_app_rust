@@ -46,8 +46,8 @@ impl EcrInstance {
         }
     }
 
-    pub fn set_region(&mut self, region: &str) -> Result<(), Error> {
-        self.region = region.parse()?;
+    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
+        self.region = region.as_ref().parse()?;
         self.ecr_client = get_client_sts!(EcrClient, self.region.clone())?;
         Ok(())
     }
@@ -67,7 +67,7 @@ impl EcrInstance {
 
     pub async fn get_all_images(
         &self,
-        reponame: &str,
+        reponame: impl Into<StackString>,
     ) -> Result<impl Iterator<Item = ImageInfo>, Error> {
         let reponame: Arc<StackString> = Arc::new(reponame.into());
         self.ecr_client
@@ -107,7 +107,7 @@ impl EcrInstance {
 
     pub async fn delete_ecr_images(
         &self,
-        reponame: &str,
+        reponame: impl Into<String>,
         image_ids: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<(), Error> {
         let image_ids: Vec<_> = image_ids
@@ -122,7 +122,7 @@ impl EcrInstance {
         }
         self.ecr_client
             .batch_delete_image(BatchDeleteImageRequest {
-                repository_name: reponame.to_string(),
+                repository_name: reponame.into(),
                 image_ids,
                 ..BatchDeleteImageRequest::default()
             })
@@ -133,14 +133,14 @@ impl EcrInstance {
 
     pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
         let futures = self.get_all_repositories().await?.map(|repo| async move {
-            let imageids = self.get_all_images(repo.as_ref()).await?.filter_map(|i| {
+            let imageids = self.get_all_images(repo.clone()).await?.filter_map(|i| {
                 if i.tags.is_empty() {
                     Some(i.digest.to_string())
                 } else {
                     None
                 }
             });
-            self.delete_ecr_images(repo.as_ref(), imageids).await?;
+            self.delete_ecr_images(repo, imageids).await?;
             Ok(())
         });
         let results: Result<Vec<_>, Error> = try_join_all(futures).await;

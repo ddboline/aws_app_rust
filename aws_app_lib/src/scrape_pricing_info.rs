@@ -46,9 +46,10 @@ async fn extract_json_url(url: Url) -> Result<Url, Error> {
     parse_json_url_body(&body)
 }
 
-fn parse_json_url_body(body: &str) -> Result<Url, Error> {
+fn parse_json_url_body(body: impl AsRef<str>) -> Result<Url, Error> {
     let condition = |l: &&str| l.contains("data-service-url");
-    body.split('\n')
+    body.as_ref()
+        .split('\n')
         .find(condition)
         .and_then(|line| {
             line.split_whitespace().find(condition).and_then(|entry| {

@@ -30,8 +30,8 @@ use crate::errors::ServiceError as Error;
 )]
 async fn get_latest_ubuntu_ami(
     app: &AwsAppInterface,
-    ubuntu_release: &str,
-    arch: &str,
+    ubuntu_release: impl Display,
+    arch: impl Display,
 ) -> Result<Option<AmiInfo>, Error> {
     app.ec2
         .get_latest_ubuntu_ami(ubuntu_release, arch)
@@ -585,7 +585,7 @@ pub async fn get_frontpage(
                 .iam
                 .list_users()
                 .await?
-                .map(|user| async move { app.iam.list_access_keys(&user.user_name).await });
+                .map(|user| async move { app.iam.list_access_keys(user.user_name).await });
             let results: Result<Vec<Vec<_>>, Error> =
                 try_join_all(futures).await.map_err(Into::into);
             let keys = results?
@@ -746,7 +746,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
 
 async fn get_ecr_images(
     app: &AwsAppInterface,
-    repo: &str,
+    repo: impl Into<StackString>,
 ) -> Result<impl Iterator<Item = StackString>, Error> {
     app.ecr
         .get_all_images(repo)
@@ -755,8 +755,8 @@ async fn get_ecr_images(
         .map(|it| it.map(|image| image.get_html_string()))
 }
 
-fn print_tags<T: Display>(tags: &HashMap<T, T>) -> StackString {
-    tags.iter()
+fn print_tags(tags: impl IntoIterator<Item = (impl Display, impl Display)>) -> StackString {
+    tags.into_iter()
         .map(|(k, v)| format!("{} = {}", k, v))
         .join(", ")
         .into()
