@@ -107,3 +107,19 @@ enum _ResourceTypeWrapper {
     #[serde(rename = "systemd")]
     SystemD,
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        IamAccessKeyWrapper, IamUserWrapper, ResourceTypeWrapper, _IamAccessKeyWrapper,
+        _IamUserWrapper, _ResourceTypeWrapper,
+    };
+    use rweb_helper::derive_rweb_test;
+
+    #[test]
+    fn test_types() {
+        derive_rweb_test!(IamUserWrapper, _IamUserWrapper);
+        derive_rweb_test!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
+        derive_rweb_test!(ResourceTypeWrapper, _ResourceTypeWrapper);
+    }
+}

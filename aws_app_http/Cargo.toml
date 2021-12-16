@@ -32,7 +32,7 @@ derive_more = "0.99"
 indexmap = "1.0"
 serde_yaml = "0.8"
 uuid = "0.8"
-rweb_helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.4.0"}
+rweb-helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.4.2"}
 authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.7.18"}
 stack-string = { version="0.4", features=["postgres_types", "rweb-openapi"] }
 

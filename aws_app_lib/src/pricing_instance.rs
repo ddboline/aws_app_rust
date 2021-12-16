@@ -20,7 +20,6 @@ use crate::{
 #[derive(Clone)]
 pub struct PricingInstance {
     pricing_client: PricingClient,
-    region: Region,
     limit: RateLimiter,
 }
 
@@ -35,7 +34,6 @@ impl Default for PricingInstance {
         Self {
             pricing_client: get_client_sts!(PricingClient, Region::UsEast1)
                 .expect("StsProfile failed"),
-            region: Region::UsEast1,
             limit: RateLimiter::new(10, 5000),
         }
     }
@@ -49,9 +47,7 @@ impl PricingInstance {
             .ok()
             .unwrap_or(Region::UsEast1);
         Self {
-            pricing_client: get_client_sts!(PricingClient, region.clone())
-                .expect("StsProfile failed"),
-            region,
+            pricing_client: get_client_sts!(PricingClient, region).expect("StsProfile failed"),
             limit: RateLimiter::new(10, 5000),
         }
     }
@@ -203,8 +199,6 @@ impl PricingInstance {
                     struct PriceList<'a> {
                         #[serde(borrow)]
                         terms: HashMap<&'a str, HashMap<&'a str, PriceDimensions<'a>>>,
-                        #[serde(rename = "publicationDate")]
-                        publication_date: DateTime<Utc>,
                     }
 
                     let value: PriceList = serde_json::from_str(&price)?;
