@@ -70,10 +70,11 @@ fn parse_result(
                         if url.contains("instance-types") {
                             let url = url.replace("https://aws.amazon.com", "");
                             if let Some(key) = url.split('/').nth(3) {
-                                data_urls.insert(
-                                    key.to_string(),
-                                    format!("https://aws.amazon.com{}", url),
-                                );
+                                let mut s = StackString::new();
+                                s.push_str("https://aws.amazon.com");
+                                s.push_str(&url);
+                                let k: StackString = key.into();
+                                data_urls.insert(k, s);
                             }
                         }
                     }
@@ -83,11 +84,11 @@ fn parse_result(
                 instance_types.extend_from_slice(&extract_instance_types_hvm(&t)?);
             }
             for ifam in &mut instance_families {
-                if let Some(url) = data_urls.get(ifam.family_name.as_str()) {
-                    ifam.data_url.replace(url.into());
+                if let Some(url) = data_urls.get(&ifam.family_name) {
+                    ifam.data_url.replace(url.clone());
                 } else {
                     for (key, url) in &data_urls {
-                        if ifam.family_name.contains(key) {
+                        if ifam.family_name.contains(key.as_str()) {
                             ifam.data_url.replace(url.into());
                             break;
                         }
@@ -158,18 +159,18 @@ fn extract_instance_types_pv(
     let rows: Vec<_> = table
         .find(Name("tr"))
         .filter_map(|tr| {
-            let row: Vec<_> = tr
+            let row: Vec<StackString> = tr
                 .find(Name("td"))
-                .map(|td| td.text().trim().to_string())
+                .map(|td| td.text().trim().into())
                 .collect();
-            if !row.is_empty() && !row.iter().all(String::is_empty) {
+            if !row.is_empty() && !row.iter().all(|s| s.is_empty()) {
                 Some(row)
             } else {
-                let row: Vec<_> = tr
+                let row: Vec<StackString> = tr
                     .find(Name("th"))
-                    .map(|th| th.text().trim().to_string())
+                    .map(|th| th.text().trim().into())
                     .collect();
-                if row.iter().all(String::is_empty) {
+                if row.iter().all(|s| s.is_empty()) {
                     return None;
                 }
 
@@ -252,18 +253,18 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
     let rows: Vec<_> = table
         .find(Name("tr"))
         .filter_map(|tr| {
-            let row: Vec<_> = tr
+            let row: Vec<StackString> = tr
                 .find(Name("td"))
-                .map(|td| td.text().trim().to_string())
+                .map(|td| td.text().trim().into())
                 .collect();
-            if !row.is_empty() && !row.iter().all(String::is_empty) {
+            if !row.is_empty() && !row.iter().all(|s| s.is_empty()) {
                 Some(row)
             } else {
-                let row: Vec<_> = tr
+                let row: Vec<StackString> = tr
                     .find(Name("th"))
-                    .map(|th| th.text().trim().to_string())
+                    .map(|th| th.text().trim().into())
                     .collect();
-                if row.iter().all(String::is_empty) {
+                if row.iter().all(|s| s.is_empty()) {
                     return None;
                 }
 
@@ -389,7 +390,7 @@ fn extract_instance_type_object_pv(
         family_name,
         n_cpu,
         memory_gib,
-        generation: AwsGeneration::PV.to_string().into(),
+        generation: AwsGeneration::PV.into(),
     })
 }
 
