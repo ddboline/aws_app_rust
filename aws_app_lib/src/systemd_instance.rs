@@ -126,12 +126,18 @@ pub enum RunStatus {
     NotRunning,
 }
 
+impl RunStatus {
+    pub fn to_str(self) -> &'static str {
+        match self {
+            Self::Running => "running",
+            Self::NotRunning => "not running",
+        }
+    }
+}
+
 impl fmt::Display for RunStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Running => write!(f, "running"),
-            Self::NotRunning => write!(f, "not running"),
-        }
+        write!(f, "{}", self.to_str())
     }
 }
 
