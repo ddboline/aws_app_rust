@@ -7,7 +7,11 @@ use rweb_helper::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
-use std::{fmt::Display, path::Path, sync::Arc};
+use std::{
+    fmt::{Display, Write},
+    path::Path,
+    sync::Arc,
+};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -561,21 +565,30 @@ pub async fn get_prices(
                     </tr>
                     "#,
                     if let Some(data_url) = price.data_url {
-                        format!(r#"<a href="{}" target="_blank">{}</a>"#, data_url, price.instance_type)
+                        format!(r#"<a href="{}" target="_blank">{}</a>"#, data_url, price.instance_type).into()
                     } else {
-                        price.instance_type.to_string()
+                        StackString::from_display(&price.instance_type).unwrap()
                     },
-                    match price.ondemand_price {
-                        Some(p) => format!("${:0.4}/hr", p),
-                        None => "".to_string(),
+                    {
+                        let mut s = StackString::new();
+                        if let Some(p) = price.ondemand_price {
+                            write!(s, "${:0.4}/hr", p).unwrap();
+                        }
+                        s
                     },
-                    match price.spot_price {
-                        Some(p) => format!("${:0.4}/hr", p),
-                        None => "".to_string(),
+                    {
+                        let mut s = StackString::new();
+                        if let Some(p) = price.spot_price {
+                            write!(s, "${:0.4}/hr", p).unwrap();
+                        }
+                        s
                     },
-                    match price.reserved_price {
-                        Some(p) => format!("${:0.4}/hr", p),
-                        None => "".to_string(),
+                    {
+                        let mut s = StackString::new();
+                        if let Some(p) = price.reserved_price {
+                            write!(s, "${:0.4}/hr", p).unwrap();
+                        }
+                        s
                     },
                     price.ncpu,
                     price.memory,
@@ -1069,7 +1082,7 @@ struct SystemdAction {
     status = "CREATED",
     content = "html"
 )]
-struct SystemdActionResponse(HtmlBase<String, Error>);
+struct SystemdActionResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/systemd_action")]
 pub async fn systemd_action(
@@ -1084,7 +1097,7 @@ pub async fn systemd_action(
         .service_action(query.action.as_str(), &query.service)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(output.to_string()).into())
+    Ok(HtmlBase::new(output).into())
 }
 
 #[derive(RwebResponse)]
