@@ -30,11 +30,3 @@ pub mod scrape_pricing_info;
 pub mod spot_request_opt;
 pub mod ssh_instance;
 pub mod systemd_instance;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}

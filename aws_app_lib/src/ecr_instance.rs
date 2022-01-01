@@ -135,7 +135,7 @@ impl EcrInstance {
         let futures = self.get_all_repositories().await?.map(|repo| async move {
             let imageids = self.get_all_images(repo.clone()).await?.filter_map(|i| {
                 if i.tags.is_empty() {
-                    Some(i.digest.to_string())
+                    Some(i.digest.clone())
                 } else {
                     None
                 }

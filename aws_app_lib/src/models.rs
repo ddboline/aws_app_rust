@@ -90,15 +90,6 @@ impl InstanceFamily {
     }
 }
 
-impl fmt::Display for AwsGeneration {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::HVM => write!(f, "hvm"),
-            Self::PV => write!(f, "pv"),
-        }
-    }
-}
-
 #[derive(FromSqlRow, Clone, Debug)]
 pub struct InstanceList {
     pub instance_type: StackString,
@@ -336,12 +327,24 @@ pub enum AwsGeneration {
     PV,
 }
 
+impl AwsGeneration {
+    pub fn to_str(self) -> &'static str {
+        match self {
+            Self::HVM => "hvm",
+            Self::PV => "pv",
+        }
+    }
+}
+
+impl fmt::Display for AwsGeneration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_str())
+    }
+}
+
 impl From<AwsGeneration> for StackString {
     fn from(item: AwsGeneration) -> StackString {
-        match item {
-            AwsGeneration::HVM => "hvm".into(),
-            AwsGeneration::PV => "pv".into(),
-        }
+        item.to_str().into()
     }
 }
 
@@ -370,7 +373,7 @@ impl fmt::Display for PricingType {
 
 impl From<PricingType> for StackString {
     fn from(p: PricingType) -> Self {
-        p.to_string().into()
+        StackString::from_display(p).unwrap()
     }
 }
 
