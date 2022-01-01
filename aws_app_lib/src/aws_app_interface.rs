@@ -481,18 +481,18 @@ impl AwsAppInterface {
         let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)
             .await?
             .into_iter()
-            .map(|f| (f.family_name.to_string(), f))
+            .map(|f| (f.family_name.clone(), f))
             .collect();
         let instance_list: HashMap<_, _> = InstanceList::get_all_instances(&self.pool)
             .await?
             .into_iter()
-            .map(|i| (i.instance_type.to_string(), i))
+            .map(|i| (i.instance_type.clone(), i))
             .collect();
         let inst_list: Vec<_> = instance_list
             .keys()
             .filter_map(|inst| {
                 if search.iter().any(|s| inst.starts_with(s.as_ref())) {
-                    Some(inst.to_string())
+                    Some(inst.clone())
                 } else {
                     None
                 }
@@ -504,17 +504,17 @@ impl AwsAppInterface {
         let prices: HashMap<_, _> = InstancePricing::get_all(&self.pool)
             .await?
             .into_iter()
-            .map(|p| ((p.instance_type.to_string(), p.price_type.to_string()), p))
+            .map(|p| ((p.instance_type.clone(), p.price_type.clone()), p))
             .collect();
 
         let prices: Result<Vec<_>, Error> = inst_list
             .into_iter()
             .map(|inst| {
                 let ond_price = prices
-                    .get(&(inst.to_string(), "ondemand".to_string()))
+                    .get(&(inst.clone(), "ondemand".into()))
                     .map(|x| x.price);
                 let res_price = prices
-                    .get(&(inst.to_string(), "reserved".to_string()))
+                    .get(&(inst.clone(), "reserved".into()))
                     .map(|x| x.price);
                 let spot_price = spot_prices.get(inst.as_str());
                 let instance_metadata = instance_list
