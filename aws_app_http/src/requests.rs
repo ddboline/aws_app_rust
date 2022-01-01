@@ -548,20 +548,17 @@ pub async fn get_frontpage(
                         "".to_string()
                     } else {
                         format!(
-                            r#"
-                                    <input type="button" name="AddUser" value="Add"
-                                     onclick="addUserToGroup('{}');">"#,
+                            r#"<input type="button" name="AddUser" value="Add"
+                               onclick="addUserToGroup('{}');">"#,
                             g.group_name
                         )
                     };
 
                     format!(
-                        r#"
-                                <tr style="text-align: left;">
-                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
-                                <td>{}</td><td>{}</td>
-                                </tr>
-                            "#,
+                        r#"<tr style="text-align: left;">
+                           <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                           <td>{}</td><td>{}</td>
+                           </tr>"#,
                         g.group_id,
                         g.create_date,
                         g.group_name,
