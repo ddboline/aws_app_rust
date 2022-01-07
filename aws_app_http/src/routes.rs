@@ -6,7 +6,7 @@ use rweb_helper::{
     html_response::HtmlResponse as HtmlBase, json_response::JsonResponse as JsonBase, RwebResponse,
 };
 use serde::{Deserialize, Serialize};
-use stack_string::{StackString, format_sstr};
+use stack_string::{format_sstr, StackString};
 use std::{
     fmt::{Display, Write},
     path::Path,
@@ -773,7 +773,9 @@ async fn novnc_status_response(
             <br>
             <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
         "#,
-        number, pids, domain,
+        number,
+        pids,
+        domain,
     ))
 }
 
@@ -928,7 +930,12 @@ pub async fn add_user_to_group(
         .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format_sstr!("added {} to {}", query.user_name, query.group_name)).into())
+    Ok(HtmlBase::new(format_sstr!(
+        "added {} to {}",
+        query.user_name,
+        query.group_name
+    ))
+    .into())
 }
 
 #[derive(RwebResponse)]
@@ -948,7 +955,8 @@ pub async fn remove_user_from_group(
         .map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new(format_sstr!(
         "removed {} from {}",
-        query.user_name, query.group_name
+        query.user_name,
+        query.group_name
     ))
     .into())
 }
@@ -997,7 +1005,8 @@ pub async fn delete_access_key(
         .map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new(format_sstr!(
         "delete {} for {}",
-        query.access_key_id, query.user_name
+        query.access_key_id,
+        query.user_name
     ))
     .into())
 }
@@ -1037,7 +1046,9 @@ pub async fn update_dns_name(
         .map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new(format_sstr!(
         "update {} from {} to {}",
-        query.dns_name, query.old_ip, query.new_ip
+        query.dns_name,
+        query.old_ip,
+        query.new_ip
     ))
     .into())
 }

@@ -6,10 +6,9 @@ use rusoto_ecr::{
     BatchDeleteImageRequest, DescribeImagesRequest, DescribeRepositoriesRequest, Ecr, EcrClient,
     ImageIdentifier,
 };
-use stack_string::{StackString, format_sstr};
-use std::{fmt, sync::Arc};
+use stack_string::{format_sstr, StackString};
+use std::{fmt, fmt::Write, sync::Arc};
 use sts_profile_auth::get_client_sts;
-use std::fmt::Write;
 
 use crate::config::Config;
 
@@ -168,7 +167,8 @@ impl ImageInfo {
             format_sstr!(
                 r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
                     onclick="deleteEcrImage('{}', '{}')">"#,
-                self.repo, self.digest,
+                self.repo,
+                self.digest,
             ),
             self.repo,
             self.tags.get(0).map_or_else(|| "None", StackString::as_str),

@@ -5,10 +5,9 @@ use rweb::{
     openapi::{self, Info},
     Filter, Reply,
 };
-use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tokio::{task::spawn, time::interval};
 use stack_string::format_sstr;
-use std::fmt::Write;
+use std::{fmt::Write, net::SocketAddr, sync::Arc, time::Duration};
+use tokio::{task::spawn, time::interval};
 
 use aws_app_lib::{
     aws_app_interface::AwsAppInterface, config::Config, novnc_instance::NoVncInstance,
@@ -181,13 +180,13 @@ async fn run_app(config: &Config) -> Result<(), Error> {
 mod tests {
     use anyhow::Error;
     use maplit::hashmap;
+    use stack_string::format_sstr;
     use std::{
         env::{remove_var, set_var},
+        fmt::Write,
         time::Duration,
     };
     use tokio::{task::spawn, time::sleep};
-    use stack_string::format_sstr;
-    use std::fmt::Write;
 
     use auth_server_http::app::run_test_app;
 

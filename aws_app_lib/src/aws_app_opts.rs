@@ -2,11 +2,10 @@ use anyhow::{format_err, Error};
 use futures::future::try_join_all;
 use itertools::Itertools;
 use refinery::embed_migrations;
-use stack_string::{StackString, format_sstr};
-use std::{net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
+use stack_string::{format_sstr, StackString};
+use std::{fmt::Write, net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
 use structopt::StructOpt;
 use tokio::io::{stdin, AsyncReadExt};
-use std::fmt::Write;
 
 use crate::{
     aws_app_interface::AwsAppInterface,
@@ -259,7 +258,10 @@ impl AwsAppOpts {
                 for inst in instances {
                     app.stdout.send(format_sstr!(
                         "{:18} cpu: {:3} mem: {:6.2} {}",
-                        inst.instance_type, inst.n_cpu, inst.memory_gib, inst.generation,
+                        inst.instance_type,
+                        inst.n_cpu,
+                        inst.memory_gib,
+                        inst.generation,
                     ));
                 }
                 Ok(())
@@ -345,7 +347,8 @@ impl AwsAppOpts {
             }
             Self::UpdatePricing => {
                 let number_of_updates = app.pricing.update_all_prices(&app.pool).await?;
-                app.stdout.send(format_sstr!("{} updates", number_of_updates));
+                app.stdout
+                    .send(format_sstr!("{} updates", number_of_updates));
                 Ok(())
             }
             Self::Systemd { pattern } => {

@@ -6,13 +6,12 @@ use maplit::hashmap;
 use rweb::Schema;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use stack_string::{StackString, format_sstr};
+use stack_string::{format_sstr, StackString};
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
+    fmt::{Display, Write},
 };
 use tokio::try_join;
-use std::fmt::Write;
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
@@ -209,7 +208,8 @@ pub async fn get_frontpage(
                 .map(|(key, fingerprint)| {
                     format_sstr!(
                         r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
-                        key, fingerprint
+                        key,
+                        fingerprint
                     )
                     .into()
                 })
@@ -531,7 +531,10 @@ pub async fn get_frontpage(
                             if group_users.contains(u) {
                                 None
                             } else {
-                                Some(format_sstr!(r#"r#"<option value="{u}">{u}</option>"#, u = u))
+                                Some(format_sstr!(
+                                    r#"r#"<option value="{u}">{u}</option>"#,
+                                    u = u
+                                ))
                             }
                         })
                         .join("");
@@ -541,7 +544,8 @@ pub async fn get_frontpage(
                     } else {
                         format_sstr!(
                             r#"<select id="{}_user_opt">{}</select>"#,
-                            g.group_name, user_opts
+                            g.group_name,
+                            user_opts
                         )
                     };
 

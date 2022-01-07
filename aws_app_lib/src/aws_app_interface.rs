@@ -3,15 +3,14 @@ use chrono::Local;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use stack_string::{StackString, format_sstr};
+use stack_string::{format_sstr, StackString};
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
+    fmt::{Display, Write},
 };
 use stdout_channel::StdoutChannel;
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
-use std::fmt::Write;
 
 use crate::{
     config::Config,
@@ -150,8 +149,10 @@ impl AwsAppInterface {
                 if reserved.is_empty() {
                     return Ok(());
                 }
-                self.stdout
-                    .send(format_sstr!("---\nGet Reserved Instance\n---\n{}", reserved));
+                self.stdout.send(format_sstr!(
+                    "---\nGet Reserved Instance\n---\n{}",
+                    reserved
+                ));
             }
             ResourceType::Spot => {
                 let requests = self
@@ -261,7 +262,8 @@ impl AwsAppInterface {
                 if snapshots.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send(format_sstr!("---\nSnapshots:\n{}", snapshots));
+                self.stdout
+                    .send(format_sstr!("---\nSnapshots:\n{}", snapshots));
             }
             ResourceType::Ecr => {
                 let futures = self
@@ -291,7 +293,8 @@ impl AwsAppInterface {
                 if results.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send(format_sstr!("---\nECR images:\n{}", results));
+                self.stdout
+                    .send(format_sstr!("---\nECR images:\n{}", results));
             }
             ResourceType::Script => {
                 self.stdout.send(format_sstr!(
@@ -307,7 +310,10 @@ impl AwsAppInterface {
                     .map(|u| {
                         format_sstr!(
                             "{} {} {:30} {:60}",
-                            u.user_id, u.create_date, u.user_name, u.arn,
+                            u.user_id,
+                            u.create_date,
+                            u.user_name,
+                            u.arn,
                         )
                     })
                     .join("\n");
@@ -321,7 +327,10 @@ impl AwsAppInterface {
                     .map(|g| {
                         format_sstr!(
                             "{} {} {:30} {:60}",
-                            g.group_id, g.create_date, g.group_name, g.arn,
+                            g.group_id,
+                            g.create_date,
+                            g.group_name,
+                            g.arn,
                         )
                     })
                     .join("\n");
@@ -350,7 +359,8 @@ impl AwsAppInterface {
                             .join("\n")
                     })
                     .join("\n");
-                self.stdout.send(format_sstr!("---\nAccess Keys:\n{}", keys));
+                self.stdout
+                    .send(format_sstr!("---\nAccess Keys:\n{}", keys));
             }
             ResourceType::Route53 => {
                 let current_ip = self.route53.get_ip_address().await?;
@@ -761,7 +771,10 @@ impl AwsAppInterface {
 }
 
 fn print_tags(tags: &HashMap<impl Display, impl Display>) -> StackString {
-    let results: Vec<_> = tags.iter().map(|(k, v)| format_sstr!("{}={}", k, v)).collect();
+    let results: Vec<_> = tags
+        .iter()
+        .map(|(k, v)| format_sstr!("{}={}", k, v))
+        .collect();
     results.join(", ").into()
 }
 
