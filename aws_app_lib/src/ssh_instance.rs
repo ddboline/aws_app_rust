@@ -1,12 +1,13 @@
 use anyhow::{format_err, Error};
 use lazy_static::lazy_static;
 use log::debug;
-use stack_string::StackString;
+use stack_string::{StackString, format_sstr};
 use std::collections::HashMap;
 use tokio::{
     process::Command,
     sync::{Mutex, RwLock},
 };
+use std::fmt::Write;
 
 lazy_static! {
     static ref LOCK_CACHE: RwLock<HashMap<StackString, Mutex<()>>> = RwLock::new(HashMap::new());
@@ -39,9 +40,9 @@ impl SSHInstance {
 
     pub fn get_ssh_username_host(&self) -> Result<StackString, Error> {
         let ssh_str = if self.port == 22 {
-            format!("{}@{}", self.user, self.host).into()
+            format_sstr!("{}@{}", self.user, self.host)
         } else {
-            format!("-p {} {}@{}", self.port, self.user, self.host).into()
+            format_sstr!("-p {} {}@{}", self.port, self.user, self.host)
         };
 
         Ok(ssh_str)

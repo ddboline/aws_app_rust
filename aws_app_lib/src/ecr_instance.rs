@@ -6,9 +6,10 @@ use rusoto_ecr::{
     BatchDeleteImageRequest, DescribeImagesRequest, DescribeRepositoriesRequest, Ecr, EcrClient,
     ImageIdentifier,
 };
-use stack_string::StackString;
+use stack_string::{StackString, format_sstr};
 use std::{fmt, sync::Arc};
 use sts_profile_auth::get_client_sts;
+use std::fmt::Write;
 
 use crate::config::Config;
 
@@ -160,11 +161,11 @@ pub struct ImageInfo {
 
 impl ImageInfo {
     pub fn get_html_string(&self) -> StackString {
-        format!(
+        format_sstr!(
             r#"<tr style="text-align: center;">
             <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{:0.2} MB</td>
             </tr>"#,
-            format!(
+            format_sstr!(
                 r#"<input type="button" name="DeleteEcrImage" value="DeleteEcrImage"
                     onclick="deleteEcrImage('{}', '{}')">"#,
                 self.repo, self.digest,
@@ -175,6 +176,5 @@ impl ImageInfo {
             self.pushed_at,
             self.image_size,
         )
-        .into()
     }
 }

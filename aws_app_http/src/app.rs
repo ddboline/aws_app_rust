@@ -7,6 +7,8 @@ use rweb::{
 };
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
+use stack_string::format_sstr;
+use std::fmt::Write;
 
 use aws_app_lib::{
     aws_app_interface::AwsAppInterface, config::Config, novnc_instance::NoVncInstance,
@@ -170,7 +172,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .or(spec_json_path)
         .or(spec_yaml_path)
         .recover(error_response);
-    let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
+    let addr: SocketAddr = format_sstr!("{}:{}", config.host, config.port).parse()?;
     rweb::serve(routes).bind(addr).await;
     update_handle.await.map_err(Into::into)
 }
@@ -184,6 +186,8 @@ mod tests {
         time::Duration,
     };
     use tokio::{task::spawn, time::sleep};
+    use stack_string::format_sstr;
+    use std::fmt::Write;
 
     use auth_server_http::app::run_test_app;
 
@@ -229,13 +233,13 @@ mod tests {
         sleep(Duration::from_secs(10)).await;
 
         let client = reqwest::Client::builder().cookie_store(true).build()?;
-        let url = format!("http://localhost:{}/api/auth", auth_port);
+        let url = format_sstr!("http://localhost:{}/api/auth", auth_port);
         let data = hashmap! {
             "email" => &email,
             "password" => &password,
         };
         let result = client
-            .post(&url)
+            .post(url.as_str())
             .json(&data)
             .send()
             .await?
@@ -244,9 +248,9 @@ mod tests {
             .await?;
         println!("{}", result);
 
-        let url = format!("http://localhost:{}/aws/index.html", test_port);
+        let url = format_sstr!("http://localhost:{}/aws/index.html", test_port);
         let result = client
-            .get(&url)
+            .get(url.as_str())
             .send()
             .await?
             .error_for_status()?
@@ -269,9 +273,9 @@ mod tests {
             (ResourceType::Group, "Group ID"),
             (ResourceType::AccessKey, "Key ID"),
         ] {
-            let url = format!("http://localhost:{}/aws/list?resource={}", test_port, rtype);
+            let url = format_sstr!("http://localhost:{}/aws/list?resource={}", test_port, rtype);
             let result = client
-                .get(&url)
+                .get(url.as_str())
                 .send()
                 .await?
                 .error_for_status()?

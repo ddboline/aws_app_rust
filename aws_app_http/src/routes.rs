@@ -6,7 +6,7 @@ use rweb_helper::{
     html_response::HtmlResponse as HtmlBase, json_response::JsonResponse as JsonBase, RwebResponse,
 };
 use serde::{Deserialize, Serialize};
-use stack_string::StackString;
+use stack_string::{StackString, format_sstr};
 use std::{
     fmt::{Display, Write},
     path::Path,
@@ -229,7 +229,7 @@ pub struct ScriptFilename {
 
 #[derive(RwebResponse)]
 #[response(description = "Edit Script", content = "html")]
-struct EditScriptResponse(HtmlBase<String, Error>);
+struct EditScriptResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/edit_script")]
 pub async fn edit_script(
@@ -247,7 +247,7 @@ pub async fn edit_script(
         String::new()
     };
     let rows = text.split('\n').count() + 5;
-    let body = format!(
+    let body = format_sstr!(
         r#"
         <textarea name="message" id="script_editor_form" rows={rows} cols=100
         form="script_edit_form">{text}</textarea><br>
@@ -327,7 +327,7 @@ where
 
 #[derive(RwebResponse)]
 #[response(description = "Spot Request", content = "html")]
-struct BuildSpotResponse(HtmlBase<String, Error>);
+struct BuildSpotResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/build_spot_request")]
 pub async fn build_spot_request(
@@ -353,7 +353,7 @@ pub async fn build_spot_request(
 
     let amis = amis
         .into_iter()
-        .map(|ami| format!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
+        .map(|ami| format_sstr!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
         .join("\n");
 
     let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
@@ -371,7 +371,7 @@ pub async fn build_spot_request(
 
     let inst_fam = inst_fam
         .into_iter()
-        .map(|fam| format!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
+        .map(|fam| format_sstr!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
         .join("\n");
 
     let inst = query.inst.unwrap_or_else(|| "t3".into());
@@ -379,7 +379,7 @@ pub async fn build_spot_request(
         .await
         .map_err(Into::<Error>::into)?
         .into_iter()
-        .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+        .map(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .join("\n");
 
     let mut files = data.aws.get_all_scripts().map_err(Into::<Error>::into)?;
@@ -390,7 +390,7 @@ pub async fn build_spot_request(
 
     let files = files
         .into_iter()
-        .map(|f| format!(r#"<option value="{f}">{f}</option>"#, f = f))
+        .map(|f| format_sstr!(r#"<option value="{f}">{f}</option>"#, f = f))
         .join("\n");
 
     let keys = data
@@ -399,10 +399,10 @@ pub async fn build_spot_request(
         .get_all_key_pairs()
         .await
         .map_err(Into::<Error>::into)?
-        .map(|k| format!(r#"<option value="{k}">{k}</option>"#, k = k.0))
+        .map(|k| format_sstr!(r#"<option value="{k}">{k}</option>"#, k = k.0))
         .join("\n");
 
-    let body = format!(
+    let body = format_sstr!(
         r#"
             <form action="javascript:createScript()">
             Ami: <select id="ami">{ami}</select><br>
@@ -501,7 +501,7 @@ pub struct CancelSpotRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "Cancelled Spot", content = "html")]
-struct CancelledResponse(HtmlBase<String, Error>);
+struct CancelledResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/cancel_spot")]
 pub async fn cancel_spot(
@@ -515,7 +515,7 @@ pub async fn cancel_spot(
         .cancel_spot_instance_request(&[query.spot_id.clone()])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!("cancelled {}", query.spot_id)).into())
+    Ok(HtmlBase::new(format_sstr!("cancelled {}", query.spot_id)).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -526,7 +526,7 @@ pub struct PriceRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "Prices", content = "html")]
-struct PricesResponse(HtmlBase<String, Error>);
+struct PricesResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/prices")]
 pub async fn get_prices(
@@ -543,7 +543,7 @@ pub async fn get_prices(
     let inst_fam = inst_fam
         .into_iter()
         .map(|fam| {
-            format!(
+            format_sstr!(
                 r#"<option value="{n}.">{n} : {t}</option>"#,
                 n = fam.family_name,
                 t = fam.family_type,
@@ -557,7 +557,7 @@ pub async fn get_prices(
             ?
             .into_iter()
             .map(|price| {
-                format!(
+                format_sstr!(
                     r#"
                     <tr style="text-align: center;">
                         <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
@@ -565,35 +565,29 @@ pub async fn get_prices(
                     </tr>
                     "#,
                     if let Some(data_url) = price.data_url {
-                        format!(r#"<a href="{}" target="_blank">{}</a>"#, data_url, price.instance_type).into()
+                        format_sstr!(r#"<a href="{}" target="_blank">{}</a>"#, data_url, price.instance_type).into()
                     } else {
-                        StackString::from_display(&price.instance_type).unwrap()
+                        StackString::from_display(&price.instance_type)
                     },
                     {
-                        let mut s = StackString::new();
                         if let Some(p) = price.ondemand_price {
-                            write!(s, "${:0.4}/hr", p).unwrap();
-                        }
-                        s
+                            format_sstr!("${:0.4}/hr", p)
+                        } else {"".into()}
                     },
                     {
-                        let mut s = StackString::new();
                         if let Some(p) = price.spot_price {
-                            write!(s, "${:0.4}/hr", p).unwrap();
-                        }
-                        s
+                            format_sstr!("${:0.4}/hr", p)
+                        } else {"".into()}
                     },
                     {
-                        let mut s = StackString::new();
                         if let Some(p) = price.reserved_price {
-                            write!(s, "${:0.4}/hr", p).unwrap();
-                        }
-                        s
+                            format_sstr!("${:0.4}/hr", p)
+                        } else {"".into()}
                     },
                     price.ncpu,
                     price.memory,
                     price.instance_family,
-                    format!(
+                    format_sstr!(
                         r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest(null, '{}', null)">"#,
                         price.instance_type,
                     ),
@@ -605,7 +599,7 @@ pub async fn get_prices(
     };
 
     let body = if prices.is_empty() {
-        format!(
+        format_sstr!(
             r#"
                 <form action="javascript:listPrices()">
                 <select id="inst_fam" onchange="listPrices();">{}</select><br>
@@ -614,7 +608,7 @@ pub async fn get_prices(
             inst_fam,
         )
     } else {
-        format!(
+        format_sstr!(
             r#"<table border="1" class="dataframe"><thead>{}</thead><tbody>{}</tbody></table>"#,
             r#"
                 <tr>
@@ -636,7 +630,7 @@ pub async fn get_prices(
 
 #[derive(RwebResponse)]
 #[response(description = "Update", content = "html")]
-struct UpdateResponse(HtmlBase<String, Error>);
+struct UpdateResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/update")]
 pub async fn update(
@@ -649,7 +643,7 @@ pub async fn update(
         .await
         .map_err(Into::<Error>::into)?
         .collect();
-    let body = format!(
+    let body = format_sstr!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
             rows={} cols=100>{}</textarea>"#,
@@ -661,7 +655,7 @@ pub async fn update(
 
 #[derive(RwebResponse)]
 #[response(description = "Instance Status", content = "html")]
-struct InstanceStatusResponse(HtmlBase<String, Error>);
+struct InstanceStatusResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/instance_status")]
 pub async fn instance_status(
@@ -680,11 +674,11 @@ pub async fn instance_status(
         Err(_) => Err(format_err!("Timeout")),
     }
     .map_err(Into::<Error>::into)?;
-    let body = format!(
+    let body = format_sstr!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
             rows={} cols=100>{}</textarea>"#,
-        format!(
+        format_sstr!(
             r#"
             <form action="javascript:runCommand('{host}')">
             <input type="text" name="command_text" id="command_text"/>
@@ -701,7 +695,7 @@ pub async fn instance_status(
 
 #[derive(RwebResponse)]
 #[response(description = "Run Command on Instance", content = "html")]
-struct CommandResponse(HtmlBase<String, Error>);
+struct CommandResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/command")]
 pub async fn command(
@@ -721,11 +715,11 @@ pub async fn command(
     }
     .map_err(Into::<Error>::into)?;
 
-    let body = format!(
+    let body = format_sstr!(
         r#"{}<br><textarea autofocus readonly="readonly"
             name="message" id="diary_editor_form"
             rows={} cols=100>{}</textarea>"#,
-        format!(
+        format_sstr!(
             r#"
                 <form action="javascript:runCommand('{host}')">
                 <input type="text" name="command_text" id="command_text"/>
@@ -761,7 +755,7 @@ pub async fn get_instances(
         .await
         .map_err(Into::<Error>::into)?
         .into_iter()
-        .map(|i| format!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+        .map(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .join("\n");
     Ok(HtmlBase::new(instances).into())
 }
@@ -770,9 +764,9 @@ async fn novnc_status_response(
     novnc: &NoVncInstance,
     number: usize,
     domain: impl Display,
-) -> Result<String, Error> {
+) -> Result<StackString, Error> {
     let pids = novnc.get_websock_pids().await?;
-    Ok(format!(
+    Ok(format_sstr!(
         r#"{} processes currenty running {:?}
             <br>
             <a href="https://{}:8787/vnc.html" target="_blank">Connect to NoVNC</a>
@@ -785,7 +779,7 @@ async fn novnc_status_response(
 
 #[derive(RwebResponse)]
 #[response(description = "Start NoVNC", content = "html")]
-struct NovncStartResponse(HtmlBase<String, Error>);
+struct NovncStartResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/novnc/start")]
 pub async fn novnc_launcher(
@@ -804,13 +798,13 @@ pub async fn novnc_launcher(
         let body = novnc_status_response(&data.novnc, number, &data.aws.config.domain).await?;
         Ok(HtmlBase::new(body).into())
     } else {
-        Ok(HtmlBase::new("NoVNC not configured".to_string()).into())
+        Ok(HtmlBase::new("NoVNC not configured".into()).into())
     }
 }
 
 #[derive(RwebResponse)]
 #[response(description = "Stop NoVNC", content = "html")]
-struct NovncStopResponse(HtmlBase<String, Error>);
+struct NovncStopResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/novnc/stop")]
 pub async fn novnc_shutdown(
@@ -818,14 +812,14 @@ pub async fn novnc_shutdown(
     #[data] data: AppState,
 ) -> WarpResult<NovncStopResponse> {
     if data.aws.config.novnc_path.is_none() {
-        return Ok(HtmlBase::new("NoVNC not configured".to_string()).into());
+        return Ok(HtmlBase::new("NoVNC not configured".into()).into());
     }
     let output = data
         .novnc
         .novnc_stop_request()
         .await
         .map_err(Into::<Error>::into)?;
-    let body = format!(
+    let body = format_sstr!(
         "<textarea cols=100 rows=50>{}</textarea>",
         output.join("\n")
     );
@@ -834,7 +828,7 @@ pub async fn novnc_shutdown(
 
 #[derive(RwebResponse)]
 #[response(description = "NoVNC Status", content = "html")]
-struct NovncStatusResponse(HtmlBase<String, Error>);
+struct NovncStatusResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/novnc/status")]
 pub async fn novnc_status(
@@ -842,13 +836,13 @@ pub async fn novnc_status(
     #[data] data: AppState,
 ) -> WarpResult<NovncStatusResponse> {
     if data.aws.config.novnc_path.is_none() {
-        return Ok(HtmlBase::new("NoVNC not configured".to_string()).into());
+        return Ok(HtmlBase::new("NoVNC not configured".into()).into());
     }
     let number = data.novnc.get_novnc_status().await;
     let body = if number == 0 {
         r#"
             <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
-        "#.to_string()
+        "#.into()
     } else {
         novnc_status_response(&data.novnc, number, &data.aws.config.domain)
             .await
@@ -895,7 +889,7 @@ pub async fn create_user(
 
 #[derive(RwebResponse)]
 #[response(description = "Delete Iam User", content = "html")]
-struct DeleteUserResponse(HtmlBase<String, Error>);
+struct DeleteUserResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/delete_user")]
 pub async fn delete_user(
@@ -908,7 +902,7 @@ pub async fn delete_user(
         .delete_user(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!("{} deleted", query.user_name)).into())
+    Ok(HtmlBase::new(format_sstr!("{} deleted", query.user_name)).into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -921,7 +915,7 @@ pub struct AddUserToGroupRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "Add User to Group", content = "html")]
-struct AddUserGroupResponse(HtmlBase<String, Error>);
+struct AddUserGroupResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/add_user_to_group")]
 pub async fn add_user_to_group(
@@ -934,12 +928,12 @@ pub async fn add_user_to_group(
         .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!("added {} to {}", query.user_name, query.group_name)).into())
+    Ok(HtmlBase::new(format_sstr!("added {} to {}", query.user_name, query.group_name)).into())
 }
 
 #[derive(RwebResponse)]
 #[response(description = "Remove User to Group", content = "html")]
-struct RemoveUserGroupResponse(HtmlBase<String, Error>);
+struct RemoveUserGroupResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/remove_user_from_group")]
 pub async fn remove_user_from_group(
@@ -952,7 +946,7 @@ pub async fn remove_user_from_group(
         .remove_user_from_group(query.user_name.as_str(), query.group_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!(
+    Ok(HtmlBase::new(format_sstr!(
         "removed {} from {}",
         query.user_name, query.group_name
     ))
@@ -988,7 +982,7 @@ pub async fn create_access_key(
 
 #[derive(RwebResponse)]
 #[response(description = "Delete Access Key", content = "html")]
-struct DeleteKeyResponse(HtmlBase<String, Error>);
+struct DeleteKeyResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/delete_access_key")]
 pub async fn delete_access_key(
@@ -1001,7 +995,7 @@ pub async fn delete_access_key(
         .delete_access_key(query.user_name.as_str(), query.access_key_id.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!(
+    Ok(HtmlBase::new(format_sstr!(
         "delete {} for {}",
         query.access_key_id, query.user_name
     ))
@@ -1022,7 +1016,7 @@ pub struct UpdateDnsNameRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "Update Dns", status = "CREATED", content = "html")]
-struct UpdateDnsResponse(HtmlBase<String, Error>);
+struct UpdateDnsResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/update_dns_name")]
 pub async fn update_dns_name(
@@ -1041,7 +1035,7 @@ pub async fn update_dns_name(
         )
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new(format!(
+    Ok(HtmlBase::new(format_sstr!(
         "update {} from {} to {}",
         query.dns_name, query.old_ip, query.new_ip
     ))
@@ -1142,7 +1136,7 @@ pub async fn systemd_restart_all(
 
 #[derive(RwebResponse)]
 #[response(description = "Get Systemd Logs", content = "html")]
-struct SystemdLogResponse(HtmlBase<String, Error>);
+struct SystemdLogResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/systemd_logs/{service}")]
 pub async fn systemd_logs(
@@ -1159,7 +1153,7 @@ pub async fn systemd_logs(
         .into_iter()
         .map(|log| log.to_string())
         .join("\n");
-    let body = format!(
+    let body = format_sstr!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="systemd_logs"
             rows=50 cols=100>{}</textarea>"#,
@@ -1170,7 +1164,7 @@ pub async fn systemd_logs(
 
 #[derive(RwebResponse)]
 #[response(description = "Get Crontab Logs", content = "html")]
-struct CrontabLogResponse(HtmlBase<String, Error>);
+struct CrontabLogResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/crontab_logs/{crontab_type}")]
 pub async fn crontab_logs(
@@ -1189,7 +1183,7 @@ pub async fn crontab_logs(
     } else {
         String::new()
     };
-    let body = format!(
+    let body = format_sstr!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="systemd_logs"
             rows=50 cols=100>{}</textarea>"#,

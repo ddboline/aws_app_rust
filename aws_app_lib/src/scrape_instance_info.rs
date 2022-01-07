@@ -7,8 +7,9 @@ use select::{
     node::Node,
     predicate::{Class, Name},
 };
-use stack_string::StackString;
+use stack_string::{StackString, format_sstr};
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use crate::{
     models::{AwsGeneration, InstanceFamily, InstanceList},
@@ -117,7 +118,7 @@ async fn insert_result(
 ) -> Result<Vec<StackString>, Error> {
     let fam = instance_families.into_iter().map(|t| async move {
         if t.upsert_entry(pool).await?.is_some() {
-            Ok(Some(format!("{:?}", t).into()))
+            Ok(Some(format_sstr!("{:?}", t)))
         } else {
             Ok(None)
         }
@@ -125,7 +126,7 @@ async fn insert_result(
     let fam: Result<Vec<_>, Error> = try_join_all(fam).await;
     let typ = instance_types.into_iter().map(|t| async move {
         if t.upsert_entry(pool).await?.is_some() {
-            Ok(Some(format!("{:?}", t).into()))
+            Ok(Some(format_sstr!("{:?}", t)))
         } else {
             Ok(None)
         }

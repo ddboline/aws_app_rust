@@ -4,8 +4,9 @@ use futures::future::try_join_all;
 use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
-use stack_string::StackString;
+use stack_string::{StackString, format_sstr};
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use crate::{
     models::{InstancePricing, PricingType},
@@ -18,10 +19,10 @@ pub async fn scrape_pricing_info(
 ) -> Result<Vec<StackString>, Error> {
     let mut output = Vec::new();
     let url = extract_json_url(get_url(ptype)?).await?;
-    output.push(format!("url {}", url).into());
+    output.push(format_sstr!("url {}", url));
     let js: PricingJson = reqwest::get(url).await?.json().await?;
     let results = parse_json(js, ptype);
-    output.push(format!("{}", results.len()).into());
+    output.push(format_sstr!("{}", results.len()));
 
     let results = results
         .into_iter()

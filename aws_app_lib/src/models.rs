@@ -373,7 +373,7 @@ impl fmt::Display for PricingType {
 
 impl From<PricingType> for StackString {
     fn from(p: PricingType) -> Self {
-        StackString::from_display(p).unwrap()
+        p.to_str().into()
     }
 }
 
