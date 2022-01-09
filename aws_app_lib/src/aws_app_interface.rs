@@ -109,7 +109,7 @@ impl AwsAppInterface {
                     .iter()
                     .map(|inst| {
                         let name = inst.tags.get("Name");
-                        let name = name.as_ref().map_or_else(|| "", |x| x.as_ref());
+                        let name = name.as_ref().map_or_else(|| "", AsRef::as_ref);
                         format_sstr!(
                             "{} {} {} {} {} {} {} {}",
                             inst.id,
@@ -142,7 +142,7 @@ impl AwsAppInterface {
                             res.state,
                             res.availability_zone
                                 .as_ref()
-                                .map_or_else(|| "", |s| s.as_ref())
+                                .map_or_else(|| "", AsRef::as_ref)
                         )
                     })
                     .join("\n");
@@ -279,7 +279,7 @@ impl AwsAppInterface {
                                 format_sstr!(
                                     "{} {} {} {} {:0.2} MB",
                                     repo,
-                                    image.tags.get(0).map_or_else(|| "None", |s| s.as_ref()),
+                                    image.tags.get(0).map_or_else(|| "None", AsRef::as_ref),
                                     image.digest,
                                     image.pushed_at,
                                     image.image_size,
@@ -592,7 +592,7 @@ impl AwsAppInterface {
 
     pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
         let ami_map = self.ec2.get_ami_map().await?;
-        let ami = ami_map.get(ami).map_or(ami, |a| a.as_ref());
+        let ami = ami_map.get(ami).map_or(ami, AsRef::as_ref);
         self.ec2.delete_image(ami).await
     }
 
@@ -783,7 +783,7 @@ fn map_or_val<'a>(
     id: &'a impl AsRef<str>,
 ) -> &'a str {
     let id = id.as_ref();
-    name_map.get(id).map_or(id, |id_| id_.as_ref())
+    name_map.get(id).map_or(id, AsRef::as_ref)
 }
 
 async fn get_name_map() -> Result<HashMap<StackString, StackString>, Error> {

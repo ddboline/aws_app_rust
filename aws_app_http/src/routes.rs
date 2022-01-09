@@ -111,7 +111,7 @@ pub async fn create_image(
         .create_image(query.inst_id, query.name)
         .await
         .map_err(Into::<Error>::into)?
-        .map_or_else(|| "failed to create ami".into(), |ami_id| ami_id.into());
+        .map_or_else(|| "failed to create ami".into(), Into::into);
     Ok(HtmlBase::new(body).into())
 }
 

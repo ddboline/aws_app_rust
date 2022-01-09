@@ -112,7 +112,7 @@ impl Ec2Instance {
                                 .block_device_mappings?
                                 .into_iter()
                                 .filter_map(|block| {
-                                    block.ebs.and_then(|b| b.snapshot_id.map(|s| s.into()))
+                                    block.ebs.and_then(|b| b.snapshot_id.map(Into::into))
                                 })
                                 .collect(),
                         })
@@ -156,7 +156,7 @@ impl Ec2Instance {
                     snapshot_ids: image
                         .block_device_mappings?
                         .into_iter()
-                        .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id.map(|s| s.into())))
+                        .filter_map(|block| block.ebs.and_then(|b| b.snapshot_id.map(Into::into)))
                         .collect(),
                 })
             })

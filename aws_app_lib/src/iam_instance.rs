@@ -54,7 +54,7 @@ impl IamInstance {
     pub async fn get_user(&self, user_name: Option<impl Into<String>>) -> Result<IamUser, Error> {
         self.iam_client
             .get_user(GetUserRequest {
-                user_name: user_name.map(|s| s.into()),
+                user_name: user_name.map(Into::into),
             })
             .await
             .map(|x| x.user.into())

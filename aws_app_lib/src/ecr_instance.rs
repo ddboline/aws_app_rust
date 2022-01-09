@@ -92,7 +92,7 @@ impl EcrInstance {
                             .image_tags
                             .unwrap_or_else(Vec::new)
                             .into_iter()
-                            .map(|s| s.into())
+                            .map(Into::into)
                             .collect();
                         Some(ImageInfo {
                             repo: (*reponame).clone(),
@@ -135,7 +135,7 @@ impl EcrInstance {
         let futures = self.get_all_repositories().await?.map(|repo| async move {
             let imageids = self.get_all_images(repo.clone()).await?.filter_map(|i| {
                 if i.tags.is_empty() {
-                    Some(i.digest.clone())
+                    Some(i.digest)
                 } else {
                     None
                 }
