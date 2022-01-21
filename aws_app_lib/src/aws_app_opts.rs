@@ -268,7 +268,7 @@ impl AwsAppOpts {
             }
             Self::CreateImage { instance_id, name } => {
                 if let Some(id) = app.create_image(instance_id, name).await? {
-                    app.stdout.send(format_sstr!("New id {}", id));
+                    app.stdout.send(format_sstr!("New id {id}"));
                 }
                 Ok(())
             }
@@ -279,9 +279,9 @@ impl AwsAppOpts {
                 snapid,
             } => {
                 app.stdout
-                    .send(format_sstr!("{:?} {} {:?}", size, zoneid, snapid));
+                    .send(format_sstr!("{size:?} {zoneid} {snapid:?}"));
                 if let Some(id) = app.create_ebs_volume(zoneid, size, snapid).await? {
-                    app.stdout.send(format_sstr!("Created Volume {}", id));
+                    app.stdout.send(format_sstr!("Created Volume {id}"));
                 }
                 Ok(())
             }
@@ -295,13 +295,13 @@ impl AwsAppOpts {
             Self::ModifyVolume { volid, size } => app.modify_ebs_volume(volid, size).await,
             Self::CreateUser { user_name } => {
                 if let Some(user) = app.create_user(user_name.as_str()).await? {
-                    app.stdout.send(format_sstr!("{:?}", user));
+                    app.stdout.send(format_sstr!("{user:?}"));
                 }
                 Ok(())
             }
             Self::CreateSnapshot { volid, tags } => {
                 if let Some(id) = app.create_ebs_snapshot(volid, &get_tags(&tags)).await? {
-                    app.stdout.send(format_sstr!("Created snapshot {}", id));
+                    app.stdout.send(format_sstr!("Created snapshot {id}"));
                 }
                 Ok(())
             }
@@ -323,7 +323,7 @@ impl AwsAppOpts {
                 dnsname,
                 new_ip,
             } => {
-                let record_name = format_sstr!("{}.", dnsname);
+                let record_name = format_sstr!("{dnsname}.");
                 let old_ip = app
                     .route53
                     .list_record_sets(&zone)
@@ -347,8 +347,7 @@ impl AwsAppOpts {
             }
             Self::UpdatePricing => {
                 let number_of_updates = app.pricing.update_all_prices(&app.pool).await?;
-                app.stdout
-                    .send(format_sstr!("{} updates", number_of_updates));
+                app.stdout.send(format_sstr!("{number_of_updates} updates"));
                 Ok(())
             }
             Self::Systemd { pattern } => {
@@ -360,15 +359,15 @@ impl AwsAppOpts {
                         .await?
                         .into_iter()
                         .join("\n");
-                    app.stdout.send(format_sstr!("{}", stat));
+                    app.stdout.send(format_sstr!("{stat}"));
                     app.stdout.send(log);
                 } else {
                     let services = systemd.list_running_services().await?;
                     for service in &app.config.systemd_services {
                         if let Some(val) = services.get(service) {
-                            app.stdout.send(format_sstr!("{} {}", service, val));
+                            app.stdout.send(format_sstr!("{service} {val}"));
                         } else {
-                            app.stdout.send(format_sstr!("{} not running", service));
+                            app.stdout.send(format_sstr!("{service} not running"));
                         }
                     }
                 }

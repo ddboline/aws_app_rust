@@ -137,7 +137,7 @@ impl RunStatus {
 
 impl fmt::Display for RunStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_str())
+        f.write_str(self.to_str())
     }
 }
 

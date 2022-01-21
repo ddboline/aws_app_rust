@@ -232,7 +232,7 @@ mod tests {
         sleep(Duration::from_secs(10)).await;
 
         let client = reqwest::Client::builder().cookie_store(true).build()?;
-        let url = format_sstr!("http://localhost:{}/api/auth", auth_port);
+        let url = format_sstr!("http://localhost:{auth_port}/api/auth");
         let data = hashmap! {
             "email" => &email,
             "password" => &password,
@@ -247,7 +247,7 @@ mod tests {
             .await?;
         println!("{}", result);
 
-        let url = format_sstr!("http://localhost:{}/aws/index.html", test_port);
+        let url = format_sstr!("http://localhost:{test_port}/aws/index.html");
         let result = client
             .get(url.as_str())
             .send()
@@ -272,7 +272,7 @@ mod tests {
             (ResourceType::Group, "Group ID"),
             (ResourceType::AccessKey, "Key ID"),
         ] {
-            let url = format_sstr!("http://localhost:{}/aws/list?resource={}", test_port, rtype);
+            let url = format_sstr!("http://localhost:{test_port}/aws/list?resource={rtype}");
             let result = client
                 .get(url.as_str())
                 .send()

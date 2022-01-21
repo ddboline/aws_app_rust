@@ -18,7 +18,7 @@ pub struct Route53Instance {
 
 impl fmt::Debug for Route53Instance {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Route53Instance")
+        f.write_str("Route53Instance")
     }
 }
 

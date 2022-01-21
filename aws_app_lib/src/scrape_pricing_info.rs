@@ -18,7 +18,7 @@ pub async fn scrape_pricing_info(
 ) -> Result<Vec<StackString>, Error> {
     let mut output = Vec::new();
     let url = extract_json_url(get_url(ptype)?).await?;
-    output.push(format_sstr!("url {}", url));
+    output.push(format_sstr!("url {url}"));
     let js: PricingJson = reqwest::get(url).await?.json().await?;
     let results = parse_json(js, ptype);
     output.push(format_sstr!("{}", results.len()));

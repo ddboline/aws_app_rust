@@ -20,7 +20,7 @@ pub struct EcrInstance {
 
 impl fmt::Debug for EcrInstance {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "EcrInstance")
+        f.write_str("EcrInstance")
     }
 }
 

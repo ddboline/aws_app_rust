@@ -238,7 +238,8 @@ pub async fn edit_script(
     query: Query<ScriptFilename>,
 ) -> WarpResult<EditScriptResponse> {
     let query = query.into_inner();
-    let filename = data.aws.config.script_directory.join(&query.filename);
+    let fname = &query.filename;
+    let filename = data.aws.config.script_directory.join(&fname);
     let text = if filename.exists() {
         read_to_string(&filename)
             .await
@@ -255,10 +256,7 @@ pub async fn edit_script(
         <input type="button" name="update" value="Update" onclick="submitFormData('{fname}')">
         <input type="button" name="cancel" value="Cancel" onclick="listResource('script')">
         <input type="button" name="Request" value="Request" onclick="updateScriptAndBuildSpotRequest('{fname}')">
-        </form>"#,
-        text = text,
-        fname = &query.filename,
-        rows = rows,
+        </form>"#
     );
     Ok(HtmlBase::new(body).into())
 }
@@ -390,7 +388,7 @@ pub async fn build_spot_request(
 
     let files = files
         .into_iter()
-        .map(|f| format_sstr!(r#"<option value="{f}">{f}</option>"#, f = f))
+        .map(|f| format_sstr!(r#"<option value="{f}">{f}</option>"#))
         .join("\n");
 
     let keys = data
@@ -405,22 +403,19 @@ pub async fn build_spot_request(
     let body = format_sstr!(
         r#"
             <form action="javascript:createScript()">
-            Ami: <select id="ami">{ami}</select><br>
+            Ami: <select id="ami">{amis}</select><br>
             Instance family: <select id="inst_fam" onchange="instanceOptions()">{inst_fam}</select><br>
-            Instance type: <select id="instance_type">{inst}</select><br>
+            Instance type: <select id="instance_type">{instances}</select><br>
             Security group: <input type="text" name="security_group" id="security_group" 
                 value="{sec}"/><br>
-            Script: <select id="script">{script}</select><br>
-            Key: <select id="key">{key}</select><br>
+            Script: <select id="script">{files}</select><br>
+            Key: <select id="key">{keys}</select><br>
             Price: <input type="text" name="price" id="price" value="{price}"/><br>
             Name: <input type="text" name="name" id="name"/><br>
             <input type="button" name="create_request" value="Request"
                 onclick="requestSpotInstance();"/><br>
             </form>
         "#,
-        ami = amis,
-        inst_fam = inst_fam,
-        inst = instances,
         sec = data
             .aws
             .config
@@ -432,8 +427,6 @@ pub async fn build_spot_request(
                 .default_security_group
                 .as_ref()
                 .expect("NO DEFAULT_SECURITY_GROUP")),
-        script = files,
-        key = keys,
         price = data.aws.config.max_spot_price,
     );
     Ok(HtmlBase::new(body).into())
@@ -557,39 +550,38 @@ pub async fn get_prices(
             ?
             .into_iter()
             .map(|price| {
+                let instance_type = &price.instance_type;
                 format_sstr!(
                     r#"
                     <tr style="text-align: center;">
                         <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
                         <td>{}</td>
-                    </tr>
-                    "#,
+                    </tr>"#,
                     if let Some(data_url) = price.data_url {
-                        format_sstr!(r#"<a href="{}" target="_blank">{}</a>"#, data_url, price.instance_type).into()
+                        format_sstr!(r#"<a href="{data_url}" target="_blank">{instance_type}</a>"#).into()
                     } else {
-                        StackString::from_display(&price.instance_type)
+                        StackString::from_display(instance_type)
                     },
                     {
                         if let Some(p) = price.ondemand_price {
-                            format_sstr!("${:0.4}/hr", p)
+                            format_sstr!("${p:0.4}/hr")
                         } else {"".into()}
                     },
                     {
                         if let Some(p) = price.spot_price {
-                            format_sstr!("${:0.4}/hr", p)
+                            format_sstr!("${p:0.4}/hr")
                         } else {"".into()}
                     },
                     {
                         if let Some(p) = price.reserved_price {
-                            format_sstr!("${:0.4}/hr", p)
+                            format_sstr!("${p:0.4}/hr")
                         } else {"".into()}
                     },
                     price.ncpu,
                     price.memory,
                     price.instance_family,
                     format_sstr!(
-                        r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest(null, '{}', null)">"#,
-                        price.instance_type,
+                        r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest(null, '{instance_type}', null)">"#,
                     ),
                 )
             })
@@ -602,10 +594,9 @@ pub async fn get_prices(
         format_sstr!(
             r#"
                 <form action="javascript:listPrices()">
-                <select id="inst_fam" onchange="listPrices();">{}</select><br>
+                <select id="inst_fam" onchange="listPrices();">{inst_fam}</select><br>
                 </form><br>
-            "#,
-            inst_fam,
+            "#
         )
     } else {
         format_sstr!(
@@ -767,15 +758,12 @@ async fn novnc_status_response(
 ) -> Result<StackString, Error> {
     let pids = novnc.get_websock_pids().await?;
     Ok(format_sstr!(
-        r#"{} processes currenty running {:?}
+        r#"{number} processes currenty running {pids:?}
             <br>
-            <a href="https://{}:8787/vnc.html" target="_blank">Connect to NoVNC</a>
+            <a href="https://{domain}:8787/vnc.html" target="_blank">Connect to NoVNC</a>
             <br>
             <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
-        "#,
-        number,
-        pids,
-        domain,
+        "#
     ))
 }
 
@@ -1167,8 +1155,7 @@ pub async fn systemd_logs(
     let body = format_sstr!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="systemd_logs"
-            rows=50 cols=100>{}</textarea>"#,
-        entries
+            rows=50 cols=100>{entries}</textarea>"#
     );
     Ok(HtmlBase::new(body).into())
 }
@@ -1197,8 +1184,7 @@ pub async fn crontab_logs(
     let body = format_sstr!(
         r#"<textarea autofocus readonly="readonly"
             name="message" id="systemd_logs"
-            rows=50 cols=100>{}</textarea>"#,
-        body
+            rows=50 cols=100>{body}</textarea>"#
     );
     Ok(HtmlBase::new(body).into())
 }

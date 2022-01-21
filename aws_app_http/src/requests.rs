@@ -110,22 +110,21 @@ pub async fn get_frontpage(
             let result: Vec<_> = requests
                 .iter()
                 .map(|req| {
+                    let id = &req.id;
                     format_sstr!(
                         r#"<tr style="text-align: center;">
-                                <td>{}</td><td>${}</td><td>{}</td><td>{}</td>
-                                <td>{}</td><td>{}</td><td>{}</td>
+                                <td>{id}</td><td>${pr}</td><td>{im}</td><td>{it}</td>
+                                <td>{st}</td><td>{s}</td><td>{pf}</td>
                             </tr>"#,
-                        req.id,
-                        req.price,
-                        req.imageid,
-                        req.instance_type,
-                        req.spot_type,
-                        req.status,
-                        match req.status.as_str() {
+                        pr = req.price,
+                        im = req.imageid,
+                        it = req.instance_type,
+                        st = req.spot_type,
+                        s = req.status,
+                        pf = match req.status.as_str() {
                             "pending" | "pending-fulfillment" => format_sstr!(
                                 r#"<input type="button" name="cancel" value="Cancel"
-                                        onclick="cancelSpotRequest('{}')">"#,
-                                req.id
+                                        onclick="cancelSpotRequest('{id}')">"#
                             ),
                             _ => "".into(),
                         }
@@ -171,24 +170,22 @@ pub async fn get_frontpage(
             let result: Vec<_> = ami_tags
                 .iter()
                 .map(|ami| {
+                    let id = &ami.id;
                     format_sstr!(
                         r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                                <td>{di}</td><td>{rq}</td><td>{id}</td><td>{nm}</td><td>{st}</td><td>{sn}</td>
                             </tr>"#,
-                        format_sstr!(
+                        di = format_sstr!(
                             r#"<input type="button" name="DeleteImage" value="DeleteImage"
-                                    onclick="deleteImage('{}')">"#,
-                            ami.id
+                                    onclick="deleteImage('{id}')">"#
                         ),
-                        format_sstr!(
+                        rq = format_sstr!(
                             r#"<input type="button" name="Request" value="Request"
-                                    onclick="buildSpotRequest('{}', null, null)">"#,
-                            ami.id,
+                                    onclick="buildSpotRequest('{id}', null, null)">"#
                         ),
-                        ami.id,
-                        ami.name,
-                        ami.state,
-                        ami.snapshot_ids.join(" ")
+                        nm = ami.name,
+                        st = ami.state,
+                        sn = ami.snapshot_ids.join(" ")
                     )
                     .into()
                 })
@@ -207,9 +204,7 @@ pub async fn get_frontpage(
             let result: Vec<_> = keys
                 .map(|(key, fingerprint)| {
                     format_sstr!(
-                        r#"<tr style="text-align: center;"><td>{}</td><td>{}</td></tr>"#,
-                        key,
-                        fingerprint
+                        r#"<tr style="text-align: center;"><td>{key}</td><td>{fingerprint}</td></tr>"#,
                     )
                     .into()
                 })
@@ -232,51 +227,47 @@ pub async fn get_frontpage(
                     .iter()
                     .map(|vol| {
                         let vol_sizes: Vec<_> = get_volumes(vol.size).into_iter().map(|s| {
-                            format_sstr!(r#"<option value="{s}">{s} GB</option>"#, s = s)
+                            format_sstr!(r#"<option value="{s}">{s} GB</option>"#)
                         }).collect();
+                        let id = &vol.id;
                         format_sstr!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{}</td>
-                                <td><select id="{}_vol_size">{}</select></td>
-                                <td>{}</td><td>{}</td>
-                                <td>{}</td><td>{}</td></tr>"#,
-                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
+                                <td>{bt}</td><td>{id}</td><td>{az}</td>
+                                <td><select id="{id}_vol_size">{vs}</select></td>
+                                <td>{io}</td><td>{st}</td>
+                                <td>{tg}</td><td>{sp}</td></tr>"#,
+                            bt = if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 "".into()
                             } else {
                                 format_sstr!(
                                     r#"<input type="button" name="DeleteVolume" value="DeleteVolume"
-                                        onclick="deleteVolume('{}')">"#,
-                                    vol.id
+                                        onclick="deleteVolume('{id}')">"#,
                                 )
                             },
-                            vol.id,
-                            vol.availability_zone,
-                            vol.id,
-                            vol_sizes.join("\n"),
-                            vol.iops,
-                            vol.state,
-                            if vol.tags.is_empty() {
+                            az = vol.availability_zone,
+                            vs = vol_sizes.join("\n"),
+                            io = vol.iops,
+                            st = vol.state,
+                            tg = if vol.tags.is_empty() {
                                 format_sstr!(
                                     r#"
-                                        <input type="text" name="tag_volume" id="{}_tag_volume">
-                                        <input type="button" name="tag_volume" value="Tag" onclick="tagVolume('{}');">
-                                    "#, vol.id, vol.id,
+                                        <input type="text" name="tag_volume" id="{id}_tag_volume">
+                                        <input type="button" name="tag_volume" value="Tag" onclick="tagVolume('{id}');">
+                                    "#
                                 )
                             } else {
                                 print_tags(&vol.tags).into()
                             },
-                            if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
+                            sp = if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 format_sstr!(
                                     r#"<input type="button" name="CreateSnapshot" value="CreateSnapshot"
-                                        onclick="createSnapshot('{}', '{}')">"#,
-                                    vol.id,
-                                    format_sstr!("dileptoninthecloud_backup_{}", Local::now().naive_local().date().format("%Y%m%d")),
+                                        onclick="createSnapshot('{id}', '{dt}')">"#,
+                                    dt = format_sstr!("dileptoninthecloud_backup_{}", Local::now().naive_local().date().format("%Y%m%d")),
                                 )
                             } else {
                                 format_sstr!(
                                     r#"<input type="button" name="ModifyVolume" value="ModifyVolume"
-                                        onclick="modifyVolume('{}')">"#,
-                                    vol.id
+                                        onclick="modifyVolume('{id}')">"#,
                                 )
                             },
                         ).into()
@@ -304,25 +295,24 @@ pub async fn get_frontpage(
             let result: Vec<_> = snapshots
                     .iter()
                     .map(|snap| {
+                        let id = &snap.id;
                         format_sstr!(
                             r#"<tr style="text-align: center;">
-                                <td>{}</td><td>{}</td><td>{} GB</td><td>{}</td><td>{}</td>
-                                <td>{}</td></tr>"#,
-                            format_sstr!(
+                                <td>{bt}</td><td>{id}</td><td>{vs} GB</td><td>{st}</td><td>{pr}</td>
+                                <td>{tg}</td></tr>"#,
+                            bt = format_sstr!(
                                 r#"<input type="button" name="DeleteSnapshot"
-                                    value="DeleteSnapshot" onclick="deleteSnapshot('{}')">"#,
-                                snap.id
+                                    value="DeleteSnapshot" onclick="deleteSnapshot('{id}')">"#
                             ),
-                            snap.id,
-                            snap.volume_size,
-                            snap.state,
-                            snap.progress,
-                            if snap.tags.is_empty() {
+                            vs = snap.volume_size,
+                            st = snap.state,
+                            pr = snap.progress,
+                            tg = if snap.tags.is_empty() {
                                 format_sstr!(
                                     r#"
-                                        <input type="text" name="tag_snapshot" id="{}_tag_snapshot">
-                                        <input type="button" name="tag_snapshot" value="Tag" onclick="tagSnapshot('{}');">
-                                    "#, snap.id, snap.id,
+                                        <input type="text" name="tag_snapshot" id="{id}_tag_snapshot">
+                                        <input type="button" name="tag_snapshot" value="Tag" onclick="tagSnapshot('{id}');">
+                                    "#
                                 )
                             } else {
                                 print_tags(&snap.tags).into()
@@ -372,23 +362,19 @@ pub async fn get_frontpage(
                 .into_iter()
                 .map(|fname| {
                     format_sstr!(
-                        "{} {} {} {}<br>",
-                        format_sstr!(
+                        "{ed} {dd} {bs} {fname}<br>",
+                        ed = format_sstr!(
                             r#"<input type="button" name="Edit" value="Edit"
-                                onclick="editScript('{}')">"#,
-                            fname,
+                                onclick="editScript('{fname}')">"#
                         ),
-                        format_sstr!(
+                        dd = format_sstr!(
                             r#"<input type="button" name="Rm" value="Rm"
-                                onclick="deleteScript('{}')">"#,
-                            fname,
+                                onclick="deleteScript('{fname}')">"#
                         ),
-                        format_sstr!(
+                        bs = format_sstr!(
                             r#"<input type="button" name="Request" value="Request"
-                                onclick="buildSpotRequest(null, null, '{}')">"#,
-                            fname,
+                                onclick="buildSpotRequest(null, null, '{fname}')">"#
                         ),
-                        fname
                     )
                     .into()
                 })
@@ -430,6 +416,7 @@ pub async fn get_frontpage(
             let users = users
                     .into_iter()
                     .map(|u| {
+                        let user_name = &u.user_name;
                         let group_select = if let Some(group_opts) =
                             group_map.get(u.user_name.as_str()).map(|x| {
                                 x.iter()
@@ -441,7 +428,7 @@ pub async fn get_frontpage(
                                     })
                                     .join("")
                             }) {
-                            format_sstr!(r#"<select id="group_opt">{}</select>"#, group_opts)
+                            format_sstr!(r#"<select id="group_opt">{group_opts}</select>"#)
                         } else {
                             "".into()
                         };
@@ -450,9 +437,8 @@ pub async fn get_frontpage(
                         } else {
                             format_sstr!(
                                 r#"
-                                    <input type="button" name="RemoveUser" value="Remove" id="{}_group_opt"
-                                     onclick="removeUserFromGroup('{}');">"#,
-                                u.user_name, u.user_name,
+                                    <input type="button" name="RemoveUser" value="Remove" id="{user_name}_group_opt"
+                                     onclick="removeUserFromGroup('{user_name}');">"#
                             )
                         };
                         let delete_button = if u.user_id == current_user.user_id {
@@ -460,8 +446,7 @@ pub async fn get_frontpage(
                         } else {
                             format_sstr!(
                                 r#"<input type="button" name="DeleteUser" value="DeleteUser"
-                                onclick="deleteUser('{}')">"#,
-                                u.user_name,
+                                onclick="deleteUser('{user_name}')">"#
                             )
                         };
                         let empty_vec = Vec::new();
@@ -469,8 +454,7 @@ pub async fn get_frontpage(
                         let create_key_button = if access_keys.len() < 2 {
                             format_sstr!(
                                 r#"<input type="button" name="CreateKey" value="CreateKey"
-                                onclick="createAccessKey('{}')">"#,
-                                u.user_name,
+                                onclick="createAccessKey('{user_name}')">"#
                             )
                         } else {
                             "".into()
@@ -478,18 +462,14 @@ pub async fn get_frontpage(
                         format_sstr!(
                             r#"
                                 <tr style="text-align: left;">
-                                <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
-                                <td>{}</td><td>{}</td>
+                                <td>{id}</td><td>{cd}</td><td>{user_name}</td><td>{ar}</td>
+                                <td>{delete_button}</td><td>{group_select}</td>
+                                <td>{group_remove_button}</td><td>{create_key_button}</td>
                                 </tr>
                             "#,
-                            u.user_id,
-                            u.create_date,
-                            u.user_name,
-                            u.arn,
-                            delete_button,
-                            group_select,
-                            group_remove_button,
-                            create_key_button,
+                            id = u.user_id,
+                            cd = u.create_date,
+                            ar = u.arn,
                         )
                     })
                     .join("");
@@ -531,10 +511,7 @@ pub async fn get_frontpage(
                             if group_users.contains(u) {
                                 None
                             } else {
-                                Some(format_sstr!(
-                                    r#"r#"<option value="{u}">{u}</option>"#,
-                                    u = u
-                                ))
+                                Some(format_sstr!(r#"r#"<option value="{u}">{u}</option>"#,))
                             }
                         })
                         .join("");
@@ -543,9 +520,8 @@ pub async fn get_frontpage(
                         "".into()
                     } else {
                         format_sstr!(
-                            r#"<select id="{}_user_opt">{}</select>"#,
-                            g.group_name,
-                            user_opts
+                            r#"<select id="{gn}_user_opt">{user_opts}</select>"#,
+                            gn = g.group_name,
                         )
                     };
 
@@ -561,15 +537,13 @@ pub async fn get_frontpage(
 
                     format_sstr!(
                         r#"<tr style="text-align: left;">
-                           <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
-                           <td>{}</td><td>{}</td>
+                           <td>{id}</td><td>{cd}</td><td>{gn}</td><td>{ar}</td>
+                           <td>{user_select}</td><td>{user_add_button}</td>
                            </tr>"#,
-                        g.group_id,
-                        g.create_date,
-                        g.group_name,
-                        g.arn,
-                        user_select,
-                        user_add_button,
+                        id = g.group_id,
+                        cd = g.create_date,
+                        gn = g.group_name,
+                        ar = g.arn,
                     )
                 })
                 .join("");
@@ -599,17 +573,13 @@ pub async fn get_frontpage(
                                 let access_key_id = key.access_key_id?;
                                 let delete_key_button = format_sstr!(
                                     r#"<input type="button" name="DeleteKey" value="Delete"
-                                        onclick="deleteAccessKey('{}', '{}');">"#,
-                                    user_name, access_key_id
+                                        onclick="deleteAccessKey('{user_name}', '{access_key_id}');">"#
                                 );
                                 Some(format_sstr!(
                                     r#"<tr style="text-align: left;">
-                                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
-                                    access_key_id,
-                                    user_name,
-                                    key.create_date?,
-                                    key.status?,
-                                    delete_key_button,
+                                        <td>{access_key_id}</td><td>{user_name}</td><td>{cd}</td><td>{st}</td><td>{delete_key_button}</td></tr>"#,
+                                    cd = key.create_date?,
+                                    st = key.status?,
                                 ))
                             })
                             .join("")
@@ -626,17 +596,24 @@ pub async fn get_frontpage(
                     </tr></thead><tbody>"#
                     .into(),
             );
-            let records = app.route53.list_all_dns_records().await?.into_iter().map(|(zone, name, ip)| {
-                let update_dns_button = format_sstr!(
-                    r#"<input type="button" name="Update" value="{new_ip}"
-                        onclick="updateDnsName('{zone}', '{dns}.', '{old_ip}', '{new_ip}');">"#,
-                    zone=zone, dns=name, old_ip=ip, new_ip=current_ip,
-                );
-                format_sstr!(
-                    r#"<tr style="text-align; left;"><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
-                    zone, name, ip, update_dns_button
-                )
-            }).join("");
+            let records = app
+                .route53
+                .list_all_dns_records()
+                .await?
+                .into_iter()
+                .map(|(zone, name, ip)| {
+                    let update_dns_button = format_sstr!(
+                        r#"<input type="button" name="Update" value="{new_ip}"
+                        onclick="updateDnsName('{zone}', '{name}.', '{old_ip}', '{new_ip}');">"#,
+                        old_ip = ip,
+                        new_ip = current_ip,
+                    );
+                    format_sstr!(
+                        r#"<tr style="text-align; left;"><td>{zone}</td><td>{name}</td><td>{ip}</td>
+                       <td>{update_dns_button}</td></tr>"#
+                    )
+                })
+                .join("");
             output.push(records.into());
             output.push(r#"</tbody></table>"#.into());
         }
@@ -654,7 +631,6 @@ pub async fn get_frontpage(
             let records = app.config.systemd_services.iter().map(|service| {
                 let log_button = format_sstr!(
                     r#"<input type="button" name="SystemdLogs" value="Logs" onclick="systemdLogs('{service}');">"#,
-                    service=service,
                 );
                 let run_status = services.get(service).unwrap_or(&RunStatus::NotRunning);
                 let action_button = match run_status {
@@ -662,19 +638,17 @@ pub async fn get_frontpage(
                         format_sstr!(
                             r#"<input type="button" name="SystemdRestart" value="Restart" onclick="systemdAction('restart', '{service}');">
                                <input type="button" name="SystemdStop" value="Stop" onclick="systemdAction('stop', '{service}');">"#,
-                            service=service,
                         )
                     },
                     RunStatus::NotRunning => {
                         format_sstr!(
                             r#"<input type="button" name="SystemdStart" value="Start" onclick="systemdAction('start', '{service}');">"#,
-                            service=service
                         )
                     },
                 };
                 format_sstr!(
-                    r#"<tr style=text-align; left;"><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
-                    service, run_status, action_button, log_button
+                    r#"<tr style=text-align; left;"><td>{service}</td><td>{run_status}</td>
+                       <td>{action_button}</td><td>{log_button}</td></tr>"#,
                 )
             }).join("\n");
             output.push(records.into());
@@ -692,10 +666,11 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
         .await
         .iter()
         .map(|inst| {
+            let inst_id = &inst.id;
             let status_button = if &inst.state == "running" {
                 format_sstr!(
                     r#"<input type="button" name="Status" value="Status" {}>"#,
-                    format_sstr!(r#"onclick="getStatus('{}')""#, inst.id)
+                    format_sstr!(r#"onclick="getStatus('{inst_id}')""#)
                 )
             } else {
                 "".into()
@@ -705,11 +680,8 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
             let name_button = if &inst.state == "running" && name != "ddbolineinthecloud" {
                 format_sstr!(
                     r#"<input type="button" name="CreateImage {name}" value="{name}" {button}>"#,
-                    name = name,
                     button = format_sstr!(
-                        r#"onclick="createImage('{inst_id}', '{name}')""#,
-                        inst_id = inst.id,
-                        name = name
+                        r#"onclick="createImage('{inst_id}', '{name}')""#
                     )
                 )
             } else {
@@ -718,7 +690,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
             let terminate_button = if &inst.state == "running" && name != "ddbolineinthecloud" {
                 format_sstr!(
                     r#"<input type="button" name="Terminate" value="Terminate" {}>"#,
-                    format_sstr!(r#"onclick="terminateInstance('{}')""#, inst.id)
+                    format_sstr!(r#"onclick="terminateInstance('{inst_id}')""#)
                 )
             } else {
                 "".into()
@@ -726,19 +698,15 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
             format_sstr!(
                 r#"
                     <tr style="text-align: center;">
-                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
-                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td>
+                        <td>{inst_id}</td><td>{dn}</td><td>{st}</td><td>{name_button}</td><td>{it}</td>
+                        <td>{lt}</td><td>{az}</td><td>{status_button}</td><td>{terminate_button}</td>
                     </tr>
                 "#,
-                inst.id,
-                inst.dns_name,
-                inst.state,
-                name_button,
-                inst.instance_type,
-                inst.launch_time.with_timezone(&Local),
-                inst.availability_zone,
-                status_button,
-                terminate_button,
+                dn = inst.dns_name,
+                st = inst.state,
+                it = inst.instance_type,
+                lt = inst.launch_time.with_timezone(&Local),
+                az = inst.availability_zone,
             )
             .into()
         })
@@ -759,7 +727,7 @@ async fn get_ecr_images(
 
 fn print_tags(tags: impl IntoIterator<Item = (impl Display, impl Display)>) -> StackString {
     tags.into_iter()
-        .map(|(k, v)| format_sstr!("{} = {}", k, v))
+        .map(|(k, v)| format_sstr!("{k} = {v}"))
         .join(", ")
         .into()
 }

@@ -23,7 +23,7 @@ impl fmt::Display for InstanceFamilies {
             Self::Micro => "Micro",
             Self::GpuOptimized => "GPU Optimized",
         };
-        write!(f, "{}", s)
+        f.write_str(s)
     }
 }
 

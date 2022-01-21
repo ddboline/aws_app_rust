@@ -111,21 +111,20 @@ impl AwsAppInterface {
                         let name = inst.tags.get("Name");
                         let name = name.as_ref().map_or_else(|| "", AsRef::as_ref);
                         format_sstr!(
-                            "{} {} {} {} {} {} {} {}",
-                            inst.id,
-                            inst.dns_name,
-                            inst.state,
-                            name,
-                            inst.instance_type,
-                            inst.launch_time.with_timezone(&Local),
-                            inst.availability_zone,
-                            inst.volumes.join(" "),
+                            "{id} {dn} {st} {name} {it} {lt} {az} {vm}",
+                            id = inst.id,
+                            dn = inst.dns_name,
+                            st = inst.state,
+                            it = inst.instance_type,
+                            lt = inst.launch_time.with_timezone(&Local),
+                            az = inst.availability_zone,
+                            vm = inst.volumes.join(" "),
                         )
                     })
                     .join("\n");
 
                 if !result.is_empty() {
-                    self.stdout.send(format_sstr!("instances:\n{}", result));
+                    self.stdout.send(format_sstr!("instances:\n{result}"));
                 }
             }
             ResourceType::Reserved => {
@@ -149,10 +148,8 @@ impl AwsAppInterface {
                 if reserved.is_empty() {
                     return Ok(());
                 }
-                self.stdout.send(format_sstr!(
-                    "---\nGet Reserved Instance\n---\n{}",
-                    reserved
-                ));
+                self.stdout
+                    .send(format_sstr!("---\nGet Reserved Instance\n---\n{reserved}"));
             }
             ResourceType::Spot => {
                 let requests = self
@@ -175,7 +172,7 @@ impl AwsAppInterface {
                     return Ok(());
                 }
                 self.stdout
-                    .send(format_sstr!("---\nSpot Instance Requests:\n{}", requests));
+                    .send(format_sstr!("---\nSpot Instance Requests:\n{requests}"));
             }
             ResourceType::Ami => {
                 let ubuntu_ami = self
@@ -210,16 +207,16 @@ impl AwsAppInterface {
                         )
                     })
                     .join("\n");
-                self.stdout.send(format_sstr!("---\nAMI's:\n{}", ami_tags));
+                self.stdout.send(format_sstr!("---\nAMI's:\n{ami_tags}"));
             }
             ResourceType::Key => {
                 let keys = self
                     .ec2
                     .get_all_key_pairs()
                     .await?
-                    .map(|(key, fingerprint)| format_sstr!("{} {}", key, fingerprint))
+                    .map(|(key, fingerprint)| format_sstr!("{key} {fingerprint}"))
                     .join("\n");
-                self.stdout.send(format_sstr!("---\nKeys:\n{}", keys));
+                self.stdout.send(format_sstr!("---\nKeys:\n{keys}"));
             }
             ResourceType::Volume => {
                 let volumes = self
@@ -263,7 +260,7 @@ impl AwsAppInterface {
                     return Ok(());
                 }
                 self.stdout
-                    .send(format_sstr!("---\nSnapshots:\n{}", snapshots));
+                    .send(format_sstr!("---\nSnapshots:\n{snapshots}"));
             }
             ResourceType::Ecr => {
                 let futures = self
@@ -294,7 +291,7 @@ impl AwsAppInterface {
                     return Ok(());
                 }
                 self.stdout
-                    .send(format_sstr!("---\nECR images:\n{}", results));
+                    .send(format_sstr!("---\nECR images:\n{results}"));
             }
             ResourceType::Script => {
                 self.stdout.send(format_sstr!(
@@ -317,7 +314,7 @@ impl AwsAppInterface {
                         )
                     })
                     .join("\n");
-                self.stdout.send(format_sstr!("---\nUsers:\n{}", users));
+                self.stdout.send(format_sstr!("---\nUsers:\n{users}"));
             }
             ResourceType::Group => {
                 let groups = self
@@ -334,7 +331,7 @@ impl AwsAppInterface {
                         )
                     })
                     .join("\n");
-                self.stdout.send(format_sstr!("---\nGroups:\n{}", groups));
+                self.stdout.send(format_sstr!("---\nGroups:\n{groups}"));
             }
             ResourceType::AccessKey => {
                 let futures = self
@@ -359,8 +356,7 @@ impl AwsAppInterface {
                             .join("\n")
                     })
                     .join("\n");
-                self.stdout
-                    .send(format_sstr!("---\nAccess Keys:\n{}", keys));
+                self.stdout.send(format_sstr!("---\nAccess Keys:\n{keys}"));
             }
             ResourceType::Route53 => {
                 let current_ip = self.route53.get_ip_address().await?;
@@ -369,17 +365,17 @@ impl AwsAppInterface {
                     .list_all_dns_records()
                     .await?
                     .into_iter()
-                    .map(|(zone, name, ip)| format_sstr!("{} {} {} {}", zone, name, ip, current_ip))
+                    .map(|(zone, name, ip)| format_sstr!("{zone} {name} {ip} {current_ip}"))
                     .join("\n");
-                self.stdout.send(format_sstr!("---\nDNS:\n{}", dns_records));
+                self.stdout.send(format_sstr!("---\nDNS:\n{dns_records}"));
             }
             ResourceType::SystemD => {
                 let services = self.systemd.list_running_services().await?;
                 for service in &self.config.systemd_services {
                     if let Some(val) = services.get(service) {
-                        self.stdout.send(format_sstr!("{} {}", service, val));
+                        self.stdout.send(format_sstr!("{service} {val}"));
                     } else {
-                        self.stdout.send(format_sstr!("{} not running", service));
+                        self.stdout.send(format_sstr!("{service} not running"));
                     }
                 }
             }
@@ -453,7 +449,7 @@ impl AwsAppInterface {
         let id_host_map = get_id_host_map().await?;
         let inst_id = map_or_val(&name_map, &instance_id);
         if let Some(host) = id_host_map.get(inst_id) {
-            self.stdout.send(format_sstr!("ssh ubuntu@{}", host));
+            self.stdout.send(format_sstr!("ssh ubuntu@{host}"));
         }
         Ok(())
     }
@@ -565,21 +561,20 @@ impl AwsAppInterface {
             .map(|price| {
                 let mut outstr = vec![format_sstr!("{:14} ", price.instance_type)];
                 match price.ondemand_price {
-                    Some(p) => outstr.push(format_sstr!("ond: ${:0.4}/hr   ", p)),
+                    Some(p) => outstr.push(format_sstr!("ond: ${p:0.4}/hr   ")),
                     None => outstr.push(format_sstr!("{:4} {:9}   ", "", "")),
                 }
                 match price.spot_price {
-                    Some(p) => outstr.push(format_sstr!("spot: ${:0.4}/hr   ", p)),
+                    Some(p) => outstr.push(format_sstr!("spot: ${p:0.4}/hr   ")),
                     None => outstr.push(format_sstr!("{:5} {:9}    ", "", "")),
                 }
                 match price.reserved_price {
-                    Some(p) => outstr.push(format_sstr!("res: ${:0.4}/hr   ", p)),
+                    Some(p) => outstr.push(format_sstr!("res: ${p:0.4}/hr   ")),
                     None => outstr.push(format_sstr!("{:4} {:9}   ", "", "")),
                 }
                 outstr.push(format_sstr!("cpu: {:2}   ", price.ncpu));
                 outstr.push(format_sstr!("mem: {:2}   ", price.memory));
                 outstr.push(format_sstr!("inst_fam: {}", price.instance_family));
-
                 (price.ncpu, price.memory as i64, outstr.join(""))
             })
             .collect();
@@ -771,10 +766,7 @@ impl AwsAppInterface {
 }
 
 fn print_tags(tags: &HashMap<impl Display, impl Display>) -> StackString {
-    let results: Vec<_> = tags
-        .iter()
-        .map(|(k, v)| format_sstr!("{}={}", k, v))
-        .collect();
+    let results: Vec<_> = tags.iter().map(|(k, v)| format_sstr!("{k}={v}")).collect();
     results.join(", ").into()
 }
 
