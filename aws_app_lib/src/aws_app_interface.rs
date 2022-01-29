@@ -537,7 +537,7 @@ impl AwsAppInterface {
                 let instance_family = inst_fam.family_type.parse()?;
 
                 Ok(AwsInstancePrice {
-                    instance_type: inst.into(),
+                    instance_type: inst,
                     ondemand_price: ond_price,
                     spot_price: spot_price.map(|x| f64::from(*x)),
                     reserved_price: res_price,

@@ -89,7 +89,6 @@ pub async fn get_frontpage(
                             .as_ref()
                             .map_or_else(|| "", StackString::as_str)
                     )
-                    .into()
                 })
                 .collect();
             output.extend_from_slice(&result);
@@ -129,7 +128,6 @@ pub async fn get_frontpage(
                             _ => "".into(),
                         }
                     )
-                    .into()
                 })
                 .collect();
             output.extend_from_slice(&result);
@@ -187,7 +185,6 @@ pub async fn get_frontpage(
                         st = ami.state,
                         sn = ami.snapshot_ids.join(" ")
                     )
-                    .into()
                 })
                 .collect();
             output.extend_from_slice(&result);
@@ -206,7 +203,6 @@ pub async fn get_frontpage(
                     format_sstr!(
                         r#"<tr style="text-align: center;"><td>{key}</td><td>{fingerprint}</td></tr>"#,
                     )
-                    .into()
                 })
                 .collect();
             output.extend_from_slice(&result);
@@ -270,7 +266,7 @@ pub async fn get_frontpage(
                                         onclick="modifyVolume('{id}')">"#,
                                 )
                             },
-                        ).into()
+                        )
                     })
                     .collect();
             output.extend_from_slice(&result);
@@ -318,7 +314,6 @@ pub async fn get_frontpage(
                                 print_tags(&snap.tags).into()
                             }
                         )
-                        .into()
                     })
                     .collect();
             output.extend_from_slice(&result);
@@ -376,7 +371,6 @@ pub async fn get_frontpage(
                                 onclick="buildSpotRequest(null, null, '{fname}')">"#
                         ),
                     )
-                    .into()
                 })
                 .collect();
             output.extend_from_slice(&result);
@@ -708,7 +702,6 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
                 lt = inst.launch_time.with_timezone(&Local),
                 az = inst.availability_zone,
             )
-            .into()
         })
         .collect();
     Ok(result)

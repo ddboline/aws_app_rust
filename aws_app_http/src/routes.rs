@@ -558,7 +558,7 @@ pub async fn get_prices(
                         <td>{}</td>
                     </tr>"#,
                     if let Some(data_url) = price.data_url {
-                        format_sstr!(r#"<a href="{data_url}" target="_blank">{instance_type}</a>"#).into()
+                        format_sstr!(r#"<a href="{data_url}" target="_blank">{instance_type}</a>"#)
                     } else {
                         StackString::from_display(instance_type)
                     },

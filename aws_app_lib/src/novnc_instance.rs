@@ -90,7 +90,7 @@ impl NoVncInstance {
             .get_websock_pids()
             .await?
             .into_iter()
-            .map(|x| StackString::from_display(x));
+            .map(StackString::from_display);
         kill.args(ids);
         let kill = kill.spawn()?;
         kill.wait_with_output().await?;
