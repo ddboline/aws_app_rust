@@ -24,7 +24,7 @@ sts_profile_auth = "0.6"
 structopt = "0.3"
 base64 = "0.13"
 lazy_static = "1.4"
-parking_lot = "0.11"
+parking_lot = "0.12"
 regex = {version = "1.4", default_features = false}
 walkdir = "2.3"
 log = "0.4"
