@@ -101,8 +101,8 @@ impl NoVncInstance {
                 debug!("Failed to kill {}", e);
             }
             let result = child.wait_with_output().await?;
-            output.push(StackString::from_utf8(result.stdout)?);
-            output.push(StackString::from_utf8(result.stderr)?);
+            output.push(StackString::from_utf8_vec(result.stdout)?);
+            output.push(StackString::from_utf8_vec(result.stderr)?);
         }
         children.clear();
         Ok(output)
@@ -114,7 +114,7 @@ impl NoVncInstance {
             .stdout(Stdio::piped())
             .spawn()?;
         let output = websock.wait_with_output().await?;
-        let output = StackString::from_utf8(output.stdout)?;
+        let output = StackString::from_utf8_vec(output.stdout)?;
         let result: Vec<_> = output
             .split('\n')
             .filter_map(|s| {

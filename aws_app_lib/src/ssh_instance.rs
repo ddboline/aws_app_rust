@@ -63,7 +63,7 @@ impl SSHInstance {
                 .kill_on_drop(true)
                 .output()
                 .await?;
-            let output = StackString::from_utf8(output.stdout)?;
+            let output = StackString::from_utf8_vec(output.stdout)?;
             let output: Vec<_> = output.split('\n').map(Into::into).collect();
             Ok(output)
         } else {
