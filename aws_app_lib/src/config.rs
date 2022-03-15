@@ -83,14 +83,18 @@ impl Deref for Config {
 }
 
 impl Config {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use]
     pub fn from_inner(inner: ConfigInner) -> Self {
         Self(Arc::new(inner))
     }
 
+    /// # Errors
+    /// Returns error if deserialize from environment variables fails
     pub fn init_config() -> Result<Self, Error> {
         let fname = Path::new("config.env");
         let default_fname = CONFIG_DIR.join("aws_app_rust").join("config.env");

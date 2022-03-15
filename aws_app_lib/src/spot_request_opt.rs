@@ -23,6 +23,7 @@ pub struct SpotRequestOpt {
 }
 
 impl SpotRequestOpt {
+    #[must_use]
     pub fn into_spot_request(self, config: &Config) -> SpotRequest {
         let security_group = self.security_group.unwrap_or_else(|| {
             config.spot_security_group.as_ref().map_or_else(

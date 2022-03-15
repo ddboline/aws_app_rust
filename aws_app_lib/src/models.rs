@@ -27,6 +27,8 @@ impl InstanceFamily {
         query.fetch_opt(conn).await.map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let query = query!(
             r#"
@@ -73,6 +75,8 @@ impl InstanceFamily {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn upsert_entry(&self, pool: &PgPool) -> Result<Option<Self>, Error> {
         let mut conn = pool.get().await?;
         let tran = conn.transaction().await?;
@@ -100,12 +104,16 @@ pub struct InstanceList {
 }
 
 impl InstanceList {
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let query = query!("SELECT * FROM instance_list");
         let conn = pool.get().await?;
         query.fetch(&conn).await.map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn get_by_instance_family(
         instance_family: &str,
         pool: &PgPool,
@@ -131,6 +139,8 @@ impl InstanceList {
         query.fetch_opt(conn).await.map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn get_by_instance_type(
         instance_type: &str,
         pool: &PgPool,
@@ -183,6 +193,8 @@ impl InstanceList {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn upsert_entry(&self, pool: &PgPool) -> Result<Option<Self>, Error> {
         let mut conn = pool.get().await?;
         let tran = conn.transaction().await?;
@@ -210,6 +222,7 @@ pub struct InstancePricing {
 }
 
 impl InstancePricing {
+    #[must_use]
     pub fn new(
         instance_type: &str,
         price: f64,
@@ -245,6 +258,8 @@ impl InstancePricing {
         query.fetch(conn).await.map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn existing_entries(
         instance_type: &str,
         price_type: &str,
@@ -256,6 +271,8 @@ impl InstancePricing {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let query = query!("SELECT * FROM instance_pricing");
         let conn = pool.get().await?;
@@ -303,6 +320,8 @@ impl InstancePricing {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn upsert_entry(&self, pool: &PgPool) -> Result<Vec<Self>, Error> {
         let mut conn = pool.get().await?;
         let tran = conn.transaction().await?;
@@ -328,6 +347,7 @@ pub enum AwsGeneration {
 }
 
 impl AwsGeneration {
+    #[must_use]
     pub fn to_str(self) -> &'static str {
         match self {
             Self::HVM => "hvm",
@@ -356,6 +376,7 @@ pub enum PricingType {
 }
 
 impl PricingType {
+    #[must_use]
     pub fn to_str(self) -> &'static str {
         match self {
             Self::OnDemand => "ondemand",
@@ -384,6 +405,8 @@ pub struct AuthorizedUsers {
 }
 
 impl AuthorizedUsers {
+    /// # Errors
+    /// Returns error if db query fails
     pub async fn get_authorized_users(pool: &PgPool) -> Result<Vec<Self>, Error> {
         let query = query!("SELECT * FROM authorized_users");
         let conn = pool.get().await?;

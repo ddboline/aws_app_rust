@@ -380,7 +380,7 @@ pub async fn build_spot_request(
         .map(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .join("\n");
 
-    let mut files = data.aws.get_all_scripts().map_err(Into::<Error>::into)?;
+    let mut files = data.aws.get_all_scripts();
 
     if let Some(script) = &query.script {
         move_element_to_front(&mut files, |f| f == script);

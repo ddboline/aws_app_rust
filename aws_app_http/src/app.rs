@@ -34,6 +34,8 @@ pub struct AppState {
     pub novnc: NoVncInstance,
 }
 
+/// # Errors
+/// Returns error if config fails, `get_secrets` fails, or app fails to run
 pub async fn start_app() -> Result<(), Error> {
     let config = Config::init_config()?;
     get_secrets(&config.secret_path, &config.jwt_secret_path).await?;

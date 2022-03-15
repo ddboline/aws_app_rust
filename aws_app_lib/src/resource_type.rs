@@ -37,6 +37,7 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
+    #[must_use]
     pub fn to_str(self) -> &'static str {
         match self {
             Self::Instances => "instances",

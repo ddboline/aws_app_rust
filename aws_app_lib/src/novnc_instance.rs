@@ -13,12 +13,15 @@ pub struct NoVncInstance {
 }
 
 impl NoVncInstance {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             children: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
+    /// # Errors
+    /// Returns error if spawn process fails
     pub async fn novnc_start(
         &self,
         novnc_path: &Path,
@@ -76,6 +79,12 @@ impl NoVncInstance {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error
+    ///     * if `get_websock_pids` fails
+    ///     * if spawn fails
+    ///     * if `wait_with_output` fails
+    ///     * if `StackString::from_utf8_vec` fails
     pub async fn novnc_stop_request(&self) -> Result<Vec<StackString>, Error> {
         let mut children = self.children.write().await;
         for child in children.iter_mut() {
@@ -108,6 +117,11 @@ impl NoVncInstance {
         Ok(output)
     }
 
+    /// # Errors
+    /// Returns error
+    ///     * if spawn fails
+    ///     * if `wait_with_output` fails
+    ///     * if `StackString::from_utf8_vec` fails
     pub async fn get_websock_pids(&self) -> Result<Vec<usize>, Error> {
         let websock = Command::new("ps")
             .args(&["-eF"])

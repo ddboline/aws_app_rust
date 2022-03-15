@@ -34,6 +34,7 @@ impl Default for EcrInstance {
 }
 
 impl EcrInstance {
+    #[must_use]
     pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
@@ -46,12 +47,16 @@ impl EcrInstance {
         }
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
         self.region = region.as_ref().parse()?;
         self.ecr_client = get_client_sts!(EcrClient, self.region.clone())?;
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_repositories(&self) -> Result<impl Iterator<Item = StackString>, Error> {
         self.ecr_client
             .describe_repositories(DescribeRepositoriesRequest::default())
@@ -59,12 +64,14 @@ impl EcrInstance {
             .map_err(Into::into)
             .map(|r| {
                 r.repositories
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|repo| repo.repository_name.map(Into::into))
             })
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_images(
         &self,
         reponame: impl Into<StackString>,
@@ -79,7 +86,7 @@ impl EcrInstance {
             .map_err(Into::into)
             .map(move |i| {
                 i.image_details
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(move |image| {
                         let pushed_at = image.image_pushed_at.map_or_else(Utc::now, |p| {
@@ -90,7 +97,7 @@ impl EcrInstance {
                         let image_size = image.image_size_in_bytes.map_or(0.0, |s| s as f64 / 1e6);
                         let tags = image
                             .image_tags
-                            .unwrap_or_else(Vec::new)
+                            .unwrap_or_default()
                             .into_iter()
                             .map(Into::into)
                             .collect();
@@ -105,6 +112,8 @@ impl EcrInstance {
             })
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_ecr_images(
         &self,
         reponame: impl Into<String>,
@@ -131,6 +140,8 @@ impl EcrInstance {
             .map(|_| ())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
         let futures = self.get_all_repositories().await?.map(|repo| async move {
             let imageids = self.get_all_images(repo.clone()).await?.filter_map(|i| {
@@ -159,6 +170,7 @@ pub struct ImageInfo {
 }
 
 impl ImageInfo {
+    #[must_use]
     pub fn get_html_string(&self) -> StackString {
         format_sstr!(
             r#"<tr style="text-align: center;">

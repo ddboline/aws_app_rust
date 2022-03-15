@@ -8,13 +8,13 @@ use rusoto_pricing::{
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{collections::HashMap, fmt};
+use stdout_channel::rate_limiter::RateLimiter;
 use sts_profile_auth::get_client_sts;
 
 use crate::{
     config::Config,
     models::{InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
-    rate_limiter::RateLimiter,
 };
 
 #[derive(Clone)]
@@ -40,6 +40,7 @@ impl Default for PricingInstance {
 }
 
 impl PricingInstance {
+    #[must_use]
     pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
@@ -52,6 +53,8 @@ impl PricingInstance {
         }
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn describe_services(
         &self,
         service_code: Option<&str>,
@@ -92,6 +95,8 @@ impl PricingInstance {
         Ok(all_services)
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn get_attribute_values(
         &self,
         service_code: &str,
@@ -124,6 +129,8 @@ impl PricingInstance {
         Ok(results)
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn get_prices(
         &self,
         instance_type: &str,
@@ -283,6 +290,8 @@ impl PricingInstance {
         Ok(entries)
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn update_all_prices(&self, pool: &PgPool) -> Result<u32, Error> {
         let instances: Vec<_> = InstanceList::get_all_instances(pool)
             .await?

@@ -37,16 +37,17 @@ impl SSHInstance {
         }
     }
 
-    pub fn get_ssh_username_host(&self) -> Result<StackString, Error> {
-        let ssh_str = if self.port == 22 {
+    #[must_use]
+    pub fn get_ssh_username_host(&self) -> StackString {
+        if self.port == 22 {
             format_sstr!("{}@{}", self.user, self.host)
         } else {
             format_sstr!("-p {} {}@{}", self.port, self.user, self.host)
-        };
-
-        Ok(ssh_str)
+        }
     }
 
+    /// # Errors
+    /// Returns error if stdout is not utf8
     pub async fn run_command_stream_stdout(
         &self,
         cmd: impl AsRef<str>,
@@ -55,7 +56,7 @@ impl SSHInstance {
         if let Some(host_lock) = LOCK_CACHE.read().await.get(&self.host) {
             let _lock = host_lock.lock().await;
             debug!("cmd {}", cmd);
-            let user_host = self.get_ssh_username_host()?;
+            let user_host = self.get_ssh_username_host();
 
             let output = Command::new("ssh")
                 .args(&[&user_host, "--"])

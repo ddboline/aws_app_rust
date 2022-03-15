@@ -12,6 +12,8 @@ use crate::{
     pgpool::PgPool,
 };
 
+/// # Errors
+/// Returns error if api call fails
 pub async fn scrape_pricing_info(
     ptype: PricingType,
     pool: &PgPool,
@@ -30,6 +32,8 @@ pub async fn scrape_pricing_info(
     Ok(output)
 }
 
+/// # Errors
+/// Returns error if `Url::parse` fails
 fn get_url(ptype: PricingType) -> Result<Url, Error> {
     match ptype {
         PricingType::Reserved => {

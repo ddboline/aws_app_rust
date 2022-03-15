@@ -177,6 +177,8 @@ pub enum AwsAppOpts {
 }
 
 impl AwsAppOpts {
+    /// # Errors
+    /// Returns error if api call fails
     pub async fn process_args() -> Result<(), Error> {
         let opts = Self::from_args();
         let config = Config::init_config()?;

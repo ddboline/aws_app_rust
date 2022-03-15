@@ -20,6 +20,8 @@ impl SystemdInstance {
         Self { services }
     }
 
+    /// # Errors
+    /// Returns error if spawn of systemctl fails
     pub async fn list_running_services(&self) -> Result<BTreeMap<StackString, RunStatus>, Error> {
         let command = Command::new("systemctl")
             .args(&["list-units"])
@@ -49,6 +51,8 @@ impl SystemdInstance {
         Ok(services)
     }
 
+    /// # Errors
+    /// Return error if spawn of systemctl fails
     pub async fn get_service_status(
         &self,
         service: impl AsRef<str>,
@@ -78,6 +82,10 @@ impl SystemdInstance {
         Ok(status)
     }
 
+    /// # Errors
+    /// Return error if
+    ///     * spawn of journalctl fails
+    ///     * parsing of log line fails
     pub async fn get_service_logs(
         &self,
         service: impl AsRef<str>,
@@ -106,6 +114,8 @@ impl SystemdInstance {
             .collect()
     }
 
+    /// # Errors
+    /// Returns error if spawn of systemctl fails
     pub async fn service_action(
         &self,
         action: impl AsRef<str>,
@@ -127,6 +137,7 @@ pub enum RunStatus {
 }
 
 impl RunStatus {
+    #[must_use]
     pub fn to_str(self) -> &'static str {
         match self {
             Self::Running => "running",

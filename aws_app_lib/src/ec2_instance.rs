@@ -20,8 +20,7 @@ use stack_string::StackString;
 use std::{
     collections::HashMap,
     fmt,
-    fs::File,
-    io::Read,
+    fs::read_to_string,
     path::{Path, PathBuf},
     time,
 };
@@ -59,6 +58,7 @@ impl Default for Ec2Instance {
 }
 
 impl Ec2Instance {
+    #[must_use]
     pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
@@ -73,6 +73,8 @@ impl Ec2Instance {
         }
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
         self.region = region.as_ref().parse()?;
         self.ec2_client = get_client_sts!(Ec2Client, self.region.clone())?;
@@ -83,6 +85,8 @@ impl Ec2Instance {
         self.my_owner_id.replace(owner_id.into())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_ami_tags(&self) -> Result<impl Iterator<Item = AmiInfo>, Error> {
         let owner_id = self
             .my_owner_id
@@ -101,7 +105,7 @@ impl Ec2Instance {
             .await
             .map(|l| {
                 l.images
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|image| {
                         Some(AmiInfo {
@@ -121,6 +125,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_latest_ubuntu_ami(
         &self,
         ubuntu_release: impl fmt::Display,
@@ -146,7 +152,7 @@ impl Ec2Instance {
 
         let image = req
             .images
-            .unwrap_or_else(Vec::new)
+            .unwrap_or_default()
             .into_iter()
             .filter_map(|image| {
                 Some(AmiInfo {
@@ -167,6 +173,8 @@ impl Ec2Instance {
         Ok(image)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_ami_map(&self) -> Result<HashMap<StackString, StackString>, Error> {
         let req = self.get_ami_tags().await?;
         let mut latest_ami_name = None;
@@ -202,13 +210,15 @@ impl Ec2Instance {
         Ok(ami_map)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_regions(&self) -> Result<HashMap<StackString, StackString>, Error> {
         self.ec2_client
             .describe_regions(DescribeRegionsRequest::default())
             .await
             .map(|r| {
                 r.regions
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|region| {
                         Some((region.region_name?.into(), region.opt_in_status?.into()))
@@ -218,6 +228,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_instances(&self) -> Result<impl Iterator<Item = Ec2InstanceInfo>, Error> {
         self.ec2_client
             .describe_instances(DescribeInstancesRequest::default())
@@ -225,20 +237,20 @@ impl Ec2Instance {
             .map(|instances| {
                 instances
                     .reservations
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|res| {
                         res.instances.map(|instances| {
                             instances.into_iter().filter_map(|inst| {
                                 let tags: HashMap<_, _> = inst
                                     .tags
-                                    .unwrap_or_else(Vec::new)
+                                    .unwrap_or_default()
                                     .into_iter()
                                     .filter_map(|tag| Some((tag.key?.into(), tag.value?.into())))
                                     .collect();
                                 let volumes = inst
                                     .block_device_mappings
-                                    .unwrap_or_else(Vec::new)
+                                    .unwrap_or_default()
                                     .into_iter()
                                     .filter_map(|bm| {
                                         let ebs = bm.ebs?.volume_id?;
@@ -266,6 +278,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_reserved_instances(
         &self,
     ) -> Result<impl Iterator<Item = ReservedInstanceInfo>, Error> {
@@ -274,7 +288,7 @@ impl Ec2Instance {
             .await
             .map(|res| {
                 res.reserved_instances
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|inst| {
                         let state = inst.state.as_ref()?;
@@ -293,6 +307,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_availability_zones(&self) -> Result<Vec<String>, Error> {
         let req = DescribeAvailabilityZonesRequest {
             filters: Some(vec![Filter {
@@ -306,13 +322,15 @@ impl Ec2Instance {
             .describe_availability_zones(req)
             .await?
             .availability_zones
-            .unwrap_or_else(Vec::new)
+            .unwrap_or_default()
             .into_iter()
             .filter_map(|zone| zone.zone_name)
             .collect();
         Ok(zones)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_latest_spot_inst_prices(
         &self,
         inst_list: impl IntoIterator<Item = impl AsRef<str>>,
@@ -345,7 +363,7 @@ impl Ec2Instance {
             .map(|spot_hist| {
                 spot_hist
                     .spot_price_history
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|spot_price| {
                         Some((
@@ -358,6 +376,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_spot_instance_requests(
         &self,
     ) -> Result<impl Iterator<Item = SpotInstanceRequestInfo>, Error> {
@@ -366,7 +386,7 @@ impl Ec2Instance {
             .await
             .map(|s| {
                 s.spot_instance_requests
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|inst| {
                         let launch_spec = inst.launch_specification?;
@@ -387,33 +407,34 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_volumes(&self) -> Result<impl Iterator<Item = VolumeInfo>, Error> {
         self.ec2_client
             .describe_volumes(DescribeVolumesRequest::default())
             .await
             .map(|v| {
-                v.volumes
-                    .unwrap_or_else(Vec::new)
-                    .into_iter()
-                    .filter_map(|v| {
-                        Some(VolumeInfo {
-                            id: v.volume_id?.into(),
-                            availability_zone: v.availability_zone?.into(),
-                            size: v.size?,
-                            iops: v.iops.unwrap_or(0),
-                            state: v.state?.into(),
-                            tags: v
-                                .tags
-                                .unwrap_or_else(Vec::new)
-                                .into_iter()
-                                .filter_map(|t| Some((t.key?.into(), t.value?.into())))
-                                .collect(),
-                        })
+                v.volumes.unwrap_or_default().into_iter().filter_map(|v| {
+                    Some(VolumeInfo {
+                        id: v.volume_id?.into(),
+                        availability_zone: v.availability_zone?.into(),
+                        size: v.size?,
+                        iops: v.iops.unwrap_or(0),
+                        state: v.state?.into(),
+                        tags: v
+                            .tags
+                            .unwrap_or_default()
+                            .into_iter()
+                            .filter_map(|t| Some((t.key?.into(), t.value?.into())))
+                            .collect(),
                     })
+                })
             })
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_snapshots(&self) -> Result<impl Iterator<Item = SnapshotInfo>, Error> {
         let owner_id = self
             .my_owner_id
@@ -432,7 +453,7 @@ impl Ec2Instance {
             .await
             .map(|s| {
                 s.snapshots
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|snap| {
                         Some(SnapshotInfo {
@@ -442,7 +463,7 @@ impl Ec2Instance {
                             progress: snap.progress?.into(),
                             tags: snap
                                 .tags
-                                .unwrap_or_else(Vec::new)
+                                .unwrap_or_default()
                                 .into_iter()
                                 .filter_map(|t| Some((t.key?.into(), t.value?.into())))
                                 .collect(),
@@ -452,6 +473,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn terminate_instance(
         &self,
         instance_ids: impl IntoIterator<Item = impl AsRef<str>>,
@@ -470,6 +493,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<Vec<String>, Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
 
@@ -491,13 +516,15 @@ impl Ec2Instance {
             .await?;
         let spot_ids = req
             .spot_instance_requests
-            .unwrap_or_else(Vec::new)
+            .unwrap_or_default()
             .into_iter()
             .filter_map(|result| result.spot_instance_request_id)
             .collect();
         Ok(spot_ids)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn tag_ami_snapshot(
         &self,
         inst_id: impl AsRef<str>,
@@ -530,6 +557,8 @@ impl Ec2Instance {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn tag_spot_instance(
         &self,
         spot_instance_request_id: &str,
@@ -575,6 +604,8 @@ impl Ec2Instance {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn cancel_spot_instance_request(
         &self,
         inst_ids: impl IntoIterator<Item = impl AsRef<str>>,
@@ -593,6 +624,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn tag_ec2_instance(
         &self,
         inst_id: impl Into<String>,
@@ -614,6 +647,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &request.script)?;
 
@@ -631,7 +666,7 @@ impl Ec2Instance {
             })
             .await?;
 
-        for inst in req.instances.unwrap_or_else(Vec::new) {
+        for inst in req.instances.unwrap_or_default() {
             if let Some(inst) = inst.instance_id {
                 self.tag_ec2_instance(&inst, &request.tags).await?;
             }
@@ -639,6 +674,8 @@ impl Ec2Instance {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_image(
         &self,
         inst_id: impl Into<String>,
@@ -665,6 +702,8 @@ impl Ec2Instance {
             })
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_image(&self, ami: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .deregister_image(DeregisterImageRequest {
@@ -675,6 +714,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_ebs_volume(
         &self,
         zoneid: impl Into<String>,
@@ -695,6 +736,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_ebs_volume(&self, volid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .delete_volume(DeleteVolumeRequest {
@@ -705,6 +748,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn attach_ebs_volume(
         &self,
         volid: impl Into<String>,
@@ -723,6 +768,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn detach_ebs_volume(&self, volid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .detach_volume(DetachVolumeRequest {
@@ -734,6 +781,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn modify_ebs_volume(
         &self,
         volid: impl Into<String>,
@@ -750,6 +799,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_ebs_snapshot(
         &self,
         volid: impl Into<String>,
@@ -790,6 +841,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_ebs_snapshot(&self, snapid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
             .delete_snapshot(DeleteSnapshotRequest {
@@ -800,6 +853,8 @@ impl Ec2Instance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_key_pairs(
         &self,
     ) -> Result<impl Iterator<Item = (StackString, StackString)>, Error> {
@@ -808,7 +863,7 @@ impl Ec2Instance {
             .await
             .map(|x| {
                 x.key_pairs
-                    .unwrap_or_else(Vec::new)
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|key| {
                         let fingerprint = key.key_fingerprint.unwrap_or_else(|| "".to_string());
@@ -899,6 +954,8 @@ pub struct SnapshotInfo {
     pub tags: HashMap<StackString, StackString>,
 }
 
+/// # Errors
+/// Return error if
 pub fn get_user_data_from_script(
     default_dir: impl AsRef<Path>,
     script: impl AsRef<Path>,
@@ -912,9 +969,7 @@ pub fn get_user_data_from_script(
         }
         fname
     };
-    let mut user_data = String::new();
-    File::open(fname)?.read_to_string(&mut user_data)?;
-    Ok(user_data.into())
+    read_to_string(fname).map(Into::into).map_err(Into::into)
 }
 
 #[cfg(test)]

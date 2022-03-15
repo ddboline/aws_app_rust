@@ -28,6 +28,7 @@ impl Default for IamInstance {
 }
 
 impl IamInstance {
+    #[must_use]
     pub fn new(config: &Config) -> Self {
         let config = config.clone();
         let region: Region = config
@@ -40,6 +41,8 @@ impl IamInstance {
         }
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn list_users(&self) -> Result<impl Iterator<Item = IamUser>, Error> {
         let users = self
             .iam_client
@@ -51,6 +54,8 @@ impl IamInstance {
         Ok(users)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_user(&self, user_name: Option<impl Into<String>>) -> Result<IamUser, Error> {
         self.iam_client
             .get_user(GetUserRequest {
@@ -61,6 +66,8 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn list_groups(&self) -> Result<impl Iterator<Item = IamGroup>, Error> {
         let groups = self
             .iam_client
@@ -72,6 +79,8 @@ impl IamInstance {
         Ok(groups)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn list_groups_for_user(
         &self,
         user_name: impl Into<String>,
@@ -89,6 +98,8 @@ impl IamInstance {
         Ok(groups)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_user(
         &self,
         user_name: impl Into<String>,
@@ -103,6 +114,8 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_user(&self, user_name: impl Into<String>) -> Result<(), Error> {
         self.iam_client
             .delete_user(DeleteUserRequest {
@@ -112,6 +125,8 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn add_user_to_group(
         &self,
         user_name: impl Into<String>,
@@ -126,6 +141,8 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn remove_user_from_group(
         &self,
         user_name: impl Into<String>,
@@ -140,6 +157,8 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn list_access_keys(
         &self,
         user_name: impl Into<String>,
@@ -154,6 +173,8 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_access_key(
         &self,
         user_name: impl Into<String>,
@@ -167,6 +188,8 @@ impl IamInstance {
             .map_err(Into::into)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_access_key(
         &self,
         user_name: impl Into<String>,
@@ -196,7 +219,7 @@ impl From<User> for IamUser {
         let create_date: DateTime<Utc> = user.create_date.parse().unwrap_or_else(|_| Utc::now());
         let tags = user
             .tags
-            .unwrap_or_else(Vec::new)
+            .unwrap_or_default()
             .into_iter()
             .map(|t| (t.key, t.value.into()))
             .collect();

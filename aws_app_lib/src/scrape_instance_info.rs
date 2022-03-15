@@ -15,6 +15,8 @@ use crate::{
     pgpool::PgPool,
 };
 
+/// # Errors
+/// Returns error if `Url::parse` fails
 pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
     match generation {
         AwsGeneration::HVM => "https://aws.amazon.com/ec2/instance-types/",
@@ -24,6 +26,8 @@ pub fn get_url(generation: AwsGeneration) -> Result<Url, Error> {
     .map_err(Into::into)
 }
 
+/// # Errors
+/// Returns error if api call fails
 pub async fn scrape_instance_info(
     generation: AwsGeneration,
     pool: &PgPool,
@@ -329,7 +333,7 @@ fn extract_instance_type_object_hvm(
 ) -> Result<InstanceList, Error> {
     let idx = if row[indicies.instance_type]
         .as_ref()
-        .replace("*", "")
+        .replace('*', "")
         .parse::<i32>()
         .is_ok()
     {
@@ -340,16 +344,16 @@ fn extract_instance_type_object_hvm(
 
     let instance_type: StackString = row[(indicies.instance_type - idx)]
         .as_ref()
-        .replace("*", "")
+        .replace('*', "")
         .into();
     let family_name = instance_type.split('.').next().unwrap_or("").into();
     let n_cpu: i32 = row[(indicies.n_cpu - idx)]
         .as_ref()
-        .replace("*", "")
+        .replace('*', "")
         .parse()?;
     let memory_gib: f64 = row[(indicies.memory - idx)]
         .as_ref()
-        .replace(",", "")
+        .replace(',', "")
         .parse()?;
 
     Ok(InstanceList {
@@ -373,16 +377,16 @@ fn extract_instance_type_object_pv(
 
     let instance_type: StackString = row[(indicies.instance_type - idx)]
         .as_ref()
-        .replace("*", "")
+        .replace('*', "")
         .into();
     let family_name = instance_type.split('.').next().unwrap_or("").into();
     let n_cpu: i32 = row[(indicies.n_cpu - idx)]
         .as_ref()
-        .replace("*", "")
+        .replace('*', "")
         .parse()?;
     let memory_gib: f64 = row[(indicies.memory - idx)]
         .as_ref()
-        .replace(",", "")
+        .replace(',', "")
         .parse()?;
 
     Ok(InstanceList {

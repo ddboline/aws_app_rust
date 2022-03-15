@@ -21,6 +21,7 @@ pub struct InstanceOpt {
 }
 
 impl InstanceOpt {
+    #[must_use]
     pub fn into_instance_request(self, config: &Config) -> InstanceRequest {
         let security_group = self.security_group.unwrap_or_else(|| {
             config

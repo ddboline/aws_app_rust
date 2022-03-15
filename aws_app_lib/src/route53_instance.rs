@@ -33,6 +33,7 @@ impl Default for Route53Instance {
 }
 
 impl Route53Instance {
+    #[must_use]
     pub fn new(config: &Config) -> Self {
         let region: Region = config
             .aws_region_name
@@ -46,12 +47,16 @@ impl Route53Instance {
         }
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
         self.region = region.as_ref().parse()?;
         self.route53_client = get_client_sts!(Route53Client, self.region.clone())?;
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn get_hosted_zones(&self) -> Result<Vec<HostedZone>, Error> {
         self.route53_client
             .list_hosted_zones(ListHostedZonesRequest::default())
@@ -60,6 +65,8 @@ impl Route53Instance {
             .map(|r| r.hosted_zones)
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn list_record_sets(
         &self,
         id: impl Into<String>,
@@ -75,6 +82,8 @@ impl Route53Instance {
             .map(|r| r.resource_record_sets)
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn list_dns_records(
         &self,
         id: impl Into<String>,
@@ -95,6 +104,8 @@ impl Route53Instance {
         })
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn list_all_dns_records(&self) -> Result<Vec<(String, String, String)>, Error> {
         let hosted_zones = self.get_hosted_zones().await?;
         let futures = hosted_zones.into_iter().map(|zone| async move {
@@ -109,6 +120,8 @@ impl Route53Instance {
         Ok(dns_records)
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn update_dns_record(
         &self,
         zone_id: &str,
@@ -164,6 +177,8 @@ impl Route53Instance {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api fails
     pub async fn get_ip_address(&self) -> Result<Ipv4Addr, Error> {
         let ip = reqwest::get("https://ipinfo.io/ip")
             .await?

@@ -39,6 +39,8 @@ async fn get_latest_ubuntu_ami(
         .map_err(Into::into)
 }
 
+/// # Errors
+/// Returns error if aws api calls fails
 pub async fn get_frontpage(
     resource_type: ResourceType,
     app: &AwsAppInterface,
@@ -252,7 +254,7 @@ pub async fn get_frontpage(
                                     "#
                                 )
                             } else {
-                                print_tags(&vol.tags).into()
+                                print_tags(&vol.tags)
                             },
                             sp = if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
                                 format_sstr!(
@@ -311,7 +313,7 @@ pub async fn get_frontpage(
                                     "#
                                 )
                             } else {
-                                print_tags(&snap.tags).into()
+                                print_tags(&snap.tags)
                             }
                         )
                     })
@@ -353,7 +355,7 @@ pub async fn get_frontpage(
                     .into(),
             );
             let result: Vec<_> = app
-                .get_all_scripts()?
+                .get_all_scripts()
                 .into_iter()
                 .map(|fname| {
                     format_sstr!(
@@ -382,9 +384,9 @@ pub async fn get_frontpage(
                     </tr></thead><tbody>"#
                         .into(),
                 );
-            let _user_name: Option<&str> = None;
+            let user_name: Option<&str> = None;
             let (current_user, users) =
-                try_join!(app.iam.get_user(_user_name), app.iam.list_users())?;
+                try_join!(app.iam.get_user(user_name), app.iam.list_users())?;
             let users: Vec<_> = users.collect();
             let futures = users.iter().map(|u| async move {
                 app.iam
@@ -774,6 +776,8 @@ pub struct CreateSnapshotRequest {
 }
 
 impl CreateSnapshotRequest {
+    /// # Errors
+    /// Returns error if `create_ebs_snapshot` fails
     pub async fn handle(&self, app: &AwsAppInterface) -> Result<(), Error> {
         let tags = if let Some(name) = &self.name {
             hashmap! {"Name".into() => name.clone()}
@@ -796,6 +800,8 @@ pub struct TagItemRequest {
 }
 
 impl TagItemRequest {
+    /// # Errors
+    /// Returns error if `tag_ec2_instance` fails
     pub async fn handle(self, app: &AwsAppInterface) -> Result<(), Error> {
         app.ec2
             .tag_ec2_instance(

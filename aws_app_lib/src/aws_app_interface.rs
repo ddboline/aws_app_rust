@@ -58,6 +58,7 @@ pub struct AwsAppInterface {
 }
 
 impl AwsAppInterface {
+    #[must_use]
     pub fn new(config: Config, pool: PgPool) -> Self {
         Self {
             ec2: Ec2Instance::new(&config),
@@ -72,6 +73,8 @@ impl AwsAppInterface {
         }
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
         self.ec2
             .set_region(&region)
@@ -79,6 +82,8 @@ impl AwsAppInterface {
             .and_then(|_| self.route53.set_region(region))
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn update(&self) -> Result<impl Iterator<Item = StackString>, Error> {
         let (hvm, pv) = try_join!(
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
@@ -88,6 +93,8 @@ impl AwsAppInterface {
         Ok(iter)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn fill_instance_list(&self) -> Result<(), Error> {
         let mut instances: Vec<_> = self.ec2.get_all_instances().await?.collect();
         if !instances.is_empty() {
@@ -98,6 +105,8 @@ impl AwsAppInterface {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn process_resource(&self, resource: ResourceType) -> Result<(), Error> {
         match resource {
             ResourceType::Instances => {
@@ -296,7 +305,7 @@ impl AwsAppInterface {
             ResourceType::Script => {
                 self.stdout.send(format_sstr!(
                     "---\nScripts:\n{}",
-                    self.get_all_scripts()?.join("\n")
+                    self.get_all_scripts().join("\n")
                 ));
             }
             ResourceType::User => {
@@ -383,7 +392,8 @@ impl AwsAppInterface {
         Ok(())
     }
 
-    pub fn get_all_scripts(&self) -> Result<Vec<StackString>, Error> {
+    #[must_use]
+    pub fn get_all_scripts(&self) -> Vec<StackString> {
         let mut files: Vec<_> = WalkDir::new(&self.config.script_directory)
             .same_file_system(true)
             .into_iter()
@@ -401,9 +411,11 @@ impl AwsAppInterface {
             })
             .collect();
         files.sort();
-        Ok(files)
+        files
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn list(
         &self,
         resources: impl IntoIterator<Item = &ResourceType>,
@@ -430,6 +442,8 @@ impl AwsAppInterface {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn terminate(
         &self,
         instance_ids: impl IntoIterator<Item = impl AsRef<str>>,
@@ -443,6 +457,8 @@ impl AwsAppInterface {
         self.ec2.terminate_instance(&mapped_inst_ids).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn connect(&self, instance_id: impl AsRef<str>) -> Result<(), Error> {
         self.fill_instance_list().await?;
         let name_map = get_name_map().await?;
@@ -454,6 +470,8 @@ impl AwsAppInterface {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_status(
         &self,
         instance_id: impl AsRef<str>,
@@ -462,6 +480,8 @@ impl AwsAppInterface {
             .await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn run_command(
         &self,
         instance_id: impl AsRef<str>,
@@ -481,6 +501,8 @@ impl AwsAppInterface {
         }
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_ec2_prices(
         &self,
         search: &[impl AsRef<str>],
@@ -553,6 +575,8 @@ impl AwsAppInterface {
         Ok(prices)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn print_ec2_prices(&self, search: &[impl AsRef<str>]) -> Result<(), Error> {
         let mut prices: Vec<_> = self
             .get_ec2_prices(search)
@@ -585,12 +609,16 @@ impl AwsAppInterface {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_image(&self, ami: &str) -> Result<(), Error> {
         let ami_map = self.ec2.get_ami_map().await?;
         let ami = ami_map.get(ami).map_or(ami, AsRef::as_ref);
         self.ec2.delete_image(ami).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn request_spot_instance(&self, req: &mut SpotRequest) -> Result<(), Error> {
         let ami_map = self.ec2.get_ami_map().await?;
         if let Some(a) = ami_map.get(&req.ami) {
@@ -602,6 +630,8 @@ impl AwsAppInterface {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn run_ec2_instance(&self, req: &mut InstanceRequest) -> Result<(), Error> {
         let ami_map = self.ec2.get_ami_map().await?;
         if let Some(a) = ami_map.get(&req.ami) {
@@ -611,6 +641,8 @@ impl AwsAppInterface {
         self.ec2.run_ec2_instance(req).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_image(
         &self,
         inst_id: impl AsRef<str>,
@@ -632,6 +664,8 @@ impl AwsAppInterface {
         Ok(snapshot_map)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_ebs_volume(
         &self,
         zoneid: impl Into<String>,
@@ -653,12 +687,16 @@ impl AwsAppInterface {
         Ok(volume_map)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_ebs_volume(&self, volid: impl AsRef<str>) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, &volid);
         self.ec2.delete_ebs_volume(volid).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn attach_ebs_volume(
         &self,
         volid: impl AsRef<str>,
@@ -673,18 +711,24 @@ impl AwsAppInterface {
         self.ec2.attach_ebs_volume(volid, instid, device).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn detach_ebs_volume(&self, volid: impl AsRef<str>) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, &volid);
         self.ec2.detach_ebs_volume(volid).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn modify_ebs_volume(&self, volid: impl AsRef<str>, size: i64) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, &volid);
         self.ec2.modify_ebs_volume(volid, size).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_ebs_snapshot(
         &self,
         volid: impl AsRef<str>,
@@ -695,12 +739,16 @@ impl AwsAppInterface {
         self.ec2.create_ebs_snapshot(volid, tags).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_ebs_snapshot(&self, snapid: impl AsRef<str>) -> Result<(), Error> {
         let snap_map = self.get_snapshot_map().await?;
         let snapid = map_or_val(&snap_map, &snapid);
         self.ec2.delete_ebs_snapshot(snapid).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn get_all_ami_tags(&self) -> Result<Vec<AmiInfo>, Error> {
         let ami_tag_task = self.ec2.get_ami_tags();
         let ubuntu_ami_task = self
@@ -722,6 +770,8 @@ impl AwsAppInterface {
         Ok(ami_tags)
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_user(
         &self,
         user_name: impl Into<String>,
@@ -729,10 +779,14 @@ impl AwsAppInterface {
         self.iam.create_user(user_name).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_user(&self, user_name: impl Into<String>) -> Result<(), Error> {
         self.iam.delete_user(user_name).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn add_user_to_group(
         &self,
         user_name: impl Into<String>,
@@ -741,6 +795,8 @@ impl AwsAppInterface {
         self.iam.add_user_to_group(user_name, group_name).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn remove_user_from_group(
         &self,
         user_name: impl Into<String>,
@@ -749,6 +805,8 @@ impl AwsAppInterface {
         self.iam.remove_user_from_group(user_name, group_name).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn create_access_key(
         &self,
         user_name: impl Into<String>,
@@ -756,6 +814,8 @@ impl AwsAppInterface {
         self.iam.create_access_key(user_name).await
     }
 
+    /// # Errors
+    /// Returns error if aws api call fails
     pub async fn delete_access_key(
         &self,
         user_name: impl Into<String>,
