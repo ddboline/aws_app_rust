@@ -8,7 +8,7 @@ use rweb_helper::{
 use serde::{Deserialize, Serialize};
 use stack_string::{format_sstr, StackString};
 use std::{
-    fmt::{Display, Write},
+    fmt::{Display},
     path::Path,
     sync::Arc,
 };

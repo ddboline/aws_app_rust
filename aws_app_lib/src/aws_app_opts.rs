@@ -3,7 +3,7 @@ use futures::future::try_join_all;
 use itertools::Itertools;
 use refinery::embed_migrations;
 use stack_string::{format_sstr, StackString};
-use std::{fmt::Write, net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
+use std::{net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
 use structopt::StructOpt;
 use tokio::io::{stdin, AsyncReadExt};
 

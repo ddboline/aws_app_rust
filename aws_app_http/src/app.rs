@@ -6,7 +6,7 @@ use rweb::{
     Filter, Reply,
 };
 use stack_string::format_sstr;
-use std::{fmt::Write, net::SocketAddr, sync::Arc, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
 
 use aws_app_lib::{
@@ -185,7 +185,6 @@ mod tests {
     use stack_string::format_sstr;
     use std::{
         env::{remove_var, set_var},
-        fmt::Write,
         time::Duration,
     };
     use tokio::{task::spawn, time::sleep};

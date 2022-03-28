@@ -7,7 +7,7 @@ use rusoto_ecr::{
     ImageIdentifier,
 };
 use stack_string::{format_sstr, StackString};
-use std::{fmt, fmt::Write, sync::Arc};
+use std::{fmt, sync::Arc};
 use sts_profile_auth::get_client_sts;
 
 use crate::config::Config;

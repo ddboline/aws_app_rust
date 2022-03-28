@@ -9,7 +9,7 @@ use smallvec::SmallVec;
 use stack_string::{format_sstr, StackString};
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{Display, Write},
+    fmt::{Display},
 };
 use tokio::try_join;
 
