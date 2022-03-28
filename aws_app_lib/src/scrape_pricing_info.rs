@@ -5,7 +5,7 @@ use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
 use stack_string::{format_sstr, StackString};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use crate::{
     models::{InstancePricing, PricingType},

@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use stack_string::{format_sstr, StackString};
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{Display},
+    fmt::Display,
 };
 use stdout_channel::StdoutChannel;
 use tokio::{sync::RwLock, try_join};

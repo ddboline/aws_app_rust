@@ -7,11 +7,7 @@ use rweb_helper::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::{format_sstr, StackString};
-use std::{
-    fmt::{Display},
-    path::Path,
-    sync::Arc,
-};
+use std::{fmt::Display, path::Path, sync::Arc};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,

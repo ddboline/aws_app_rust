@@ -8,7 +8,7 @@ use select::{
     predicate::{Class, Name},
 };
 use stack_string::{format_sstr, StackString};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use crate::{
     models::{AwsGeneration, InstanceFamily, InstanceList},

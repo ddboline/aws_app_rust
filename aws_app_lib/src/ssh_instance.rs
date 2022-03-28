@@ -2,7 +2,7 @@ use anyhow::{format_err, Error};
 use lazy_static::lazy_static;
 use log::debug;
 use stack_string::{format_sstr, StackString};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use tokio::{
     process::Command,
     sync::{Mutex, RwLock},
