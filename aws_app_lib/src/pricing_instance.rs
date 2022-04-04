@@ -1,5 +1,4 @@
 use anyhow::Error;
-use chrono::{DateTime, Utc};
 use rusoto_core::Region;
 use rusoto_pricing::{
     DescribeServicesRequest, Filter, GetAttributeValuesRequest, GetProductsRequest, Pricing,
@@ -10,9 +9,11 @@ use stack_string::StackString;
 use std::{collections::HashMap, fmt};
 use stdout_channel::rate_limiter::RateLimiter;
 use sts_profile_auth::get_client_sts;
+use time::OffsetDateTime;
 
 use crate::{
     config::Config,
+    iso_8601_datetime,
     models::{InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
 };
@@ -197,8 +198,8 @@ impl PricingInstance {
                     struct PriceDimensions<'a> {
                         #[serde(rename = "priceDimensions", borrow)]
                         price_dimensions: HashMap<&'a str, PriceDimension<'a>>,
-                        #[serde(rename = "effectiveDate")]
-                        effective_date: DateTime<Utc>,
+                        #[serde(rename = "effectiveDate", with = "iso_8601_datetime")]
+                        effective_date: OffsetDateTime,
                         #[serde(rename = "termAttributes")]
                         term_attributes: TermAttributes<'a>,
                     }

@@ -1,5 +1,4 @@
 use anyhow::{format_err, Error};
-use chrono::Local;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -9,6 +8,7 @@ use std::{
     fmt::Display,
 };
 use stdout_channel::StdoutChannel;
+use time_tz::OffsetDateTimeExt;
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
 
@@ -111,7 +111,7 @@ impl AwsAppInterface {
         match resource {
             ResourceType::Instances => {
                 self.fill_instance_list().await?;
-
+                let local_tz = time_tz::system::get_timezone()?;
                 let result = INSTANCE_LIST
                     .read()
                     .await
@@ -125,7 +125,7 @@ impl AwsAppInterface {
                             dn = inst.dns_name,
                             st = inst.state,
                             it = inst.instance_type,
-                            lt = inst.launch_time.with_timezone(&Local),
+                            lt = inst.launch_time.to_timezone(local_tz),
                             az = inst.availability_zone,
                             vm = inst.volumes.join(" "),
                         )
@@ -898,6 +898,7 @@ mod tests {
     async fn test_get_name_map() -> Result<(), Error> {
         let js = include_str!("../../tests/data/ec2_instances.json");
         let instances: Vec<Ec2InstanceInfo> = serde_json::from_str(&js)?;
+        println!("{:?}", instances);
         *INSTANCE_LIST.write().await = instances;
         let name_map = get_name_map().await?;
         assert!(name_map.len() == 1);

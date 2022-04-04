@@ -1,5 +1,4 @@
 use anyhow::Error;
-use chrono::{DateTime, Utc};
 use rusoto_core::Region;
 use rusoto_iam::{
     AccessKey, AccessKeyMetadata, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest,
@@ -11,8 +10,9 @@ use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::collections::HashMap;
 use sts_profile_auth::get_client_sts;
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
-use crate::config::Config;
+use crate::{config::Config, iso_8601_datetime};
 
 #[derive(Clone)]
 pub struct IamInstance {
@@ -208,7 +208,8 @@ impl IamInstance {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IamUser {
     pub arn: StackString,
-    pub create_date: DateTime<Utc>,
+    #[serde(with = "iso_8601_datetime")]
+    pub create_date: OffsetDateTime,
     pub user_id: StackString,
     pub user_name: StackString,
     pub tags: HashMap<String, StackString>,
@@ -216,7 +217,8 @@ pub struct IamUser {
 
 impl From<User> for IamUser {
     fn from(user: User) -> Self {
-        let create_date: DateTime<Utc> = user.create_date.parse().unwrap_or_else(|_| Utc::now());
+        let create_date = OffsetDateTime::parse(&user.create_date, &Rfc3339)
+            .unwrap_or_else(|_| OffsetDateTime::now_utc());
         let tags = user
             .tags
             .unwrap_or_default()
@@ -236,14 +238,15 @@ impl From<User> for IamUser {
 #[derive(Debug)]
 pub struct IamGroup {
     pub arn: StackString,
-    pub create_date: DateTime<Utc>,
+    pub create_date: OffsetDateTime,
     pub group_id: StackString,
     pub group_name: StackString,
 }
 
 impl From<Group> for IamGroup {
     fn from(group: Group) -> Self {
-        let create_date = group.create_date.parse().unwrap_or_else(|_| Utc::now());
+        let create_date = OffsetDateTime::parse(&group.create_date, &Rfc3339)
+            .unwrap_or_else(|_| OffsetDateTime::now_utc());
         Self {
             arn: group.arn.into(),
             create_date,
@@ -256,7 +259,8 @@ impl From<Group> for IamGroup {
 #[derive(Serialize, Deserialize)]
 pub struct IamAccessKey {
     pub access_key_id: StackString,
-    pub create_date: DateTime<Utc>,
+    #[serde(with = "iso_8601_datetime")]
+    pub create_date: OffsetDateTime,
     pub access_key_secret: StackString,
     pub status: StackString,
     pub user_name: StackString,
@@ -266,8 +270,8 @@ impl From<AccessKey> for IamAccessKey {
     fn from(key: AccessKey) -> Self {
         let create_date = key
             .create_date
-            .and_then(|dt| dt.parse().ok())
-            .unwrap_or_else(Utc::now);
+            .and_then(|dt| OffsetDateTime::parse(&dt, &Rfc3339).ok())
+            .unwrap_or_else(OffsetDateTime::now_utc);
         Self {
             access_key_id: key.access_key_id.into(),
             create_date,

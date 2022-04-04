@@ -16,6 +16,7 @@ pub mod ecr_instance;
 pub mod iam_instance;
 pub mod instance_family;
 pub mod instance_opt;
+pub mod iso_8601_datetime;
 pub mod models;
 pub mod novnc_instance;
 pub mod pgpool;

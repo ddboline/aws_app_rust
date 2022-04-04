@@ -1,5 +1,4 @@
 use anyhow::Error;
-use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{
@@ -7,7 +6,10 @@ use std::{
     convert::{TryFrom, TryInto},
     fmt,
 };
+use time::{Duration, OffsetDateTime, UtcOffset};
 use tokio::process::Command;
+
+use crate::iso_8601_datetime;
 
 #[derive(Default, Clone)]
 pub struct SystemdInstance {
@@ -194,11 +196,12 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
             println!("{}", line.timestamp);
             e
         })?;
-        let timestamp = NaiveDateTime::from_timestamp(
-            (timestamp / 1_000_000) as i64,
-            ((timestamp % 1_000_000) * 1000) as u32,
-        );
-        let timestamp = DateTime::from_utc(timestamp, Utc);
+        let ts = (timestamp / 1_000_000) as i64;
+        let ns = ((timestamp % 1_000_000) * 1000) as i64;
+        let timestamp = (OffsetDateTime::from_unix_timestamp(ts)
+            .unwrap_or_else(|_| OffsetDateTime::now_utc())
+            + Duration::nanoseconds(ns))
+        .to_offset(UtcOffset::UTC);
         Ok(Self {
             timestamp,
             message: line.message,
@@ -209,7 +212,8 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ServiceLogEntry {
-    timestamp: DateTime<Utc>,
+    #[serde(with = "iso_8601_datetime")]
+    timestamp: OffsetDateTime,
     message: StackString,
     hostname: StackString,
 }

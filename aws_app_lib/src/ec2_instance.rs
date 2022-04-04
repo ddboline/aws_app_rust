@@ -1,5 +1,4 @@
 use anyhow::{format_err, Error};
-use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
 use log::debug;
 use maplit::hashmap;
@@ -22,12 +21,15 @@ use std::{
     fmt,
     fs::read_to_string,
     path::{Path, PathBuf},
-    time,
 };
 use sts_profile_auth::get_client_sts;
+use time::{
+    format_description::well_known::Rfc3339, macros::format_description, Duration, OffsetDateTime,
+    UtcOffset,
+};
 use tokio::{task::spawn, time::sleep};
 
-use crate::config::Config;
+use crate::{config::Config, iso_8601_datetime};
 
 static UBUNTU_OWNER: &str = "099720109477";
 
@@ -265,8 +267,8 @@ impl Ec2Instance {
                                     availability_zone: inst.placement?.availability_zone?.into(),
                                     launch_time: inst
                                         .launch_time
-                                        .and_then(|t| DateTime::parse_from_rfc3339(&t).ok())
-                                        .map(|t| t.with_timezone(&Utc))?,
+                                        .and_then(|t| OffsetDateTime::parse(&t, &Rfc3339).ok())
+                                        .map(|t| t.to_offset(UtcOffset::UTC))?,
                                     tags,
                                     volumes,
                                 })
@@ -347,10 +349,11 @@ impl Ec2Instance {
                 values: Some(zones),
             },
         ];
-        let start_time = Utc::now() - Duration::hours(4);
+        let start_time = OffsetDateTime::now_utc() - Duration::hours(4);
+        let utc_format = format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
         self.ec2_client
             .describe_spot_price_history(DescribeSpotPriceHistoryRequest {
-                start_time: Some(start_time.format("%Y-%m-%dT%H:%M:%SZ").to_string()),
+                start_time: start_time.format(&utc_format).ok(),
                 filters: Some(filters),
                 instance_types: if inst_list.is_empty() {
                     None
@@ -531,7 +534,7 @@ impl Ec2Instance {
         name: impl Into<StackString>,
         iterations: usize,
     ) -> Result<(), Error> {
-        sleep(time::Duration::from_secs(2)).await;
+        sleep(std::time::Duration::from_secs(2)).await;
         let inst_id = inst_id.as_ref();
         for i in 0..iterations {
             if let Some(ami) = self
@@ -552,7 +555,7 @@ impl Ec2Instance {
             } else {
                 40
             };
-            sleep(time::Duration::from_secs(secs)).await;
+            sleep(std::time::Duration::from_secs(secs)).await;
         }
         Ok(())
     }
@@ -565,7 +568,7 @@ impl Ec2Instance {
         tags: &HashMap<StackString, StackString>,
         iterations: usize,
     ) -> Result<(), Error> {
-        sleep(time::Duration::from_secs(2)).await;
+        sleep(std::time::Duration::from_secs(2)).await;
         for i in 0..iterations {
             let reqs: HashMap<_, _> = self
                 .get_spot_instance_requests()
@@ -599,7 +602,7 @@ impl Ec2Instance {
             } else {
                 40
             };
-            sleep(time::Duration::from_secs(secs)).await;
+            sleep(std::time::Duration::from_secs(secs)).await;
         }
         Ok(())
     }
@@ -910,7 +913,8 @@ pub struct Ec2InstanceInfo {
     pub state: StackString,
     pub instance_type: StackString,
     pub availability_zone: StackString,
-    pub launch_time: DateTime<Utc>,
+    #[serde(with = "iso_8601_datetime")]
+    pub launch_time: OffsetDateTime,
     pub tags: HashMap<StackString, StackString>,
     pub volumes: Vec<StackString>,
 }

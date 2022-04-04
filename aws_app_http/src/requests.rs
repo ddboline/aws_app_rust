@@ -1,5 +1,4 @@
 use cached::{proc_macro::cached, SizedCache};
-use chrono::Local;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use maplit::hashmap;
@@ -11,6 +10,8 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
 };
+use time::{macros::format_description, OffsetDateTime};
+use time_tz::OffsetDateTimeExt;
 use tokio::try_join;
 
 use aws_app_lib::{
@@ -215,6 +216,7 @@ pub async fn get_frontpage(
             if volumes.is_empty() {
                 return Ok(Vec::new());
             }
+            let local_tz = time_tz::system::get_timezone()?;
             output.push(
                 r#"<table border="1" class="dataframe"><thead><tr><th></th><th>Volume ID</th>
                     <th>Availability Zone</th><th>Size</th><th>IOPS</th><th>State</th><th>Tags</th>
@@ -257,10 +259,11 @@ pub async fn get_frontpage(
                                 print_tags(&vol.tags)
                             },
                             sp = if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
+                                let local = OffsetDateTime::now_utc().to_timezone(local_tz).date().format(format_description!("[year][month][day]")).unwrap();
                                 format_sstr!(
                                     r#"<input type="button" name="CreateSnapshot" value="CreateSnapshot"
                                         onclick="createSnapshot('{id}', '{dt}')">"#,
-                                    dt = format_sstr!("dileptoninthecloud_backup_{}", Local::now().naive_local().date().format("%Y%m%d")),
+                                    dt = format_sstr!("dileptoninthecloud_backup_{local}"),
                                 )
                             } else {
                                 format_sstr!(
@@ -656,7 +659,7 @@ pub async fn get_frontpage(
 
 async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error> {
     app.fill_instance_list().await?;
-
+    let local_tz = time_tz::system::get_timezone()?;
     let result: Vec<_> = INSTANCE_LIST
         .read()
         .await
@@ -701,7 +704,7 @@ async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error>
                 dn = inst.dns_name,
                 st = inst.state,
                 it = inst.instance_type,
-                lt = inst.launch_time.with_timezone(&Local),
+                lt = inst.launch_time.to_timezone(local_tz),
                 az = inst.availability_zone,
             )
         })

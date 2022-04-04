@@ -1,5 +1,4 @@
 use anyhow::Error;
-use chrono::{DateTime, TimeZone, Utc};
 use futures::future::try_join_all;
 use rusoto_core::Region;
 use rusoto_ecr::{
@@ -9,6 +8,7 @@ use rusoto_ecr::{
 use stack_string::{format_sstr, StackString};
 use std::{fmt, sync::Arc};
 use sts_profile_auth::get_client_sts;
+use time::{Duration, OffsetDateTime};
 
 use crate::config::Config;
 
@@ -89,11 +89,16 @@ impl EcrInstance {
                     .unwrap_or_default()
                     .into_iter()
                     .filter_map(move |image| {
-                        let pushed_at = image.image_pushed_at.map_or_else(Utc::now, |p| {
-                            let s = p as i64;
-                            let ns = p.fract() * 1.0e9;
-                            Utc.timestamp(s, ns as u32)
-                        });
+                        let pushed_at =
+                            image
+                                .image_pushed_at
+                                .map_or_else(OffsetDateTime::now_utc, |p| {
+                                    let s = p as i64;
+                                    let ns = p.fract() * 1.0e9;
+                                    OffsetDateTime::from_unix_timestamp(s)
+                                        .unwrap_or_else(|_| OffsetDateTime::now_utc())
+                                        + Duration::nanoseconds(ns as i64)
+                                });
                         let image_size = image.image_size_in_bytes.map_or(0.0, |s| s as f64 / 1e6);
                         let tags = image
                             .image_tags
@@ -165,7 +170,7 @@ pub struct ImageInfo {
     pub repo: StackString,
     pub digest: StackString,
     pub tags: Vec<StackString>,
-    pub pushed_at: DateTime<Utc>,
+    pub pushed_at: OffsetDateTime,
     pub image_size: f64,
 }
 

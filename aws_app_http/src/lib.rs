@@ -13,10 +13,9 @@ pub mod logged_user;
 pub mod requests;
 pub mod routes;
 
-use chrono::{DateTime, Utc};
 use derive_more::{From, Into};
 use rweb::Schema;
-use rweb_helper::derive_rweb_schema;
+use rweb_helper::{derive_rweb_schema, DateTimeType};
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::collections::HashMap;
@@ -37,7 +36,7 @@ struct _IamUserWrapper {
     #[schema(description = "Iam Arn")]
     arn: StackString,
     #[schema(description = "Created DateTime")]
-    create_date: DateTime<Utc>,
+    create_date: DateTimeType,
     #[schema(description = "User ID")]
     user_id: StackString,
     #[schema(description = "User Name")]
@@ -57,7 +56,7 @@ struct _IamAccessKeyWrapper {
     #[schema(description = "Access Key ID")]
     access_key_id: StackString,
     #[schema(description = "Created DateTime")]
-    create_date: DateTime<Utc>,
+    create_date: DateTimeType,
     #[schema(description = "Access Secret Key")]
     access_key_secret: StackString,
     #[schema(description = "Status")]

@@ -1,8 +1,8 @@
 use anyhow::Error;
-use chrono::{DateTime, Utc};
 use postgres_query::{client::GenericClient, query, FromSqlRow};
 use stack_string::StackString;
 use std::fmt;
+use time::OffsetDateTime;
 
 use crate::pgpool::{PgPool, PgTransaction};
 
@@ -218,7 +218,7 @@ pub struct InstancePricing {
     pub instance_type: StackString,
     pub price: f64,
     pub price_type: StackString,
-    pub price_timestamp: DateTime<Utc>,
+    pub price_timestamp: OffsetDateTime,
 }
 
 impl InstancePricing {
@@ -227,7 +227,7 @@ impl InstancePricing {
         instance_type: &str,
         price: f64,
         price_type: &str,
-        price_timestamp: DateTime<Utc>,
+        price_timestamp: OffsetDateTime,
     ) -> Self {
         Self {
             id: -1,

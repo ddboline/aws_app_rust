@@ -1,11 +1,11 @@
 use anyhow::{format_err, Error};
-use chrono::Utc;
 use futures::future::try_join_all;
 use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
 use stack_string::{format_sstr, StackString};
 use std::collections::HashMap;
+use time::OffsetDateTime;
 
 use crate::{
     models::{InstancePricing, PricingType},
@@ -114,7 +114,12 @@ fn get_instance_pricing(
                 .attributes
                 .get("aws:ec2:instanceType")
                 .ok_or_else(|| format_err!("No instance type {:?}", price_entry))?;
-            let i = InstancePricing::new(instance_type.as_str(), price, "ondemand", Utc::now());
+            let i = InstancePricing::new(
+                instance_type.as_str(),
+                price,
+                "ondemand",
+                OffsetDateTime::now_utc(),
+            );
             Ok(i)
         }
         PricingType::Reserved => {
@@ -128,7 +133,12 @@ fn get_instance_pricing(
                 .attributes
                 .get("aws:ec2:instanceType")
                 .ok_or_else(|| format_err!("No instance type"))?;
-            let i = InstancePricing::new(instance_type.as_str(), price, "reserved", Utc::now());
+            let i = InstancePricing::new(
+                instance_type.as_str(),
+                price,
+                "reserved",
+                OffsetDateTime::now_utc(),
+            );
             Ok(i)
         }
         PricingType::Spot => Err(format_err!("nothing")),

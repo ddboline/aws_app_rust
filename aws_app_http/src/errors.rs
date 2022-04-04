@@ -14,6 +14,7 @@ use serde::Serialize;
 use stack_string::StackString;
 use std::{borrow::Cow, convert::Infallible, fmt::Debug, string::FromUtf8Error};
 use thiserror::Error;
+use time_tz::system::Error as TzSystemError;
 
 #[derive(Error, Debug)]
 pub enum ServiceError {
@@ -29,6 +30,8 @@ pub enum ServiceError {
     IoError(#[from] std::io::Error),
     #[error("FromUtf8Error {0}")]
     FromUtf8Error(#[from] FromUtf8Error),
+    #[error("TzSystemError {0}")]
+    TzSystemError(#[from] TzSystemError),
 }
 
 impl Reject for ServiceError {}
