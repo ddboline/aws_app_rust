@@ -12,7 +12,9 @@ pub fn sentinel_datetime() -> OffsetDateTime {
     datetime!(0001-01-01 00:00:00).assume_utc()
 }
 
-#[must_use]
+/// # Errors
+/// Returns error if formatting fails (which can only happen if formatting
+/// string is non-utf8)
 pub fn convert_datetime_to_str(datetime: OffsetDateTime) -> Result<StackString, Error> {
     datetime
         .format(format_description!(

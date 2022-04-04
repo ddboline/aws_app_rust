@@ -259,7 +259,9 @@ pub async fn get_frontpage(
                                 print_tags(&vol.tags)
                             },
                             sp = if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
-                                let local = OffsetDateTime::now_utc().to_timezone(local_tz).date().format(format_description!("[year][month][day]")).unwrap();
+                                let ymd = format_description!("[year][month][day]");
+                                let local = OffsetDateTime::now_utc().to_timezone(local_tz);
+                                let local = local.date().format(ymd).unwrap_or_else(|_| "".into());
                                 format_sstr!(
                                     r#"<input type="button" name="CreateSnapshot" value="CreateSnapshot"
                                         onclick="createSnapshot('{id}', '{dt}')">"#,
