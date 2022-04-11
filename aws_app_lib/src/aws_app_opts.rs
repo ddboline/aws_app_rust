@@ -6,6 +6,7 @@ use stack_string::{format_sstr, StackString};
 use std::{net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
 use structopt::StructOpt;
 use tokio::io::{stdin, AsyncReadExt};
+use log::debug;
 
 use crate::{
     aws_app_interface::AwsAppInterface,
@@ -387,7 +388,8 @@ impl AwsAppOpts {
                 novnc.novnc_start(novnc_path, &cert, &key).await?;
                 app.stdout.send("Press any key");
                 let mut buf = Vec::new();
-                stdin().read(&mut buf).await?;
+                let written = stdin().read(&mut buf).await?;
+                debug!("written {written}");
                 let lines = novnc.novnc_stop_request().await?;
                 app.stdout.send(lines.join("\n"));
                 Ok(())
