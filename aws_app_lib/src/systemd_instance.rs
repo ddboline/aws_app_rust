@@ -201,7 +201,8 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
         let timestamp = (OffsetDateTime::from_unix_timestamp(ts)
             .unwrap_or_else(|_| OffsetDateTime::now_utc())
             + Duration::nanoseconds(ns))
-        .to_offset(UtcOffset::UTC).into();
+        .to_offset(UtcOffset::UTC)
+        .into();
         Ok(Self {
             timestamp,
             message: line.message,

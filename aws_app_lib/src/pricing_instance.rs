@@ -218,7 +218,8 @@ impl PricingInstance {
                                 }
                                 if let Ok(price) = dimension.price_per_unit.usd.parse::<f64>() {
                                     let price_type = PricingType::OnDemand;
-                                    let price_timestamp: OffsetDateTime = price_dimensions.effective_date.into();
+                                    let price_timestamp: OffsetDateTime =
+                                        price_dimensions.effective_date.into();
                                     let instance_type: StackString = instance_type.into();
                                     if let Some(i) =
                                         entries.get(&(instance_type.clone(), price_type))

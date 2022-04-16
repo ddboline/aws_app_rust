@@ -14,6 +14,7 @@ use walkdir::WalkDir;
 
 use crate::{
     config::Config,
+    date_time_wrapper::DateTimeWrapper,
     ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
     ecr_instance::EcrInstance,
     iam_instance::{IamAccessKey, IamInstance, IamUser},
@@ -26,7 +27,6 @@ use crate::{
     scrape_instance_info::scrape_instance_info,
     ssh_instance::SSHInstance,
     systemd_instance::SystemdInstance,
-    date_time_wrapper::DateTimeWrapper,
 };
 
 lazy_static! {

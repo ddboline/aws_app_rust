@@ -16,10 +16,10 @@ use tokio::try_join;
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, INSTANCE_LIST},
+    date_time_wrapper::DateTimeWrapper,
     ec2_instance::AmiInfo,
     resource_type::ResourceType,
     systemd_instance::RunStatus,
-    date_time_wrapper::DateTimeWrapper,
 };
 
 use crate::errors::ServiceError as Error;

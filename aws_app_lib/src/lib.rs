@@ -11,6 +11,7 @@
 pub mod aws_app_interface;
 pub mod aws_app_opts;
 pub mod config;
+pub mod date_time_wrapper;
 pub mod ec2_instance;
 pub mod ecr_instance;
 pub mod iam_instance;
@@ -27,4 +28,3 @@ pub mod scrape_pricing_info;
 pub mod spot_request_opt;
 pub mod ssh_instance;
 pub mod systemd_instance;
-pub mod date_time_wrapper;
