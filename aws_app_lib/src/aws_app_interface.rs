@@ -26,6 +26,7 @@ use crate::{
     scrape_instance_info::scrape_instance_info,
     ssh_instance::SSHInstance,
     systemd_instance::SystemdInstance,
+    date_time_wrapper::DateTimeWrapper,
 };
 
 lazy_static! {
@@ -111,7 +112,7 @@ impl AwsAppInterface {
         match resource {
             ResourceType::Instances => {
                 self.fill_instance_list().await?;
-                let local_tz = time_tz::system::get_timezone()?;
+                let local_tz = DateTimeWrapper::local_tz();
                 let result = INSTANCE_LIST
                     .read()
                     .await

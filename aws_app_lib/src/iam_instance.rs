@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use sts_profile_auth::get_client_sts;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
-use crate::{config::Config, iso_8601_datetime};
+use crate::{config::Config, date_time_wrapper::DateTimeWrapper};
 
 #[derive(Clone)]
 pub struct IamInstance {
@@ -208,8 +208,7 @@ impl IamInstance {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IamUser {
     pub arn: StackString,
-    #[serde(with = "iso_8601_datetime")]
-    pub create_date: OffsetDateTime,
+    pub create_date: DateTimeWrapper,
     pub user_id: StackString,
     pub user_name: StackString,
     pub tags: HashMap<String, StackString>,
@@ -218,7 +217,7 @@ pub struct IamUser {
 impl From<User> for IamUser {
     fn from(user: User) -> Self {
         let create_date = OffsetDateTime::parse(&user.create_date, &Rfc3339)
-            .unwrap_or_else(|_| OffsetDateTime::now_utc());
+            .map_or_else(|_| DateTimeWrapper::now(), Into::into);
         let tags = user
             .tags
             .unwrap_or_default()
@@ -259,8 +258,7 @@ impl From<Group> for IamGroup {
 #[derive(Serialize, Deserialize)]
 pub struct IamAccessKey {
     pub access_key_id: StackString,
-    #[serde(with = "iso_8601_datetime")]
-    pub create_date: OffsetDateTime,
+    pub create_date: DateTimeWrapper,
     pub access_key_secret: StackString,
     pub status: StackString,
     pub user_name: StackString,
@@ -271,7 +269,7 @@ impl From<AccessKey> for IamAccessKey {
         let create_date = key
             .create_date
             .and_then(|dt| OffsetDateTime::parse(&dt, &Rfc3339).ok())
-            .unwrap_or_else(OffsetDateTime::now_utc);
+            .map_or_else(DateTimeWrapper::now, Into::into);
         Self {
             access_key_id: key.access_key_id.into(),
             create_date,

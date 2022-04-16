@@ -13,7 +13,7 @@ use time::OffsetDateTime;
 
 use crate::{
     config::Config,
-    iso_8601_datetime,
+    date_time_wrapper::DateTimeWrapper,
     models::{InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
 };
@@ -198,8 +198,8 @@ impl PricingInstance {
                     struct PriceDimensions<'a> {
                         #[serde(rename = "priceDimensions", borrow)]
                         price_dimensions: HashMap<&'a str, PriceDimension<'a>>,
-                        #[serde(rename = "effectiveDate", with = "iso_8601_datetime")]
-                        effective_date: OffsetDateTime,
+                        #[serde(rename = "effectiveDate")]
+                        effective_date: DateTimeWrapper,
                         #[serde(rename = "termAttributes")]
                         term_attributes: TermAttributes<'a>,
                     }
@@ -218,7 +218,7 @@ impl PricingInstance {
                                 }
                                 if let Ok(price) = dimension.price_per_unit.usd.parse::<f64>() {
                                     let price_type = PricingType::OnDemand;
-                                    let price_timestamp = price_dimensions.effective_date;
+                                    let price_timestamp: OffsetDateTime = price_dimensions.effective_date.into();
                                     let instance_type: StackString = instance_type.into();
                                     if let Some(i) =
                                         entries.get(&(instance_type.clone(), price_type))
@@ -231,7 +231,7 @@ impl PricingInstance {
                                         instance_type.as_str(),
                                         price,
                                         price_type.to_str(),
-                                        price_dimensions.effective_date,
+                                        price_dimensions.effective_date.into(),
                                     );
                                     entries.insert((instance_type, price_type), i);
                                 }
@@ -260,7 +260,7 @@ impl PricingInstance {
                                     let price = price / (365.0 * 24.0);
 
                                     let price_type = PricingType::Reserved;
-                                    let price_timestamp = price_dimensions.effective_date;
+                                    let price_timestamp = price_dimensions.effective_date.into();
                                     let instance_type: StackString = instance_type.into();
                                     if let Some(i) =
                                         entries.get(&(instance_type.clone(), price_type))

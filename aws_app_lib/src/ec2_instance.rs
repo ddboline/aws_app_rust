@@ -29,7 +29,7 @@ use time::{
 };
 use tokio::{task::spawn, time::sleep};
 
-use crate::{config::Config, iso_8601_datetime};
+use crate::{config::Config, date_time_wrapper::DateTimeWrapper};
 
 static UBUNTU_OWNER: &str = "099720109477";
 
@@ -268,7 +268,7 @@ impl Ec2Instance {
                                     launch_time: inst
                                         .launch_time
                                         .and_then(|t| OffsetDateTime::parse(&t, &Rfc3339).ok())
-                                        .map(|t| t.to_offset(UtcOffset::UTC))?,
+                                        .map(|t| t.to_offset(UtcOffset::UTC).into())?,
                                     tags,
                                     volumes,
                                 })
@@ -913,8 +913,7 @@ pub struct Ec2InstanceInfo {
     pub state: StackString,
     pub instance_type: StackString,
     pub availability_zone: StackString,
-    #[serde(with = "iso_8601_datetime")]
-    pub launch_time: OffsetDateTime,
+    pub launch_time: DateTimeWrapper,
     pub tags: HashMap<StackString, StackString>,
     pub volumes: Vec<StackString>,
 }

@@ -19,6 +19,7 @@ use aws_app_lib::{
     ec2_instance::AmiInfo,
     resource_type::ResourceType,
     systemd_instance::RunStatus,
+    date_time_wrapper::DateTimeWrapper,
 };
 
 use crate::errors::ServiceError as Error;
@@ -216,7 +217,7 @@ pub async fn get_frontpage(
             if volumes.is_empty() {
                 return Ok(Vec::new());
             }
-            let local_tz = time_tz::system::get_timezone()?;
+            let local_tz = DateTimeWrapper::local_tz();
             output.push(
                 r#"<table border="1" class="dataframe"><thead><tr><th></th><th>Volume ID</th>
                     <th>Availability Zone</th><th>Size</th><th>IOPS</th><th>State</th><th>Tags</th>
@@ -661,7 +662,7 @@ pub async fn get_frontpage(
 
 async fn list_instance(app: &AwsAppInterface) -> Result<Vec<StackString>, Error> {
     app.fill_instance_list().await?;
-    let local_tz = time_tz::system::get_timezone()?;
+    let local_tz = DateTimeWrapper::local_tz();
     let result: Vec<_> = INSTANCE_LIST
         .read()
         .await

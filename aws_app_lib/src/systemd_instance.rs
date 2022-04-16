@@ -9,7 +9,7 @@ use std::{
 use time::{Duration, OffsetDateTime, UtcOffset};
 use tokio::process::Command;
 
-use crate::iso_8601_datetime;
+use crate::date_time_wrapper::DateTimeWrapper;
 
 #[derive(Default, Clone)]
 pub struct SystemdInstance {
@@ -201,7 +201,7 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
         let timestamp = (OffsetDateTime::from_unix_timestamp(ts)
             .unwrap_or_else(|_| OffsetDateTime::now_utc())
             + Duration::nanoseconds(ns))
-        .to_offset(UtcOffset::UTC);
+        .to_offset(UtcOffset::UTC).into();
         Ok(Self {
             timestamp,
             message: line.message,
@@ -212,8 +212,7 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ServiceLogEntry {
-    #[serde(with = "iso_8601_datetime")]
-    timestamp: OffsetDateTime,
+    timestamp: DateTimeWrapper,
     message: StackString,
     hostname: StackString,
 }
