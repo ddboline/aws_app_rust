@@ -401,7 +401,7 @@ impl AwsAppOpts {
             }
         };
         result?;
-        app.stdout.close().await
+        app.stdout.close().await.map_err(Into::into)
     }
 }
 

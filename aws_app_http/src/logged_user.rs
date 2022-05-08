@@ -4,6 +4,7 @@ pub use authorized_users::{
 };
 use log::debug;
 use rweb::{filters::cookie::cookie, Filter, Rejection, Schema};
+use rweb_helper::UuidWrapper;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{
@@ -22,7 +23,7 @@ pub struct LoggedUser {
     #[schema(description = "Email Address")]
     pub email: StackString,
     #[schema(description = "Session Id")]
-    pub session: Uuid,
+    pub session: UuidWrapper,
 }
 
 impl LoggedUser {
@@ -30,6 +31,7 @@ impl LoggedUser {
     /// Returns `Error::Unauthorized` if `session_id` does not match
     /// `self.session`
     pub fn verify_session_id(&self, session_id: Uuid) -> Result<(), Error> {
+        let session_id = session_id.into();
         if self.session == session_id {
             Ok(())
         } else {
@@ -53,7 +55,7 @@ impl From<AuthorizedUser> for LoggedUser {
     fn from(user: AuthorizedUser) -> Self {
         Self {
             email: user.email,
-            session: user.session,
+            session: user.session.into(),
         }
     }
 }
