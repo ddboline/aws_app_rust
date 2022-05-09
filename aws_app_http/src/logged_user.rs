@@ -31,7 +31,6 @@ impl LoggedUser {
     /// Returns `Error::Unauthorized` if `session_id` does not match
     /// `self.session`
     pub fn verify_session_id(&self, session_id: Uuid) -> Result<(), Error> {
-        let session_id = session_id.into();
         if self.session == session_id {
             Ok(())
         } else {
