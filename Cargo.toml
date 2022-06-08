@@ -24,7 +24,7 @@ aws_app_http = {path="aws_app_http"}
 log = "0.4"
 env_logger = "0.9"
 anyhow = "1.0"
-tokio = {version="1.17", features=["full"]}
+tokio = {version="1.19", features=["full"]}
 
 [workspace]
 members = [
