@@ -1,7 +1,6 @@
 use cached::{proc_macro::cached, SizedCache};
 use futures::future::try_join_all;
 use itertools::Itertools;
-use maplit::hashmap;
 use rweb::Schema;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -781,44 +780,12 @@ pub struct CreateSnapshotRequest {
     pub name: Option<StackString>,
 }
 
-impl CreateSnapshotRequest {
-    /// # Errors
-    /// Returns error if `create_ebs_snapshot` fails
-    pub async fn handle(&self, app: &AwsAppInterface) -> Result<(), Error> {
-        let tags = if let Some(name) = &self.name {
-            hashmap! {"Name".into() => name.clone()}
-        } else {
-            HashMap::new()
-        };
-        app.create_ebs_snapshot(self.volid.as_str(), &tags)
-            .await
-            .map(|_| ())
-            .map_err(Into::into)
-    }
-}
-
 #[derive(Serialize, Deserialize, Schema)]
 pub struct TagItemRequest {
     #[schema(description = "Resource ID")]
     pub id: StackString,
     #[schema(description = "Tag")]
     pub tag: StackString,
-}
-
-impl TagItemRequest {
-    /// # Errors
-    /// Returns error if `tag_ec2_instance` fails
-    pub async fn handle(self, app: &AwsAppInterface) -> Result<(), Error> {
-        app.ec2
-            .tag_ec2_instance(
-                self.id.as_str(),
-                &hashmap! {
-                    "Name".into() => self.tag,
-                },
-            )
-            .await
-            .map_err(Into::into)
-    }
 }
 
 #[derive(Serialize, Deserialize, Schema)]

@@ -7,7 +7,7 @@ use rweb_helper::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::{format_sstr, StackString};
-use std::{fmt::Display, path::Path, sync::Arc};
+use std::{collections::HashMap, fmt::Display, path::Path, sync::Arc};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -174,7 +174,17 @@ pub async fn create_snapshot(
     query: Query<CreateSnapshotRequest>,
 ) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
-    query.handle(&data.aws).await?;
+
+    let tags = if let Some(name) = &query.name {
+        hashmap! {"Name".into() => name.clone()}
+    } else {
+        HashMap::default()
+    };
+    data.aws
+        .create_ebs_snapshot(query.volid.as_str(), &tags)
+        .await
+        .map_err(Into::<Error>::into)?;
+
     Ok(HtmlBase::new("Finished").into())
 }
 
@@ -185,7 +195,16 @@ pub async fn tag_item(
     query: Query<TagItemRequest>,
 ) -> WarpResult<FinishedResource> {
     let query = query.into_inner();
-    query.handle(&data.aws).await?;
+    data.aws
+        .ec2
+        .tag_ec2_instance(
+            query.id.as_str(),
+            &hashmap! {
+                "Name".into() => query.tag,
+            },
+        )
+        .await
+        .map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new("Finished").into())
 }
 
