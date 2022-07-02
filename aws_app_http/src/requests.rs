@@ -644,7 +644,7 @@ pub async fn get_frontpage(
                 let proc_key = if service.len() > 15 {
                     &service[..15]
                 } else {
-                    &service
+                    service
                 };
                 let run_status = services.get(service).unwrap_or(&RunStatus::NotRunning);
                 let proc_info = processes.get(proc_key);

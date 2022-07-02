@@ -52,8 +52,9 @@ pub struct SysinfoInstance {
 }
 
 impl SysinfoInstance {
+    #[must_use]
     pub fn new(names: impl IntoIterator<Item = impl Into<StackString>>) -> Self {
-        let process_names = names.into_iter().map(|s| s.into()).collect();
+        let process_names = names.into_iter().map(Into::into).collect();
         let process_names = Arc::new(process_names);
         let mut sys = System::default();
         sys.refresh_processes();
@@ -64,19 +65,20 @@ impl SysinfoInstance {
         }
     }
 
+    #[must_use]
     pub fn get_process_info(&self) -> Vec<ProcessInfo> {
         let mut sys = self.system.lock();
         sys.refresh_processes();
         self.process_names
             .iter()
-            .map(|name| {
+            .flat_map(|name| {
                 let name = if name.len() > 15 { &name[..15] } else { name };
                 sys.processes_by_name(name).map(Into::into)
             })
-            .flatten()
             .collect()
     }
 
+    #[must_use]
     pub fn get_process_info_by_name(&self, name: &str) -> Vec<ProcessInfo> {
         let name = if name.len() > 15 { &name[..15] } else { name };
         let mut sys = self.system.lock();
