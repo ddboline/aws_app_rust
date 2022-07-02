@@ -26,7 +26,7 @@ use crate::{
     route53_instance::Route53Instance,
     scrape_instance_info::scrape_instance_info,
     ssh_instance::SSHInstance,
-    systemd_instance::SystemdInstance,
+    systemd_instance::SystemdInstance, sysinfo_instance::SysinfoInstance,
 };
 
 lazy_static! {
@@ -55,6 +55,7 @@ pub struct AwsAppInterface {
     pub route53: Route53Instance,
     pub pricing: PricingInstance,
     pub systemd: SystemdInstance,
+    pub sysinfo: SysinfoInstance,
     pub stdout: StdoutChannel<StackString>,
 }
 
@@ -68,6 +69,7 @@ impl AwsAppInterface {
             route53: Route53Instance::new(&config),
             pricing: PricingInstance::new(&config),
             systemd: SystemdInstance::new(&config.systemd_services),
+            sysinfo: SysinfoInstance::new(&config.systemd_services),
             config,
             pool,
             stdout: StdoutChannel::new(),

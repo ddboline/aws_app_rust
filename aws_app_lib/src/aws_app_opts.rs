@@ -17,7 +17,7 @@ use crate::{
     pgpool::PgPool,
     resource_type::ResourceType,
     spot_request_opt::{get_tags, SpotRequestOpt},
-    systemd_instance::SystemdInstance,
+    systemd_instance::SystemdInstance, sysinfo_instance::SysinfoInstance,
 };
 
 embed_migrations!("../migrations");
@@ -165,6 +165,10 @@ pub enum AwsAppOpts {
     },
     UpdatePricing,
     Systemd {
+        #[structopt(short, long)]
+        pattern: Option<StackString>,
+    },
+    Processes {
         #[structopt(short, long)]
         pattern: Option<StackString>,
     },
@@ -373,6 +377,18 @@ impl AwsAppOpts {
                             app.stdout.send(format_sstr!("{service} not running"));
                         }
                     }
+                }
+                Ok(())
+            }
+            Self::Processes { pattern } => {
+                let sysinfo = if let Some(name) = pattern {
+                    SysinfoInstance::new(&[name])
+                } else {
+                    SysinfoInstance::new(&app.config.systemd_services)
+                };
+                let procs = sysinfo.get_process_info();
+                for proc in procs {
+                    println!("{name:15}\t{pid}\t{memory:0.1} MiB", name=proc.name, pid=proc.pid, memory=proc.memory as f64 / 1000.0);
                 }
                 Ok(())
             }

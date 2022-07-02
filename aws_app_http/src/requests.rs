@@ -619,6 +619,10 @@ pub async fn get_frontpage(
             output.push(r#"</tbody></table>"#.into());
         }
         ResourceType::SystemD => {
+            let processes: HashMap<StackString, Vec<_>> = app.sysinfo.get_process_info().into_iter().fold(HashMap::new(), |mut h, proc| {
+                h.entry(proc.name.clone()).or_default().push(proc);
+                h
+            });
             let services = app.systemd.list_running_services().await?;
             output.push(
                 r#"<table border="1" class="dataframe"><thead><tr>
@@ -627,13 +631,19 @@ pub async fn get_frontpage(
                    </th><th>
                    <input type="button" name="Crontab" value="Crontab" onclick="crontabLogs('user');"><br>
                    <input type="button" name="CrontabRoot" value="CrontabRoot" onclick="crontabLogs('root');">
-                   </th></thead>"#.into()
+                   </th><th>Memory</th></thead>"#.into()
             );
             let records = app.config.systemd_services.iter().map(|service| {
                 let log_button = format_sstr!(
                     r#"<input type="button" name="SystemdLogs" value="Logs" onclick="systemdLogs('{service}');">"#,
                 );
+                let proc_key = if service.len() > 15 {
+                    &service[..15]
+                } else {
+                    &service
+                };
                 let run_status = services.get(service).unwrap_or(&RunStatus::NotRunning);
+                let proc_info = processes.get(proc_key);
                 let action_button = match run_status {
                     RunStatus::Running => {
                         format_sstr!(
@@ -647,9 +657,13 @@ pub async fn get_frontpage(
                         )
                     },
                 };
+                let memory_info = if let Some(proc_info) = &proc_info {
+                    let memory: u64 = proc_info.iter().map(|p| p.memory).sum();
+                    format_sstr!("{:0.1} MiB", memory as f32 / 1000.0)
+                } else {StackString::new()};
                 format_sstr!(
                     r#"<tr style=text-align; left;"><td>{service}</td><td>{run_status}</td>
-                       <td>{action_button}</td><td>{log_button}</td></tr>"#,
+                       <td>{action_button}</td><td>{log_button}</td><td>{memory_info}</td></tr>"#,
                 )
             }).join("\n");
             output.push(records.into());
