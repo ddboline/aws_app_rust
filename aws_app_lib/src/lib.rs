@@ -27,13 +27,13 @@ pub mod scrape_instance_info;
 pub mod scrape_pricing_info;
 pub mod spot_request_opt;
 pub mod ssh_instance;
-pub mod systemd_instance;
 pub mod sysinfo_instance;
+pub mod systemd_instance;
 
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
-    use sysinfo::{System, SystemExt, ProcessExt};
+    use sysinfo::{ProcessExt, System, SystemExt};
 
     #[test]
     fn test_process() -> Result<(), Error> {

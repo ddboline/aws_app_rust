@@ -17,7 +17,8 @@ use crate::{
     pgpool::PgPool,
     resource_type::ResourceType,
     spot_request_opt::{get_tags, SpotRequestOpt},
-    systemd_instance::SystemdInstance, sysinfo_instance::SysinfoInstance,
+    sysinfo_instance::SysinfoInstance,
+    systemd_instance::SystemdInstance,
 };
 
 embed_migrations!("../migrations");
@@ -388,7 +389,12 @@ impl AwsAppOpts {
                 };
                 let procs = sysinfo.get_process_info();
                 for proc in procs {
-                    println!("{name:15}\t{pid}\t{memory:0.1} MiB", name=proc.name, pid=proc.pid, memory=proc.memory as f64 / 1000.0);
+                    println!(
+                        "{name:15}\t{pid}\t{memory:0.1} MiB",
+                        name = proc.name,
+                        pid = proc.pid,
+                        memory = proc.memory as f64 / 1000.0
+                    );
                 }
                 Ok(())
             }

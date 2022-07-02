@@ -619,10 +619,14 @@ pub async fn get_frontpage(
             output.push(r#"</tbody></table>"#.into());
         }
         ResourceType::SystemD => {
-            let processes: HashMap<StackString, Vec<_>> = app.sysinfo.get_process_info().into_iter().fold(HashMap::new(), |mut h, proc| {
-                h.entry(proc.name.clone()).or_default().push(proc);
-                h
-            });
+            let processes: HashMap<StackString, Vec<_>> = app
+                .sysinfo
+                .get_process_info()
+                .into_iter()
+                .fold(HashMap::new(), |mut h, proc| {
+                    h.entry(proc.name.clone()).or_default().push(proc);
+                    h
+                });
             let services = app.systemd.list_running_services().await?;
             output.push(
                 r#"<table border="1" class="dataframe"><thead><tr>

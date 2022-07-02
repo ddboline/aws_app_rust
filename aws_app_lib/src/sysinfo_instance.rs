@@ -1,9 +1,7 @@
-use stack_string::StackString;
-use sysinfo::{SystemExt, System, Process, ProcessExt, PidExt};
-use std::collections::BTreeSet;
-use std::sync::Arc;
 use parking_lot::Mutex;
-use std::fmt;
+use stack_string::StackString;
+use std::{collections::BTreeSet, fmt, sync::Arc};
+use sysinfo::{PidExt, Process, ProcessExt, System, SystemExt};
 
 #[derive(Debug, Clone)]
 pub struct ProcessInfo {
@@ -19,13 +17,14 @@ impl fmt::Display for ProcessInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "pid:{pid} name:{name} cpu_usage:{cpu_usage} memory:{memory} read_disk_bytes:{read_disk_bytes} write_dist_bytes:{write_disk_bytes}",
-            pid=self.pid,
-            name=self.name,
-            cpu_usage=self.cpu_usage,
-            memory=self.memory,
-            read_disk_bytes=self.read_disk_bytes,
-            write_disk_bytes=self.write_disk_bytes,
+            "pid:{pid} name:{name} cpu_usage:{cpu_usage} memory:{memory} \
+             read_disk_bytes:{read_disk_bytes} write_dist_bytes:{write_disk_bytes}",
+            pid = self.pid,
+            name = self.name,
+            cpu_usage = self.cpu_usage,
+            memory = self.memory,
+            read_disk_bytes = self.read_disk_bytes,
+            write_disk_bytes = self.write_disk_bytes,
         )
     }
 }
@@ -53,7 +52,7 @@ pub struct SysinfoInstance {
 }
 
 impl SysinfoInstance {
-    pub fn new(names: impl IntoIterator<Item=impl Into<StackString>>) -> Self {
+    pub fn new(names: impl IntoIterator<Item = impl Into<StackString>>) -> Self {
         let process_names = names.into_iter().map(|s| s.into()).collect();
         let process_names = Arc::new(process_names);
         let mut sys = System::default();
@@ -68,22 +67,18 @@ impl SysinfoInstance {
     pub fn get_process_info(&self) -> Vec<ProcessInfo> {
         let mut sys = self.system.lock();
         sys.refresh_processes();
-        self.process_names.iter().map(|name| {
-            let name = if name.len() > 15 {
-                &name[..15]
-            } else {
-                name
-            };
-            sys.processes_by_name(name).map(Into::into)
-        }).flatten().collect()
+        self.process_names
+            .iter()
+            .map(|name| {
+                let name = if name.len() > 15 { &name[..15] } else { name };
+                sys.processes_by_name(name).map(Into::into)
+            })
+            .flatten()
+            .collect()
     }
 
     pub fn get_process_info_by_name(&self, name: &str) -> Vec<ProcessInfo> {
-        let name = if name.len() > 15 {
-            &name[..15]
-        } else {
-            name
-        };
+        let name = if name.len() > 15 { &name[..15] } else { name };
         let mut sys = self.system.lock();
         sys.refresh_processes();
         sys.processes_by_name(name).map(Into::into).collect()
@@ -92,14 +87,12 @@ impl SysinfoInstance {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use crate::sysinfo_instance::SysinfoInstance;
+    use anyhow::Error;
 
     #[test]
     fn test_sysinfo_instance() -> Result<(), Error> {
-        let names = vec![
-            "cargo",
-        ];
+        let names = vec!["cargo"];
 
         let sys_instance = SysinfoInstance::new(names);
         let procs = sys_instance.get_process_info();

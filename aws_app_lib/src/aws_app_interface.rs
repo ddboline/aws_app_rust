@@ -26,7 +26,8 @@ use crate::{
     route53_instance::Route53Instance,
     scrape_instance_info::scrape_instance_info,
     ssh_instance::SSHInstance,
-    systemd_instance::SystemdInstance, sysinfo_instance::SysinfoInstance,
+    sysinfo_instance::SysinfoInstance,
+    systemd_instance::SystemdInstance,
 };
 
 lazy_static! {
