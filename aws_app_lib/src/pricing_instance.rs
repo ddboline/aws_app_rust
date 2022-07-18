@@ -328,7 +328,7 @@ mod tests {
         let config = Config::init_config()?;
         let pricing = PricingInstance::new(&config);
         let services = pricing.describe_services(None).await?;
-        assert_eq!(services.len(), 194);
+        assert_eq!(services.len(), 195);
         Ok(())
     }
 
