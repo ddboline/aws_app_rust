@@ -409,7 +409,7 @@ impl AwsAppOpts {
                 let novnc = NoVncInstance::new();
                 novnc.novnc_start(novnc_path, &cert, &key).await?;
                 app.stdout.send("Press any key");
-                let mut buf = Vec::with_capacity(1);
+                let mut buf = vec![0u8; 8];
                 let written = stdin().read(&mut buf).await?;
                 debug!("written {written}");
                 let lines = novnc.novnc_stop_request().await?;
