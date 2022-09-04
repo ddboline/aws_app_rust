@@ -393,7 +393,7 @@ impl AwsAppOpts {
                         "{name:15}\t{pid}\t{memory:0.1} MiB",
                         name = proc.name,
                         pid = proc.pid,
-                        memory = proc.memory as f64 / 1000.0
+                        memory = proc.memory as f64 / 1e6
                     );
                 }
                 Ok(())

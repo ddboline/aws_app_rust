@@ -663,7 +663,7 @@ pub async fn get_frontpage(
                 };
                 let memory_info = if let Some(proc_info) = &proc_info {
                     let memory: u64 = proc_info.iter().map(|p| p.memory).sum();
-                    format_sstr!("{:0.1} MiB", memory as f32 / 1000.0)
+                    format_sstr!("{:0.1} MiB", memory as f32 / 1e6)
                 } else {StackString::new()};
                 format_sstr!(
                     r#"<tr style=text-align; left;"><td>{service}</td><td>{run_status}</td>
