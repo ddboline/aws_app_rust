@@ -39,15 +39,15 @@ jobs:
         cargo +nightly udeps
 
     - name: Build
-      run: cargo build --verbose
+      run: cargo build
 
     - name: Run tests
       run: |
         ./target/debug/aws-app-rust run-migrations && \
         ./target/debug/aws-app-rust update && \
-        cargo test --all --verbose && \
+        cargo test --all && \
         cargo install cargo-tarpaulin && \
-        cargo tarpaulin --verbose --all-features --workspace --out Xml
+        cargo tarpaulin --all-features --workspace --out Xml
       env:
         DATABASE_URL: postgresql://postgres:2UtcMAAvNuBHPqK9@localhost:5432/aws_app_cache
         AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
