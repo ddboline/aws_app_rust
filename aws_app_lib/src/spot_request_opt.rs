@@ -1,24 +1,24 @@
+use clap::Parser;
 use stack_string::StackString;
 use std::collections::HashMap;
-use structopt::StructOpt;
 
 use crate::{config::Config, ec2_instance::SpotRequest};
 
-#[derive(Debug, Clone, StructOpt)]
+#[derive(Debug, Clone, Parser)]
 pub struct SpotRequestOpt {
-    #[structopt(short, long)]
+    #[clap(short, long)]
     ami: StackString,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     instance_type: StackString,
-    #[structopt(long)]
+    #[clap(long)]
     security_group: Option<StackString>,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     script: Option<StackString>,
-    #[structopt(long)]
+    #[clap(long)]
     price: Option<f32>,
-    #[structopt(short, long, long = "tag")]
+    #[clap(short, long, long = "tag")]
     tags: Vec<StackString>,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     key_name: Option<StackString>,
 }
 

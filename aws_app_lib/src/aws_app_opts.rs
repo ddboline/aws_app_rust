@@ -1,11 +1,11 @@
 use anyhow::{format_err, Error};
+use clap::Parser;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use log::debug;
 use refinery::embed_migrations;
 use stack_string::{format_sstr, StackString};
-use std::{net::Ipv4Addr, path::PathBuf, string::ToString, sync::Arc};
-use structopt::StructOpt;
+use std::{net::Ipv4Addr, path::PathBuf, sync::Arc};
 use tokio::io::{stdin, AsyncReadExt};
 
 use crate::{
@@ -23,22 +23,22 @@ use crate::{
 
 embed_migrations!("../migrations");
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 pub enum AwsAppOpts {
     /// Update metadata
     Update,
     /// List information about resources
     List {
-        #[structopt(short)]
+        #[clap(short)]
         /// Possible values are: reserved spot ami volume snapshot ecr key
         resources: Vec<ResourceType>,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         /// List all regions
         all_regions: bool,
     },
     /// Terminate a running ec2 instance
     Terminate {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         /// Instance IDs
         instance_ids: Vec<StackString>,
     },
@@ -46,50 +46,50 @@ pub enum AwsAppOpts {
     Request(SpotRequestOpt),
     /// Cancel Spot Request
     CancelRequest {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         instance_ids: Vec<StackString>,
     },
     /// Run a new ec2 instance
     Run(InstanceOpt),
     /// Get On-demand/Reserved and Spot instance pricing
     Price {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         search: Vec<StackString>,
     },
     /// List Instance Families
     ListFamilies,
     /// List Instance Types
     ListInstances {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         search: Vec<StackString>,
     },
     /// Create an ami image from a running ec2 instance
     CreateImage {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         /// Instance ID
         instance_id: StackString,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         /// Name for new AMI image
         name: StackString,
     },
     /// Delete ami image
     DeleteImage {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         /// AMI ID
         ami: StackString,
     },
     /// Create new EBS Volume
     CreateVolume {
-        #[structopt(short = "s", long)]
+        #[clap(short = 's', long)]
         size: Option<i64>,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         zoneid: StackString,
-        #[structopt(long)]
+        #[clap(long)]
         snapid: Option<StackString>,
     },
     /// Create new User
     CreateUser {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         user_name: StackString,
     },
     /// Delete EBS Volume
@@ -98,85 +98,85 @@ pub enum AwsAppOpts {
     },
     /// Attach EBS Volume
     AttachVolume {
-        #[structopt(long)]
+        #[clap(long)]
         volid: StackString,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         instance_id: StackString,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         device_id: StackString,
     },
     /// Detach EBS Volume
     DetachVolume {
-        #[structopt(long)]
+        #[clap(long)]
         volid: StackString,
     },
     /// Modify EBS Volume
     ModifyVolume {
-        #[structopt(long)]
+        #[clap(long)]
         volid: StackString,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         size: i64,
     },
     /// Create EBS Snapshot
     CreateSnapshot {
-        #[structopt(long)]
+        #[clap(long)]
         volid: StackString,
-        #[structopt(short, long, long = "tag")]
+        #[clap(short, long, long = "tag")]
         tags: Vec<StackString>,
     },
     /// Delete Snapshot
     DeleteSnapshot {
-        #[structopt(long)]
+        #[clap(long)]
         snapid: StackString,
     },
     /// Tag Resource
     Tag {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         id: StackString,
-        #[structopt(short, long, long = "tag")]
+        #[clap(short, long, long = "tag")]
         tags: Vec<StackString>,
     },
     /// Delete ECR Images
     DeleteEcrImages {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         reponame: StackString,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         imageids: Vec<StackString>,
     },
     /// Cleanup ECR Images
     CleanupEcrImages,
     /// Print ssh command to connect to instance
     Connect {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         /// Instance ID
         instance_id: StackString,
     },
     Status {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         /// Instance ID
         instance_id: StackString,
     },
     UpdateDns {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         zone: StackString,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         dnsname: StackString,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         new_ip: Option<Ipv4Addr>,
     },
     UpdatePricing,
     Systemd {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         pattern: Option<StackString>,
     },
     Processes {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         pattern: Option<StackString>,
     },
     NoVnc {
-        #[structopt(short, long)]
+        #[clap(short, long)]
         cert: Option<PathBuf>,
-        #[structopt(short, long)]
+        #[clap(short, long)]
         key: Option<PathBuf>,
     },
     RunMigrations,

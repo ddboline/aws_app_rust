@@ -1,22 +1,21 @@
+use clap::Parser;
 use stack_string::StackString;
-use std::string::ToString;
-use structopt::StructOpt;
 
 use crate::{config::Config, ec2_instance::InstanceRequest, spot_request_opt::get_tags};
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 pub struct InstanceOpt {
-    #[structopt(short, long)]
+    #[clap(short, long)]
     ami: StackString,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     instance_type: StackString,
-    #[structopt(long)]
+    #[clap(long)]
     security_group: Option<StackString>,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     script: Option<StackString>,
-    #[structopt(short, long, long = "tag")]
+    #[clap(short, long, long = "tag")]
     tags: Vec<StackString>,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     key_name: Option<StackString>,
 }
 
