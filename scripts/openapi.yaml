@@ -1,301 +1,300 @@
----
 openapi: 3.0.1
 info:
   title: Frontend for AWS
   description: Web Frontend for AWS Services
-  version: 0.9.6
+  version: 0.9.21
 paths:
   /aws/index.html:
     get:
       responses:
-        "200":
+        '200':
           description: Main Page
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/list:
     get:
       parameters:
-        - name: resource
-          in: query
-          required: true
-          schema:
-            description: Resource Type
-            type: string
-            enum:
-              - instances
-              - reserved
-              - spot
-              - ami
-              - volume
-              - snapshot
-              - ecr
-              - key
-              - script
-              - user
-              - group
-              - access-key
-              - route53
-              - systemd
+      - name: resource
+        in: query
+        required: true
+        schema:
+          description: Resource Type
+          type: string
+          enum:
+          - instances
+          - reserved
+          - spot
+          - ami
+          - volume
+          - snapshot
+          - ecr
+          - key
+          - script
+          - user
+          - group
+          - access-key
+          - route53
+          - systemd
       responses:
-        "200":
+        '200':
           description: List Resources
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/terminate:
     get:
       parameters:
-        - name: instance
-          in: query
-          required: true
-          schema:
-            description: Instance ID or Name Tag
-            type: string
+      - name: instance
+        in: query
+        required: true
+        schema:
+          description: Instance ID or Name Tag
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/create_image:
     get:
       parameters:
-        - name: inst_id
-          in: query
-          required: true
-          schema:
-            description: Instance ID or Name Tag
-            type: string
-        - name: name
-          in: query
-          required: true
-          schema:
-            description: Ami Name
-            type: string
+      - name: inst_id
+        in: query
+        required: true
+        schema:
+          description: Instance ID or Name Tag
+          type: string
+      - name: name
+        in: query
+        required: true
+        schema:
+          description: Ami Name
+          type: string
       responses:
-        "200":
+        '200':
           description: Image ID
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/delete_image:
     get:
       parameters:
-        - name: ami
-          in: query
-          required: true
-          schema:
-            description: Ami ID
-            type: string
+      - name: ami
+        in: query
+        required: true
+        schema:
+          description: Ami ID
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/delete_volume:
     get:
       parameters:
-        - name: volid
-          in: query
-          required: true
-          schema:
-            description: Volume ID
-            type: string
+      - name: volid
+        in: query
+        required: true
+        schema:
+          description: Volume ID
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/modify_volume:
     get:
       parameters:
-        - name: volid
-          in: query
-          required: true
-          schema:
-            description: Volume ID
-            type: string
-        - name: size
-          in: query
-          required: true
-          schema:
-            description: Volume Size GiB
-            type: integer
+      - name: volid
+        in: query
+        required: true
+        schema:
+          description: Volume ID
+          type: string
+      - name: size
+        in: query
+        required: true
+        schema:
+          description: Volume Size GiB
+          type: integer
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/delete_snapshot:
     get:
       parameters:
-        - name: snapid
-          in: query
-          required: true
-          schema:
-            description: Snapshot ID
-            type: string
+      - name: snapid
+        in: query
+        required: true
+        schema:
+          description: Snapshot ID
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/create_snapshot:
     get:
       parameters:
-        - name: volid
-          in: query
-          required: true
-          schema:
-            description: Volume ID
-            type: string
-        - name: name
-          in: query
-          required: false
-          schema:
-            description: Snapshot Name
-            nullable: true
-            type: string
+      - name: volid
+        in: query
+        required: true
+        schema:
+          description: Volume ID
+          type: string
+      - name: name
+        in: query
+        required: false
+        schema:
+          description: Snapshot Name
+          nullable: true
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/tag_item:
     get:
       parameters:
-        - name: id
-          in: query
-          required: true
-          schema:
-            description: Resource ID
-            type: string
-        - name: tag
-          in: query
-          required: true
-          schema:
-            description: Tag
-            type: string
+      - name: id
+        in: query
+        required: true
+        schema:
+          description: Resource ID
+          type: string
+      - name: tag
+        in: query
+        required: true
+        schema:
+          description: Tag
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/delete_ecr_image:
     get:
       parameters:
-        - name: reponame
-          in: query
-          required: true
-          schema:
-            description: ECR Repository Name
-            type: string
-        - name: imageid
-          in: query
-          required: true
-          schema:
-            description: Container Image ID
-            type: string
+      - name: reponame
+        in: query
+        required: true
+        schema:
+          description: ECR Repository Name
+          type: string
+      - name: imageid
+        in: query
+        required: true
+        schema:
+          description: Container Image ID
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/cleanup_ecr_images:
     get:
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/edit_script:
     get:
       parameters:
-        - name: filename
-          in: query
-          required: true
-          schema:
-            description: Script Filename
-            type: string
+      - name: filename
+        in: query
+        required: true
+        schema:
+          description: Script Filename
+          type: string
       responses:
-        "200":
+        '200':
           description: Edit Script
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/replace_script:
     post:
@@ -312,51 +311,51 @@ paths:
                   type: string
               type: object
               required:
-                - filename
-                - text
+              - filename
+              - text
         required: true
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/delete_script:
     get:
       parameters:
-        - name: filename
-          in: query
-          required: true
-          schema:
-            description: Script Filename
-            type: string
+      - name: filename
+        in: query
+        required: true
+        schema:
+          description: Script Filename
+          type: string
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/create_user:
     get:
       parameters:
-        - name: user_name
-          in: query
-          required: true
-          schema:
-            description: User Name
-            type: string
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          description: User Name
+          type: string
       responses:
-        "201":
+        '201':
           description: Created Iam User
           content:
             application/json:
@@ -382,98 +381,98 @@ paths:
                     type: object
                 type: object
                 required:
-                  - arn
-                  - create_date
-                  - user_id
-                  - user_name
-                  - tags
-        "400":
+                - arn
+                - create_date
+                - user_id
+                - user_name
+                - tags
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/delete_user:
     get:
       parameters:
-        - name: user_name
-          in: query
-          required: true
-          schema:
-            description: User Name
-            type: string
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          description: User Name
+          type: string
       responses:
-        "200":
+        '200':
           description: Delete Iam User
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/add_user_to_group:
     get:
       parameters:
-        - name: user_name
-          in: query
-          required: true
-          schema:
-            description: User Name
-            type: string
-        - name: group_name
-          in: query
-          required: true
-          schema:
-            description: Group Name
-            type: string
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          description: User Name
+          type: string
+      - name: group_name
+        in: query
+        required: true
+        schema:
+          description: Group Name
+          type: string
       responses:
-        "200":
+        '200':
           description: Add User to Group
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/remove_user_from_group:
     get:
       parameters:
-        - name: user_name
-          in: query
-          required: true
-          schema:
-            description: User Name
-            type: string
-        - name: group_name
-          in: query
-          required: true
-          schema:
-            description: Group Name
-            type: string
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          description: User Name
+          type: string
+      - name: group_name
+        in: query
+        required: true
+        schema:
+          description: Group Name
+          type: string
       responses:
-        "200":
+        '200':
           description: Remove User to Group
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/create_access_key:
     get:
       parameters:
-        - name: user_name
-          in: query
-          required: true
-          schema:
-            description: User Name
-            type: string
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          description: User Name
+          type: string
       responses:
-        "201":
+        '201':
           description: Create Access Key
           content:
             application/json:
@@ -497,75 +496,75 @@ paths:
                     type: string
                 type: object
                 required:
-                  - access_key_id
-                  - create_date
-                  - access_key_secret
-                  - status
-                  - user_name
-        "400":
+                - access_key_id
+                - create_date
+                - access_key_secret
+                - status
+                - user_name
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/delete_access_key:
     get:
       parameters:
-        - name: user_name
-          in: query
-          required: true
-          schema:
-            description: User Name
-            type: string
-        - name: access_key_id
-          in: query
-          required: true
-          schema:
-            description: Access Key ID
-            type: string
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          description: User Name
+          type: string
+      - name: access_key_id
+        in: query
+        required: true
+        schema:
+          description: Access Key ID
+          type: string
       responses:
-        "200":
+        '200':
           description: Delete Access Key
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/build_spot_request:
     get:
       parameters:
-        - name: ami
-          in: query
-          required: false
-          schema:
-            description: AMI ID
-            nullable: true
-            type: string
-        - name: inst
-          in: query
-          required: false
-          schema:
-            description: Instance Type
-            nullable: true
-            type: string
-        - name: script
-          in: query
-          required: false
-          schema:
-            description: Script
-            nullable: true
-            type: string
+      - name: ami
+        in: query
+        required: false
+        schema:
+          description: AMI ID
+          nullable: true
+          type: string
+      - name: inst
+        in: query
+        required: false
+        schema:
+          description: Instance Type
+          nullable: true
+          type: string
+      - name: script
+        in: query
+        required: false
+        schema:
+          description: Script
+          nullable: true
+          type: string
       responses:
-        "200":
+        '200':
           description: Spot Request
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/request_spot:
     post:
@@ -597,98 +596,98 @@ paths:
                   type: string
               type: object
               required:
-                - ami
-                - instance_type
-                - security_group
-                - script
-                - key_name
-                - price
-                - name
+              - ami
+              - instance_type
+              - security_group
+              - script
+              - key_name
+              - price
+              - name
         required: true
       responses:
-        "200":
+        '200':
           description: Finished
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/cancel_spot:
     get:
       parameters:
-        - name: spot_id
-          in: query
-          required: true
-          schema:
-            description: Spot Request ID
-            type: string
+      - name: spot_id
+        in: query
+        required: true
+        schema:
+          description: Spot Request ID
+          type: string
       responses:
-        "200":
+        '200':
           description: Cancelled Spot
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/prices:
     get:
       parameters:
-        - name: search
-          in: query
-          required: false
-          schema:
-            description: Search String
-            nullable: true
-            type: string
+      - name: search
+        in: query
+        required: false
+        schema:
+          description: Search String
+          nullable: true
+          type: string
       responses:
-        "200":
+        '200':
           description: Prices
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/update:
     get:
       responses:
-        "200":
+        '200':
           description: Update
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/instance_status:
     get:
       parameters:
-        - name: instance
-          in: query
-          required: true
-          schema:
-            description: Instance ID or Name Tag
-            type: string
+      - name: instance
+        in: query
+        required: true
+        schema:
+          description: Instance ID or Name Tag
+          type: string
       responses:
-        "200":
+        '200':
           description: Instance Status
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/command:
     post:
@@ -705,44 +704,44 @@ paths:
                   type: string
               type: object
               required:
-                - instance
-                - command
+              - instance
+              - command
         required: true
       responses:
-        "200":
+        '200':
           description: Run Command on Instance
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/instances:
     get:
       parameters:
-        - name: inst
-          in: query
-          required: true
-          schema:
-            description: Instance ID or Name Tag
-            type: string
+      - name: inst
+        in: query
+        required: true
+        schema:
+          description: Instance ID or Name Tag
+          type: string
       responses:
-        "200":
+        '200':
           description: Describe Instances
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/user:
     get:
       responses:
-        "200":
+        '200':
           description: Logged in User
           content:
             application/json:
@@ -757,170 +756,170 @@ paths:
                     type: string
                 type: object
                 required:
-                  - email
-                  - session
-        "400":
+                - email
+                - session
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/novnc/start:
     get:
       responses:
-        "200":
+        '200':
           description: Start NoVNC
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/novnc/status:
     get:
       responses:
-        "200":
+        '200':
           description: NoVNC Status
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/novnc/stop:
     get:
       responses:
-        "200":
+        '200':
           description: Stop NoVNC
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/update_dns_name:
     get:
       parameters:
-        - name: zone
-          in: query
-          required: true
-          schema:
-            description: Route53 Zone
-            type: string
-        - name: dns_name
-          in: query
-          required: true
-          schema:
-            description: DNS Name
-            type: string
-        - name: old_ip
-          in: query
-          required: true
-          schema:
-            description: Old IPv4 Address
-            format: ipv4_address
-            type: string
-        - name: new_ip
-          in: query
-          required: true
-          schema:
-            description: New IPv4 Address
-            format: ipv4_address
-            type: string
+      - name: zone
+        in: query
+        required: true
+        schema:
+          description: Route53 Zone
+          type: string
+      - name: dns_name
+        in: query
+        required: true
+        schema:
+          description: DNS Name
+          type: string
+      - name: old_ip
+        in: query
+        required: true
+        schema:
+          description: Old IPv4 Address
+          format: ipv4_address
+          type: string
+      - name: new_ip
+        in: query
+        required: true
+        schema:
+          description: New IPv4 Address
+          format: ipv4_address
+          type: string
       responses:
-        "201":
+        '201':
           description: Update Dns
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/systemd_action:
     get:
       parameters:
-        - name: action
-          in: query
-          required: true
-          schema:
-            description: SystemD Action
-            type: string
-            enum:
-              - start
-              - stop
-              - restart
-        - name: service
-          in: query
-          required: true
-          schema:
-            description: SystemD Service
-            type: string
+      - name: action
+        in: query
+        required: true
+        schema:
+          description: SystemD Action
+          type: string
+          enum:
+          - start
+          - stop
+          - restart
+      - name: service
+        in: query
+        required: true
+        schema:
+          description: SystemD Service
+          type: string
       responses:
-        "201":
+        '201':
           description: Systemd Action Output
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
-  "/aws/systemd_logs/{service}":
+  /aws/systemd_logs/{service}:
     get:
       parameters:
-        - name: service
-          in: path
-          required: true
-          schema:
-            type: string
+      - name: service
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Get Systemd Logs
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
   /aws/systemd_restart_all:
     get:
       responses:
-        "201":
+        '201':
           description: Restart All Systemd Services
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
-  "/aws/crontab_logs/{crontab_type}":
+  /aws/crontab_logs/{crontab_type}:
     get:
       parameters:
-        - name: crontab_type
-          in: path
-          required: true
-          schema:
-            type: string
+      - name: crontab_type
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Get Crontab Logs
           content:
             text/html:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
-        "500":
+        '500':
           description: Internal Server Error
 components: {}
