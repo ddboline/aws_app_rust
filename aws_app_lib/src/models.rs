@@ -3,6 +3,7 @@ use postgres_query::{client::GenericClient, query, FromSqlRow};
 use stack_string::StackString;
 use std::fmt;
 use time::OffsetDateTime;
+use uuid::Uuid;
 
 use crate::pgpool::{PgPool, PgTransaction};
 
@@ -214,7 +215,7 @@ impl InstanceList {
 
 #[derive(FromSqlRow, Clone, Debug)]
 pub struct InstancePricing {
-    pub id: i32,
+    pub id: Uuid,
     pub instance_type: StackString,
     pub price: f64,
     pub price_type: StackString,
@@ -230,7 +231,7 @@ impl InstancePricing {
         price_timestamp: OffsetDateTime,
     ) -> Self {
         Self {
-            id: -1,
+            id: Uuid::new_v4(),
             instance_type: instance_type.into(),
             price,
             price_type: price_type.into(),
