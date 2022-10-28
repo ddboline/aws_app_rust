@@ -1,6 +1,6 @@
 use anyhow::{format_err, Error};
 use clap::Parser;
-use futures::future::try_join_all;
+use futures::{future, stream::FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
 use log::debug;
 use refinery::embed_migrations;
@@ -15,7 +15,7 @@ use crate::{
     models::{InstanceFamily, InstanceList},
     novnc_instance::NoVncInstance,
     pgpool::PgPool,
-    resource_type::ResourceType,
+    resource_type::{ResourceType, ALL_RESOURCES},
     spot_request_opt::{get_tags, SpotRequestOpt},
     sysinfo_instance::SysinfoInstance,
     systemd_instance::SystemdInstance,
@@ -30,7 +30,9 @@ pub enum AwsAppOpts {
     /// List information about resources
     List {
         #[clap(short)]
-        /// Possible values are: reserved spot ami volume snapshot ecr key
+        /// Possible values are: -r instances -r reserved -r spot -r ami -r
+        /// volume -r snapshot -r ecr -r key -r script -r user -r group -r
+        /// access-key -r route53 -r systemd
         resources: Vec<ResourceType>,
         #[clap(short, long)]
         /// List all regions
@@ -186,7 +188,7 @@ impl AwsAppOpts {
     /// # Errors
     /// Returns error if api call fails
     pub async fn process_args() -> Result<(), Error> {
-        let opts = Self::from_args();
+        let opts = Self::parse();
         let config = Config::init_config()?;
         let pool = PgPool::new(&config.database_url);
         let app = AwsAppInterface::new(config, pool);
@@ -202,23 +204,28 @@ impl AwsAppOpts {
                 resources,
                 all_regions,
             } => {
+                let resources = if resources.get(0) == Some(&ResourceType::All) {
+                    ALL_RESOURCES.to_vec()
+                } else {
+                    resources
+                };
                 let resources = Arc::new(resources);
                 if all_regions {
-                    let futures =
-                        app.ec2
-                            .get_all_regions()
-                            .await?
-                            .into_iter()
-                            .map(|(region, _)| {
-                                let mut app_ = app.clone();
-                                let resources = resources.clone();
-                                async move {
-                                    app_.set_region(&region)?;
-                                    app_.list(resources.iter()).await
-                                }
-                            });
-                    try_join_all(futures).await?;
-                    Ok(())
+                    let futures: FuturesUnordered<_> = app
+                        .ec2
+                        .get_all_regions()
+                        .await?
+                        .into_iter()
+                        .map(|(region, _)| {
+                            let mut app_ = app.clone();
+                            let resources = resources.clone();
+                            async move {
+                                app_.set_region(&region)?;
+                                app_.list(resources.iter()).await
+                            }
+                        })
+                        .collect();
+                    futures.try_collect().await
                 } else {
                     app.list(resources.iter()).await
                 }
@@ -237,7 +244,8 @@ impl AwsAppOpts {
             }
             Self::Price { search } => app.print_ec2_prices(&search).await,
             Self::ListFamilies => {
-                for fam in InstanceFamily::get_all(&app.pool).await? {
+                let mut stream = Box::pin(InstanceFamily::get_all(&app.pool).await?);
+                while let Some(fam) = stream.try_next().await? {
                     app.stdout
                         .send(format_sstr!("{:5} {}", fam.family_name, fam.family_type));
                 }
@@ -246,17 +254,19 @@ impl AwsAppOpts {
             Self::ListInstances { search } => {
                 let mut instances: Vec<_> = InstanceList::get_all_instances(&app.pool)
                     .await?
-                    .into_iter()
-                    .filter(|inst| {
-                        if search.is_empty() {
-                            true
-                        } else {
-                            search
-                                .iter()
-                                .any(|s| inst.instance_type.contains(s.as_str()))
-                        }
+                    .try_filter(|inst| {
+                        future::ready({
+                            if search.is_empty() {
+                                true
+                            } else {
+                                search
+                                    .iter()
+                                    .any(|s| inst.instance_type.contains(s.as_str()))
+                            }
+                        })
                     })
-                    .collect();
+                    .try_collect()
+                    .await?;
                 instances.sort_by_key(|i| i.n_cpu);
                 instances.sort_by(|x, y| {
                     let x = x.instance_type.split('.').next().unwrap_or("");
