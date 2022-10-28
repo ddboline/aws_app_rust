@@ -1,5 +1,5 @@
 use anyhow::{format_err, Error};
-use futures::future::try_join_all;
+use futures::{stream::FuturesUnordered, TryStreamExt};
 use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
@@ -25,10 +25,12 @@ pub async fn scrape_pricing_info(
     let results = parse_json(js, ptype);
     output.push(format_sstr!("{}", results.len()));
 
-    let results = results
+    let futures: FuturesUnordered<_> = results
         .into_iter()
-        .map(|r| async move { r.upsert_entry(pool).await });
-    try_join_all(results).await?;
+        .map(|r| async move { r.upsert_entry(pool).await })
+        .collect();
+    let result: Result<Vec<_>, Error> = futures.try_collect().await;
+    result?;
     Ok(output)
 }
 
