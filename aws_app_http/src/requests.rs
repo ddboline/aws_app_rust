@@ -1,5 +1,5 @@
 use cached::{proc_macro::cached, SizedCache};
-use futures::future::try_join_all;
+use futures::{future::try_join_all, stream::FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
 use rweb::Schema;
 use serde::{Deserialize, Serialize};
@@ -48,7 +48,7 @@ pub async fn get_frontpage(
 ) -> Result<Vec<StackString>, Error> {
     let mut output: Vec<StackString> = Vec::new();
     match resource_type {
-        ResourceType::Instances => {
+        ResourceType::Instances | ResourceType::All => {
             let result = list_instance(app).await?;
             if result.is_empty() {
                 return Ok(Vec::new());
@@ -194,14 +194,13 @@ pub async fn get_frontpage(
             output.push("</tbody></table>".into());
         }
         ResourceType::Key => {
-            let keys = app.ec2.get_all_key_pairs().await?;
             output.push(
                 r#"<table border="1" class="dataframe">
                         <thead><tr><th>Key Name</th><th>Key Fingerprint</th></tr></thead>
                         <tbody>"#
                     .into(),
             );
-            let result: Vec<_> = keys
+            let result: Vec<_> = app.ec2.get_all_key_pairs().await?
                 .map(|(key, fingerprint)| {
                     format_sstr!(
                         r#"<tr style="text-align: center;"><td>{key}</td><td>{fingerprint}</td></tr>"#,
@@ -339,7 +338,6 @@ pub async fn get_frontpage(
                             <th>Image Size</th></tr></thead><tbody>"#
                     .into(),
             );
-
             let futures = repos.iter().map(|repo| get_ecr_images(app, repo));
             let results: Vec<_> = try_join_all(futures)
                 .await?
@@ -393,26 +391,30 @@ pub async fn get_frontpage(
             let (current_user, users) =
                 try_join!(app.iam.get_user(user_name), app.iam.list_users())?;
             let users: Vec<_> = users.collect();
-            let futures = users.iter().map(|u| async move {
-                app.iam
-                    .list_groups_for_user(u.user_name.as_str())
-                    .await
-                    .map(|g| {
-                        let groups: Vec<_> = g.collect();
-                        (u.user_name.clone(), groups)
-                    })
-            });
-            let results: Result<Vec<_>, Error> = try_join_all(futures).await.map_err(Into::into);
-            let group_map: HashMap<StackString, _> = results?.into_iter().collect();
+            let futures: FuturesUnordered<_> = users
+                .iter()
+                .map(|u| async move {
+                    app.iam
+                        .list_groups_for_user(u.user_name.as_str())
+                        .await
+                        .map(|g| {
+                            let groups: Vec<_> = g.collect();
+                            (u.user_name.clone(), groups)
+                        })
+                })
+                .collect();
+            let group_map: HashMap<StackString, _> = futures.try_collect().await?;
 
-            let futures = users.iter().map(|u| async move {
-                app.iam
-                    .list_access_keys(u.user_name.as_str())
-                    .await
-                    .map(|metadata| (u.user_name.clone(), metadata))
-            });
-            let results: Result<Vec<_>, Error> = try_join_all(futures).await.map_err(Into::into);
-            let key_map: HashMap<StackString, _> = results?.into_iter().collect();
+            let futures: FuturesUnordered<_> = users
+                .iter()
+                .map(|u| async move {
+                    app.iam
+                        .list_access_keys(u.user_name.as_str())
+                        .await
+                        .map(|metadata| (u.user_name.clone(), metadata))
+                })
+                .collect();
+            let key_map: HashMap<StackString, _> = futures.try_collect().await?;
 
             let users = users
                     .into_iter()
