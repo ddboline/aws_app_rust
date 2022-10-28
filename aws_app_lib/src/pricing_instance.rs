@@ -1,4 +1,5 @@
 use anyhow::Error;
+use futures::TryStreamExt;
 use rusoto_core::Region;
 use rusoto_pricing::{
     DescribeServicesRequest, Filter, GetAttributeValuesRequest, GetProductsRequest, Pricing,
@@ -295,14 +296,10 @@ impl PricingInstance {
     /// # Errors
     /// Returns error if aws api fails
     pub async fn update_all_prices(&self, pool: &PgPool) -> Result<u32, Error> {
-        let instances: Vec<_> = InstanceList::get_all_instances(pool)
-            .await?
-            .into_iter()
-            .map(|i| i.instance_type)
-            .collect();
         let mut number_of_updates = 0;
-        for instance in instances {
-            for (_, price) in self.get_prices(&instance).await? {
+        let mut stream = Box::pin(InstanceList::get_all_instances(pool).await?);
+        while let Some(i) = stream.try_next().await? {
+            for (_, price) in self.get_prices(&i.instance_type).await? {
                 price.upsert_entry(pool).await?;
                 number_of_updates += 1;
             }
