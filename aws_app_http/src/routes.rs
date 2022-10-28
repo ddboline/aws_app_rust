@@ -1,4 +1,5 @@
 use anyhow::format_err;
+use futures::TryStreamExt;
 use itertools::Itertools;
 use maplit::hashmap;
 use rweb::{get, post, Json, Query, Rejection, Schema};
@@ -372,9 +373,10 @@ pub async fn build_spot_request(
     let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?
-        .into_iter()
-        .map(Arc::new)
-        .collect();
+        .and_then(|fam| async move { Ok(Arc::new(fam)) })
+        .try_collect()
+        .await
+        .map_err(Into::<Error>::into)?;
 
     if let Some(inst) = &query.inst {
         move_element_to_front(&mut inst_fam, |fam| inst.contains(fam.family_name.as_str()));
@@ -388,12 +390,14 @@ pub async fn build_spot_request(
         .join("\n");
 
     let inst = query.inst.unwrap_or_else(|| "t3".into());
-    let instances = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
+    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?
-        .into_iter()
-        .map(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-        .join("\n");
+        .map_ok(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+        .try_collect()
+        .await
+        .map_err(Into::<Error>::into)?;
+    let instances = instances.join("\n");
 
     let mut files = data.aws.get_all_scripts();
 
@@ -543,7 +547,10 @@ pub async fn get_prices(
     query: Query<PriceRequest>,
 ) -> WarpResult<PricesResponse> {
     let query = query.into_inner();
-    let mut inst_fam = InstanceFamily::get_all(&data.aws.pool)
+    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
+        .await
+        .map_err(Into::<Error>::into)?
+        .try_collect()
         .await
         .map_err(Into::<Error>::into)?;
     move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
@@ -757,12 +764,14 @@ pub async fn get_instances(
     query: Query<InstancesRequest>,
 ) -> WarpResult<InstancesResponse> {
     let query = query.into_inner();
-    let instances = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
+    let instances: Vec<_> = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?
-        .into_iter()
-        .map(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-        .join("\n");
+        .map_ok(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
+        .try_collect()
+        .await
+        .map_err(Into::<Error>::into)?;
+    let instances = instances.join("\n");
     Ok(HtmlBase::new(instances).into())
 }
 
