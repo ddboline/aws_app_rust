@@ -3,6 +3,23 @@ use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{convert::TryFrom, fmt, str::FromStr};
 
+pub static ALL_RESOURCES: [ResourceType; 14] = [
+    ResourceType::Instances,
+    ResourceType::Reserved,
+    ResourceType::Spot,
+    ResourceType::Ami,
+    ResourceType::Volume,
+    ResourceType::Snapshot,
+    ResourceType::Ecr,
+    ResourceType::Key,
+    ResourceType::Script,
+    ResourceType::User,
+    ResourceType::Group,
+    ResourceType::AccessKey,
+    ResourceType::Route53,
+    ResourceType::SystemD,
+];
+
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "String", try_from = "String")]
 pub enum ResourceType {
@@ -34,6 +51,8 @@ pub enum ResourceType {
     Route53,
     #[serde(rename = "systemd")]
     SystemD,
+    #[serde(rename = "all")]
+    All,
 }
 
 impl ResourceType {
@@ -54,6 +73,7 @@ impl ResourceType {
             Self::AccessKey => "access-key",
             Self::Route53 => "route53",
             Self::SystemD => "systemd",
+            Self::All => "all",
         }
     }
 }
@@ -83,6 +103,7 @@ impl FromStr for ResourceType {
             "access-key" | "access_key" => Ok(Self::AccessKey),
             "route53" | "dns" => Ok(Self::Route53),
             "systemd" => Ok(Self::SystemD),
+            "all" => Ok(Self::All),
             _ => Err(format_err!("{} is not a ResourceType", s)),
         }
     }
