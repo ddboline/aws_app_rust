@@ -1,5 +1,5 @@
 use anyhow::{format_err, Error};
-use futures::future::try_join_all;
+use futures::{stream::FuturesUnordered, TryStreamExt};
 use log::debug;
 use reqwest::Url;
 use select::{
@@ -119,22 +119,28 @@ async fn insert_result(
     instance_types: Vec<InstanceList>,
     pool: &PgPool,
 ) -> Result<Vec<StackString>, Error> {
-    let fam = instance_families.into_iter().map(|t| async move {
-        if t.upsert_entry(pool).await?.is_some() {
-            Ok(Some(format_sstr!("{t:?}")))
-        } else {
-            Ok(None)
-        }
-    });
-    let fam: Result<Vec<_>, Error> = try_join_all(fam).await;
-    let typ = instance_types.into_iter().map(|t| async move {
-        if t.upsert_entry(pool).await?.is_some() {
-            Ok(Some(format_sstr!("{t:?}")))
-        } else {
-            Ok(None)
-        }
-    });
-    let typ: Result<Vec<_>, Error> = try_join_all(typ).await;
+    let futures: FuturesUnordered<_> = instance_families
+        .into_iter()
+        .map(|t| async move {
+            if t.upsert_entry(pool).await?.is_some() {
+                Ok(Some(format_sstr!("{t:?}")))
+            } else {
+                Ok(None)
+            }
+        })
+        .collect();
+    let fam: Result<Vec<_>, Error> = futures.try_collect().await;
+    let futures: FuturesUnordered<_> = instance_types
+        .into_iter()
+        .map(|t| async move {
+            if t.upsert_entry(pool).await?.is_some() {
+                Ok(Some(format_sstr!("{t:?}")))
+            } else {
+                Ok(None)
+            }
+        })
+        .collect();
+    let typ: Result<Vec<_>, Error> = futures.try_collect().await;
     let output: Vec<_> = fam?.into_iter().chain(typ?.into_iter()).flatten().collect();
     Ok(output)
 }
