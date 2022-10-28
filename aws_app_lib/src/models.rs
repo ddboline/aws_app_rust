@@ -1,5 +1,6 @@
 use anyhow::Error;
-use postgres_query::{client::GenericClient, query, FromSqlRow};
+use futures::Stream;
+use postgres_query::{client::GenericClient, query, Error as PqError, FromSqlRow};
 use stack_string::StackString;
 use std::fmt;
 use time::OffsetDateTime;
@@ -30,7 +31,9 @@ impl InstanceFamily {
 
     /// # Errors
     /// Returns error if db query fails
-    pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
+    pub async fn get_all(
+        pool: &PgPool,
+    ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
         let query = query!(
             r#"
                 SELECT * FROM instance_family
@@ -38,7 +41,7 @@ impl InstanceFamily {
             "#
         );
         let conn = pool.get().await?;
-        query.fetch(&conn).await.map_err(Into::into)
+        query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 
     async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
@@ -107,10 +110,12 @@ pub struct InstanceList {
 impl InstanceList {
     /// # Errors
     /// Returns error if db query fails
-    pub async fn get_all_instances(pool: &PgPool) -> Result<Vec<Self>, Error> {
+    pub async fn get_all_instances(
+        pool: &PgPool,
+    ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
         let query = query!("SELECT * FROM instance_list");
         let conn = pool.get().await?;
-        query.fetch(&conn).await.map_err(Into::into)
+        query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 
     /// # Errors
@@ -118,13 +123,13 @@ impl InstanceList {
     pub async fn get_by_instance_family(
         instance_family: &str,
         pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
+    ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
         let query = query!(
             "SELECT * FROM instance_list WHERE family_name = $family_name",
             family_name = instance_family,
         );
         let conn = pool.get().await?;
-        query.fetch(&conn).await.map_err(Into::into)
+        query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 
     async fn _get_by_instance_type<C>(instance_type: &str, conn: &C) -> Result<Option<Self>, Error>
@@ -239,11 +244,11 @@ impl InstancePricing {
         }
     }
 
-    async fn _existing_entries<C>(
+    async fn _existing_entry<C>(
         instance_type: &str,
         price_type: &str,
         conn: &C,
-    ) -> Result<Vec<Self>, Error>
+    ) -> Result<Option<Self>, Error>
     where
         C: GenericClient + Sync,
     {
@@ -256,28 +261,30 @@ impl InstancePricing {
             instance_type = instance_type,
             price_type = price_type,
         );
-        query.fetch(conn).await.map_err(Into::into)
+        query.fetch_opt(conn).await.map_err(Into::into)
     }
 
     /// # Errors
     /// Returns error if db query fails
-    pub async fn existing_entries(
+    pub async fn existing_entry(
         instance_type: &str,
         price_type: &str,
         pool: &PgPool,
-    ) -> Result<Vec<Self>, Error> {
+    ) -> Result<Option<Self>, Error> {
         let conn = pool.get().await?;
-        Self::_existing_entries(instance_type, price_type, &conn)
+        Self::_existing_entry(instance_type, price_type, &conn)
             .await
             .map_err(Into::into)
     }
 
     /// # Errors
     /// Returns error if db query fails
-    pub async fn get_all(pool: &PgPool) -> Result<Vec<Self>, Error> {
+    pub async fn get_all(
+        pool: &PgPool,
+    ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
         let query = query!("SELECT * FROM instance_pricing");
         let conn = pool.get().await?;
-        query.fetch(&conn).await.map_err(Into::into)
+        query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 
     async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
@@ -323,21 +330,21 @@ impl InstancePricing {
 
     /// # Errors
     /// Returns error if db query fails
-    pub async fn upsert_entry(&self, pool: &PgPool) -> Result<Vec<Self>, Error> {
+    pub async fn upsert_entry(&self, pool: &PgPool) -> Result<Option<Self>, Error> {
         let mut conn = pool.get().await?;
         let tran = conn.transaction().await?;
         let conn: &PgTransaction = &tran;
 
-        let existing_entries =
-            Self::_existing_entries(&self.instance_type, &self.price_type, conn).await?;
+        let existing_entry =
+            Self::_existing_entry(&self.instance_type, &self.price_type, conn).await?;
 
-        if existing_entries.is_empty() {
+        if existing_entry.is_none() {
             self._insert_entry(conn).await?;
         } else {
             self._update_entry(conn).await?;
         }
         tran.commit().await?;
-        Ok(existing_entries)
+        Ok(existing_entry)
     }
 }
 
@@ -408,9 +415,11 @@ pub struct AuthorizedUsers {
 impl AuthorizedUsers {
     /// # Errors
     /// Returns error if db query fails
-    pub async fn get_authorized_users(pool: &PgPool) -> Result<Vec<Self>, Error> {
+    pub async fn get_authorized_users(
+        pool: &PgPool,
+    ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
         let query = query!("SELECT * FROM authorized_users");
         let conn = pool.get().await?;
-        query.fetch(&conn).await.map_err(Into::into)
+        query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 }
