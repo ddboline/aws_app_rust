@@ -1,5 +1,5 @@
 use anyhow::{format_err, Error};
-use futures::future::try_join_all;
+use futures::{stream::FuturesUnordered, TryStreamExt};
 use rusoto_core::Region;
 use rusoto_route53::{
     Change, ChangeBatch, ChangeResourceRecordSetsRequest, HostedZone, ListHostedZonesRequest,
@@ -108,15 +108,19 @@ impl Route53Instance {
     /// Returns error if aws api fails
     pub async fn list_all_dns_records(&self) -> Result<Vec<(String, String, String)>, Error> {
         let hosted_zones = self.get_hosted_zones().await?;
-        let futures = hosted_zones.into_iter().map(|zone| async move {
-            self.list_dns_records(&zone.id).await.map(|v| {
-                v.into_iter()
-                    .map(|(name, ip)| (zone.id.clone(), name, ip))
-                    .collect::<Vec<_>>()
+        let futures: FuturesUnordered<_> = hosted_zones
+            .into_iter()
+            .map(|zone| async move {
+                self.list_dns_records(&zone.id).await.map(|v| {
+                    v.into_iter()
+                        .map(|(name, ip)| (zone.id.clone(), name, ip))
+                        .collect::<Vec<_>>()
+                })
             })
-        });
-        let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-        let dns_records = results?.into_iter().flatten().collect();
+            .collect();
+        let results: Vec<_> = futures.try_collect().await?;
+        let mut dns_records: Vec<_> = results.into_iter().flatten().collect();
+        dns_records.sort();
         Ok(dns_records)
     }
 
