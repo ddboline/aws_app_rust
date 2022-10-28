@@ -1,5 +1,5 @@
 use anyhow::Error;
-use futures::future::try_join_all;
+use futures::{stream::FuturesUnordered, TryStreamExt};
 use rusoto_core::Region;
 use rusoto_ecr::{
     BatchDeleteImageRequest, DescribeImagesRequest, DescribeRepositoriesRequest, Ecr, EcrClient,
@@ -148,20 +148,22 @@ impl EcrInstance {
     /// # Errors
     /// Returns error if aws api call fails
     pub async fn cleanup_ecr_images(&self) -> Result<(), Error> {
-        let futures = self.get_all_repositories().await?.map(|repo| async move {
-            let imageids = self.get_all_images(repo.clone()).await?.filter_map(|i| {
-                if i.tags.is_empty() {
-                    Some(i.digest)
-                } else {
-                    None
-                }
-            });
-            self.delete_ecr_images(repo, imageids).await?;
-            Ok(())
-        });
-        let results: Result<Vec<_>, Error> = try_join_all(futures).await;
-        results?;
-        Ok(())
+        let futures: FuturesUnordered<_> = self
+            .get_all_repositories()
+            .await?
+            .map(|repo| async move {
+                let imageids = self.get_all_images(repo.clone()).await?.filter_map(|i| {
+                    if i.tags.is_empty() {
+                        Some(i.digest)
+                    } else {
+                        None
+                    }
+                });
+                self.delete_ecr_images(repo, imageids).await?;
+                Ok(())
+            })
+            .collect();
+        futures.try_collect().await
     }
 }
 
