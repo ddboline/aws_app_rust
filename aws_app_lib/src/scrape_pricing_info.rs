@@ -27,10 +27,9 @@ pub async fn scrape_pricing_info(
 
     let futures: FuturesUnordered<_> = results
         .into_iter()
-        .map(|r| async move { r.upsert_entry(pool).await })
+        .map(|r| async move { r.upsert_entry(pool).await.map(|_| ()) })
         .collect();
-    let result: Result<Vec<_>, Error> = futures.try_collect().await;
-    result?;
+    futures.try_collect().await?;
     Ok(output)
 }
 
