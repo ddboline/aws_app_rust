@@ -1,5 +1,5 @@
 use anyhow::{format_err, Error};
-use futures::future::try_join_all;
+use futures::{future::try_join_all, stream::FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use stack_string::{format_sstr, StackString};
@@ -113,7 +113,7 @@ impl AwsAppInterface {
     /// Returns error if aws api call fails
     pub async fn process_resource(&self, resource: ResourceType) -> Result<(), Error> {
         match resource {
-            ResourceType::Instances => {
+            ResourceType::Instances | ResourceType::All => {
                 self.fill_instance_list().await?;
                 let local_tz = DateTimeWrapper::local_tz();
                 let result = INSTANCE_LIST
@@ -426,7 +426,7 @@ impl AwsAppInterface {
     ) -> Result<(), Error> {
         let mut visited_resources = HashSet::new();
 
-        let futures = [ResourceType::Instances]
+        let futures: FuturesUnordered<_> = [ResourceType::Instances]
             .iter()
             .chain(resources.into_iter())
             .map(|resource| {
@@ -438,12 +438,10 @@ impl AwsAppInterface {
                     }
                     Ok(())
                 }
-            });
+            })
+            .collect();
 
-        let result: Result<Vec<_>, Error> = try_join_all(futures).await;
-        result?;
-
-        Ok(())
+        futures.try_collect().await
     }
 
     /// # Errors
@@ -513,14 +511,14 @@ impl AwsAppInterface {
     ) -> Result<Vec<AwsInstancePrice>, Error> {
         let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)
             .await?
-            .into_iter()
-            .map(|f| (f.family_name.clone(), f))
-            .collect();
+            .and_then(|f| async move { Ok((f.family_name.clone(), f)) })
+            .try_collect()
+            .await?;
         let instance_list: HashMap<_, _> = InstanceList::get_all_instances(&self.pool)
             .await?
-            .into_iter()
-            .map(|i| (i.instance_type.clone(), i))
-            .collect();
+            .map_ok(|i| (i.instance_type.clone(), i))
+            .try_collect()
+            .await?;
         let inst_list: Vec<_> = instance_list
             .keys()
             .filter_map(|inst| {
@@ -536,9 +534,9 @@ impl AwsAppInterface {
 
         let prices: HashMap<_, _> = InstancePricing::get_all(&self.pool)
             .await?
-            .into_iter()
-            .map(|p| ((p.instance_type.clone(), p.price_type.clone()), p))
-            .collect();
+            .map_ok(|p| ((p.instance_type.clone(), p.price_type.clone()), p))
+            .try_collect()
+            .await?;
 
         let prices: Result<Vec<_>, Error> = inst_list
             .into_iter()
