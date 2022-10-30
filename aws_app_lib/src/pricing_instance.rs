@@ -297,8 +297,8 @@ impl PricingInstance {
     /// Returns error if aws api fails
     pub async fn update_all_prices(&self, pool: &PgPool) -> Result<u32, Error> {
         let mut number_of_updates = 0;
-        let mut stream = Box::pin(InstanceList::get_all_instances(pool).await?);
-        while let Some(i) = stream.try_next().await? {
+        let instances: Vec<_> = InstanceList::get_all_instances(pool).await?.try_collect().await?;
+        for i in instances {
             for (_, price) in self.get_prices(&i.instance_type).await? {
                 price.upsert_entry(pool).await?;
                 number_of_updates += 1;
