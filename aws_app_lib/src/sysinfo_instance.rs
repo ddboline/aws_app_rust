@@ -3,7 +3,7 @@ use stack_string::StackString;
 use std::{collections::BTreeSet, fmt, sync::Arc};
 use sysinfo::{PidExt, Process, ProcessExt, System, SystemExt};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ProcessInfo {
     pub pid: u32,
     pub name: StackString,

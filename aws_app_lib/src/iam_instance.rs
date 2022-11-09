@@ -1,7 +1,8 @@
 use anyhow::Error;
 use rusoto_core::Region;
+pub use rusoto_iam::AccessKeyMetadata;
 use rusoto_iam::{
-    AccessKey, AccessKeyMetadata, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest,
+    AccessKey, AddUserToGroupRequest, CreateAccessKeyRequest, CreateUserRequest,
     DeleteAccessKeyRequest, DeleteUserRequest, GetUserRequest, Group, Iam as _, IamClient,
     ListAccessKeysRequest, ListGroupsForUserRequest, ListGroupsRequest, ListUsersRequest,
     RemoveUserFromGroupRequest, User,
@@ -205,7 +206,7 @@ impl IamInstance {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IamUser {
     pub arn: StackString,
     pub create_date: DateTimeWrapper,
@@ -234,7 +235,7 @@ impl From<User> for IamUser {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct IamGroup {
     pub arn: StackString,
     pub create_date: OffsetDateTime,

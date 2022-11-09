@@ -337,16 +337,13 @@ fn extract_instance_type_object_hvm(
     row: &[impl AsRef<str>],
     indicies: ColumnIndicies,
 ) -> Result<InstanceList, Error> {
-    let idx = if row[indicies.instance_type]
-        .as_ref()
-        .replace('*', "")
-        .parse::<i32>()
-        .is_ok()
-    {
-        1
-    } else {
-        0
-    };
+    let idx = usize::from(
+        row[indicies.instance_type]
+            .as_ref()
+            .replace('*', "")
+            .parse::<i32>()
+            .is_ok(),
+    );
 
     let instance_type: StackString = row[(indicies.instance_type - idx)]
         .as_ref()
@@ -375,11 +372,7 @@ fn extract_instance_type_object_pv(
     row: &[impl AsRef<str>],
     indicies: ColumnIndicies,
 ) -> Result<InstanceList, Error> {
-    let idx = if row[indicies.instance_type].as_ref().parse::<i32>().is_ok() {
-        1
-    } else {
-        0
-    };
+    let idx = usize::from(row[indicies.instance_type].as_ref().parse::<i32>().is_ok());
 
     let instance_type: StackString = row[(indicies.instance_type - idx)]
         .as_ref()

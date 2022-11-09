@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::pgpool::{PgPool, PgTransaction};
 
-#[derive(FromSqlRow, Clone, Debug)]
+#[derive(FromSqlRow, Clone, Debug, PartialEq, Eq)]
 pub struct InstanceFamily {
     pub family_name: StackString,
     pub family_type: StackString,
@@ -98,7 +98,7 @@ impl InstanceFamily {
     }
 }
 
-#[derive(FromSqlRow, Clone, Debug)]
+#[derive(FromSqlRow, Clone, Debug, PartialEq)]
 pub struct InstanceList {
     pub instance_type: StackString,
     pub family_name: StackString,

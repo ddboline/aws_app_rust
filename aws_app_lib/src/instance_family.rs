@@ -1,7 +1,7 @@
 use anyhow::{format_err, Error};
 use std::{fmt, str::FromStr};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum InstanceFamilies {
     StorageOptimized,
     AcceleratedComputing,

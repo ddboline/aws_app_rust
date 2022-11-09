@@ -59,7 +59,7 @@ impl SSHInstance {
             let user_host = self.get_ssh_username_host();
 
             let output = Command::new("ssh")
-                .args(&[&user_host, "--"])
+                .args([&user_host, "--"])
                 .args(cmd.split_whitespace())
                 .kill_on_drop(true)
                 .output()

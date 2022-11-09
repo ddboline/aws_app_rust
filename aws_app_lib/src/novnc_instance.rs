@@ -43,8 +43,8 @@ impl NoVncInstance {
             return Err(format_err!("Missing needed file(s)"));
         }
 
-        let x11vnc_command = Command::new(&x11vnc)
-            .args(&[
+        let x11vnc_command = Command::new(x11vnc)
+            .args([
                 "-safer",
                 "-rfbauth",
                 &vncpwd.to_string_lossy(),
@@ -57,7 +57,7 @@ impl NoVncInstance {
             .stderr(Stdio::piped())
             .spawn()?;
         let websockify_command = Command::new("sudo")
-            .args(&[
+            .args([
                 &websockify.to_string_lossy(),
                 "8787",
                 "--ssl-only",
@@ -94,7 +94,7 @@ impl NoVncInstance {
         }
 
         let mut kill = Command::new("sudo");
-        kill.args(&["kill", "-9"]);
+        kill.args(["kill", "-9"]);
         let ids = self
             .get_websock_pids()
             .await?
@@ -124,7 +124,7 @@ impl NoVncInstance {
     ///     * if `StackString::from_utf8_vec` fails
     pub async fn get_websock_pids(&self) -> Result<Vec<usize>, Error> {
         let websock = Command::new("ps")
-            .args(&["-eF"])
+            .args(["-eF"])
             .stdout(Stdio::piped())
             .spawn()?;
         let output = websock.wait_with_output().await?;

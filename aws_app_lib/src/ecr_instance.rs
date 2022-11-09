@@ -167,7 +167,7 @@ impl EcrInstance {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ImageInfo {
     pub repo: StackString,
     pub digest: StackString,

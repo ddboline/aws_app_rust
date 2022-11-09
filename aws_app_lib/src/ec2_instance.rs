@@ -869,7 +869,7 @@ impl Ec2Instance {
                     .unwrap_or_default()
                     .into_iter()
                     .filter_map(|key| {
-                        let fingerprint = key.key_fingerprint.unwrap_or_else(|| "".to_string());
+                        let fingerprint = key.key_fingerprint.unwrap_or_default();
                         key.key_name.map(|x| (x.into(), fingerprint.into()))
                     })
             })
@@ -898,7 +898,7 @@ pub struct SpotRequest {
     pub tags: HashMap<StackString, StackString>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct AmiInfo {
     pub id: StackString,
     pub name: StackString,
@@ -906,7 +906,7 @@ pub struct AmiInfo {
     pub snapshot_ids: Vec<StackString>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Ec2InstanceInfo {
     pub id: StackString,
     pub dns_name: StackString,
@@ -918,7 +918,7 @@ pub struct Ec2InstanceInfo {
     pub volumes: Vec<StackString>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ReservedInstanceInfo {
     pub id: StackString,
     pub price: f32,
@@ -927,7 +927,7 @@ pub struct ReservedInstanceInfo {
     pub availability_zone: Option<StackString>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SpotInstanceRequestInfo {
     pub id: StackString,
     pub price: f32,
@@ -938,7 +938,7 @@ pub struct SpotInstanceRequestInfo {
     pub instance_id: Option<StackString>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct VolumeInfo {
     pub id: StackString,
     pub availability_zone: StackString,
@@ -948,7 +948,7 @@ pub struct VolumeInfo {
     pub tags: HashMap<StackString, StackString>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct SnapshotInfo {
     pub id: StackString,
     pub volume_size: i64,
