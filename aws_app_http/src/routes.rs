@@ -1,8 +1,7 @@
 use anyhow::format_err;
 use futures::TryStreamExt;
-use itertools::Itertools;
 use maplit::hashmap;
-use rweb::{get, post, Json, Query, Rejection, Schema};
+use rweb::{delete, get, patch, post, Json, Query, Rejection, Schema};
 use rweb_helper::{
     html_response::HtmlResponse as HtmlBase, json_response::JsonResponse as JsonBase, RwebResponse,
 };
@@ -16,21 +15,24 @@ use tokio::{
 };
 
 use aws_app_lib::{
-    ec2_instance::SpotRequest,
+    ec2_instance::{AmiInfo, SpotRequest},
     models::{InstanceFamily, InstanceList},
     novnc_instance::NoVncInstance,
-    resource_type::ResourceType,
 };
 
 use super::{
     app::AppState,
+    elements::{
+        build_spot_request_body, edit_script_body, get_frontpage, get_index, instance_family_body,
+        instance_status_body, prices_body, textarea_body,
+    },
     errors::ServiceError as Error,
     ipv4addr_wrapper::Ipv4AddrWrapper,
     logged_user::LoggedUser,
     requests::{
-        get_frontpage, CommandRequest, CreateImageRequest, CreateSnapshotRequest,
-        DeleteEcrImageRequest, DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest,
-        ModifyVolumeRequest, StatusRequest, TagItemRequest, TerminateRequest,
+        CommandRequest, CreateImageRequest, CreateSnapshotRequest, DeleteEcrImageRequest,
+        DeleteImageRequest, DeleteSnapshotRequest, DeleteVolumeRequest, ModifyVolumeRequest,
+        StatusRequest, TagItemRequest, TerminateRequest,
     },
     IamAccessKeyWrapper, IamUserWrapper, ResourceTypeWrapper,
 };
@@ -40,16 +42,14 @@ pub type HttpResult<T> = Result<T, Error>;
 
 #[derive(RwebResponse)]
 #[response(description = "Main Page", content = "html")]
-struct AwsIndexResponse(HtmlBase<String, Error>);
+struct AwsIndexResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/index.html")]
 pub async fn sync_frontpage(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<AwsIndexResponse> {
-    let results = get_frontpage(ResourceType::Instances, &data.aws).await?;
-    let body =
-        include_str!("../../templates/index.html").replace("DISPLAY_TEXT", &results.join("\n"));
+    let body = get_index(&data.aws).await?;
     Ok(HtmlBase::new(body).into())
 }
 
@@ -61,7 +61,7 @@ pub struct ResourceRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "List Resources", content = "html")]
-struct AwsListResponse(HtmlBase<String, Error>);
+struct AwsListResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/list")]
 pub async fn list(
@@ -70,15 +70,15 @@ pub async fn list(
     query: Query<ResourceRequest>,
 ) -> WarpResult<AwsListResponse> {
     let query = query.into_inner();
-    let results = get_frontpage(query.resource.into(), &data.aws).await?;
-    Ok(HtmlBase::new(results.join("\n")).into())
+    let body = get_frontpage(query.resource.into(), &data.aws).await?;
+    Ok(HtmlBase::new(body).into())
 }
 
 #[derive(RwebResponse)]
 #[response(description = "Finished", content = "html")]
 struct FinishedResource(HtmlBase<&'static str, Error>);
 
-#[get("/aws/terminate")]
+#[delete("/aws/terminate")]
 pub async fn terminate(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -96,7 +96,7 @@ pub async fn terminate(
 #[response(description = "Image ID", content = "html")]
 struct CreateImageResponse(HtmlBase<String, Error>);
 
-#[get("/aws/create_image")]
+#[post("/aws/create_image")]
 pub async fn create_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -112,7 +112,7 @@ pub async fn create_image(
     Ok(HtmlBase::new(body).into())
 }
 
-#[get("/aws/delete_image")]
+#[delete("/aws/delete_image")]
 pub async fn delete_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -126,7 +126,7 @@ pub async fn delete_image(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/delete_volume")]
+#[delete("/aws/delete_volume")]
 pub async fn delete_volume(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -140,7 +140,7 @@ pub async fn delete_volume(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/modify_volume")]
+#[patch("/aws/modify_volume")]
 pub async fn modify_volume(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -154,7 +154,7 @@ pub async fn modify_volume(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/delete_snapshot")]
+#[delete("/aws/delete_snapshot")]
 pub async fn delete_snapshot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -168,7 +168,7 @@ pub async fn delete_snapshot(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/create_snapshot")]
+#[post("/aws/create_snapshot")]
 pub async fn create_snapshot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -189,7 +189,7 @@ pub async fn create_snapshot(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/tag_item")]
+#[patch("/aws/tag_item")]
 pub async fn tag_item(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -209,7 +209,7 @@ pub async fn tag_item(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/delete_ecr_image")]
+#[delete("/aws/delete_ecr_image")]
 pub async fn delete_ecr_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -224,7 +224,7 @@ pub async fn delete_ecr_image(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/cleanup_ecr_images")]
+#[delete("/aws/cleanup_ecr_images")]
 pub async fn cleanup_ecr_images(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -247,7 +247,7 @@ pub struct ScriptFilename {
 #[response(description = "Edit Script", content = "html")]
 struct EditScriptResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/edit_script")]
+#[patch("/aws/edit_script")]
 pub async fn edit_script(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -255,7 +255,7 @@ pub async fn edit_script(
 ) -> WarpResult<EditScriptResponse> {
     let query = query.into_inner();
     let fname = &query.filename;
-    let filename = data.aws.config.script_directory.join(&fname);
+    let filename = data.aws.config.script_directory.join(fname);
     let text = if filename.exists() {
         read_to_string(&filename)
             .await
@@ -263,17 +263,7 @@ pub async fn edit_script(
     } else {
         String::new()
     };
-    let rows = text.split('\n').count() + 5;
-    let body = format_sstr!(
-        r#"
-        <textarea name="message" id="script_editor_form" rows={rows} cols=100
-        form="script_edit_form">{text}</textarea><br>
-        <form id="script_edit_form">
-        <input type="button" name="update" value="Update" onclick="submitFormData('{fname}')">
-        <input type="button" name="cancel" value="Cancel" onclick="listResource('script')">
-        <input type="button" name="Request" value="Request" onclick="updateScriptAndBuildSpotRequest('{fname}')">
-        </form>"#
-    );
+    let body = edit_script_body(fname.clone(), text.into()).into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -300,7 +290,7 @@ pub async fn replace_script(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[get("/aws/delete_script")]
+#[delete("/aws/delete_script")]
 pub async fn delete_script(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -343,20 +333,19 @@ where
 #[response(description = "Spot Request", content = "html")]
 struct BuildSpotResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/build_spot_request")]
+#[post("/aws/build_spot_request")]
 pub async fn build_spot_request(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<SpotBuilder>,
 ) -> WarpResult<BuildSpotResponse> {
     let query = query.into_inner();
-    let mut amis: Vec<_> = data
+    let mut amis: Vec<AmiInfo> = data
         .aws
         .get_all_ami_tags()
         .await
         .map_err(Into::<Error>::into)?
         .into_iter()
-        .map(Arc::new)
         .collect();
 
     move_element_to_front(&mut amis, |ami| ami.name.contains("tmpfs"));
@@ -365,39 +354,29 @@ pub async fn build_spot_request(
         move_element_to_front(&mut amis, |ami| &ami.id == query_ami);
     }
 
-    let amis = amis
-        .into_iter()
-        .map(|ami| format_sstr!(r#"<option value="{}">{}</option>"#, ami.id, ami.name,))
-        .join("\n");
-
-    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
+    let mut inst_fams: Vec<InstanceFamily> = InstanceFamily::get_all(&data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?
-        .and_then(|fam| async move { Ok(Arc::new(fam)) })
+        .and_then(|fam| async move { Ok(fam) })
         .try_collect()
         .await
         .map_err(Into::<Error>::into)?;
 
     if let Some(inst) = &query.inst {
-        move_element_to_front(&mut inst_fam, |fam| inst.contains(fam.family_name.as_str()));
+        move_element_to_front(&mut inst_fams, |fam| {
+            inst.contains(fam.family_name.as_str())
+        });
     } else {
-        move_element_to_front(&mut inst_fam, |fam| fam.family_name == "t3");
+        move_element_to_front(&mut inst_fams, |fam| fam.family_name == "t3");
     }
 
-    let inst_fam = inst_fam
-        .into_iter()
-        .map(|fam| format_sstr!(r#"<option value="{n}">{n}</option>"#, n = fam.family_name,))
-        .join("\n");
-
     let inst = query.inst.unwrap_or_else(|| "t3".into());
-    let instances: Vec<_> = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
+    let instances: Vec<InstanceList> = InstanceList::get_by_instance_family(&inst, &data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?
-        .map_ok(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
         .try_collect()
         .await
         .map_err(Into::<Error>::into)?;
-    let instances = instances.join("\n");
 
     let mut files = data.aws.get_all_scripts();
 
@@ -405,49 +384,24 @@ pub async fn build_spot_request(
         move_element_to_front(&mut files, |f| f == script);
     }
 
-    let files = files
-        .into_iter()
-        .map(|f| format_sstr!(r#"<option value="{f}">{f}</option>"#))
-        .join("\n");
-
-    let keys = data
+    let keys: Vec<(StackString, StackString)> = data
         .aws
         .ec2
         .get_all_key_pairs()
         .await
         .map_err(Into::<Error>::into)?
-        .map(|k| format_sstr!(r#"<option value="{k}">{k}</option>"#, k = k.0))
-        .join("\n");
+        .collect();
 
-    let body = format_sstr!(
-        r#"
-            <form action="javascript:createScript()">
-            Ami: <select id="ami">{amis}</select><br>
-            Instance family: <select id="inst_fam" onchange="instanceOptions()">{inst_fam}</select><br>
-            Instance type: <select id="instance_type">{instances}</select><br>
-            Security group: <input type="text" name="security_group" id="security_group" 
-                value="{sec}"/><br>
-            Script: <select id="script">{files}</select><br>
-            Key: <select id="key">{keys}</select><br>
-            Price: <input type="text" name="price" id="price" value="{price}"/><br>
-            Name: <input type="text" name="name" id="name"/><br>
-            <input type="button" name="create_request" value="Request"
-                onclick="requestSpotInstance();"/><br>
-            </form>
-        "#,
-        sec = data
-            .aws
-            .config
-            .spot_security_group
-            .as_ref()
-            .unwrap_or_else(|| data
-                .aws
-                .config
-                .default_security_group
-                .as_ref()
-                .expect("NO DEFAULT_SECURITY_GROUP")),
-        price = data.aws.config.max_spot_price,
-    );
+    let body = build_spot_request_body(
+        amis,
+        inst_fams,
+        instances,
+        files,
+        keys,
+        data.aws.config.clone(),
+    )
+    .into();
+
     Ok(HtmlBase::new(body).into())
 }
 
@@ -515,7 +469,7 @@ pub struct CancelSpotRequest {
 #[response(description = "Cancelled Spot", content = "html")]
 struct CancelledResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/cancel_spot")]
+#[delete("/aws/cancel_spot")]
 pub async fn cancel_spot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -547,95 +501,23 @@ pub async fn get_prices(
     query: Query<PriceRequest>,
 ) -> WarpResult<PricesResponse> {
     let query = query.into_inner();
-    let mut inst_fam: Vec<_> = InstanceFamily::get_all(&data.aws.pool)
-        .await
-        .map_err(Into::<Error>::into)?
-        .try_collect()
-        .await
-        .map_err(Into::<Error>::into)?;
-    move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
 
-    let inst_fam = inst_fam
-        .into_iter()
-        .map(|fam| {
-            format_sstr!(
-                r#"<option value="{n}.">{n} : {t}</option>"#,
-                n = fam.family_name,
-                t = fam.family_type,
-            )
-        })
-        .join("\n");
-
-    let prices = if let Some(search) = query.search {
-        data.aws.get_ec2_prices(&[search])
-            .await.map_err(Into::<Error>::into)
-            ?
-            .into_iter()
-            .map(|price| {
-                let instance_type = &price.instance_type;
-                format_sstr!(
-                    r#"
-                    <tr style="text-align: center;">
-                        <td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>
-                        <td>{}</td>
-                    </tr>"#,
-                    if let Some(data_url) = price.data_url {
-                        format_sstr!(r#"<a href="{data_url}" target="_blank">{instance_type}</a>"#)
-                    } else {
-                        StackString::from_display(instance_type)
-                    },
-                    {
-                        if let Some(p) = price.ondemand_price {
-                            format_sstr!("${p:0.4}/hr")
-                        } else {"".into()}
-                    },
-                    {
-                        if let Some(p) = price.spot_price {
-                            format_sstr!("${p:0.4}/hr")
-                        } else {"".into()}
-                    },
-                    {
-                        if let Some(p) = price.reserved_price {
-                            format_sstr!("${p:0.4}/hr")
-                        } else {"".into()}
-                    },
-                    price.ncpu,
-                    price.memory,
-                    price.instance_family,
-                    format_sstr!(
-                        r#"<input type="button" name="Request" value="Request" onclick="buildSpotRequest(null, '{instance_type}', null)">"#,
-                    ),
-                )
-            })
-            .collect()
+    let body = if let Some(search) = query.search {
+        let prices = data
+            .aws
+            .get_ec2_prices(&[search])
+            .await
+            .map_err(Into::<Error>::into)?;
+        prices_body(prices).into()
     } else {
-        Vec::new()
-    };
-
-    let body = if prices.is_empty() {
-        format_sstr!(
-            r#"
-                <form action="javascript:listPrices()">
-                <select id="inst_fam" onchange="listPrices();">{inst_fam}</select><br>
-                </form><br>
-            "#
-        )
-    } else {
-        format_sstr!(
-            r#"<table border="1" class="dataframe"><thead>{}</thead><tbody>{}</tbody></table>"#,
-            r#"
-                <tr>
-                <th>Instance Type</th>
-                <th>Ondemand Price</th>
-                <th>Spot Price</th>
-                <th>Reserved Price</th>
-                <th>N CPU</th>
-                <th>Memory GiB</th>
-                <th>Instance Family</th>
-                </tr>
-            "#,
-            prices.join("\n")
-        )
+        let mut inst_fam: Vec<InstanceFamily> = InstanceFamily::get_all(&data.aws.pool)
+            .await
+            .map_err(Into::<Error>::into)?
+            .try_collect()
+            .await
+            .map_err(Into::<Error>::into)?;
+        move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
+        instance_family_body(inst_fam).into()
     };
 
     Ok(HtmlBase::new(body).into())
@@ -645,24 +527,18 @@ pub async fn get_prices(
 #[response(description = "Update", content = "html")]
 struct UpdateResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/update")]
+#[post("/aws/update")]
 pub async fn update(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
 ) -> WarpResult<UpdateResponse> {
-    let entries: Vec<_> = data
+    let entries: Vec<StackString> = data
         .aws
         .update()
         .await
         .map_err(Into::<Error>::into)?
         .collect();
-    let body = format_sstr!(
-        r#"<textarea autofocus readonly="readonly"
-            name="message" id="diary_editor_form"
-            rows={} cols=100>{}</textarea>"#,
-        entries.len() + 5,
-        entries.join("\n"),
-    );
+    let body = textarea_body(entries, "diary_editor_form".into()).into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -687,22 +563,7 @@ pub async fn instance_status(
         Err(_) => Err(format_err!("Timeout")),
     }
     .map_err(Into::<Error>::into)?;
-    let body = format_sstr!(
-        r#"{}<br><textarea autofocus readonly="readonly"
-            name="message" id="diary_editor_form"
-            rows={} cols=100>{}</textarea>"#,
-        format_sstr!(
-            r#"
-            <form action="javascript:runCommand('{host}')">
-            <input type="text" name="command_text" id="command_text"/>
-            <input type="button" name="run_command" value="Run" onclick="runCommand('{host}');"/>
-            </form>
-        "#,
-            host = query.instance
-        ),
-        entries.len() + 5,
-        entries.join("\n")
-    );
+    let body = instance_status_body(entries, query.instance).into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -728,22 +589,7 @@ pub async fn command(
     }
     .map_err(Into::<Error>::into)?;
 
-    let body = format_sstr!(
-        r#"{}<br><textarea autofocus readonly="readonly"
-            name="message" id="diary_editor_form"
-            rows={} cols=100>{}</textarea>"#,
-        format_sstr!(
-            r#"
-                <form action="javascript:runCommand('{host}')">
-                <input type="text" name="command_text" id="command_text"/>
-                <input type="button" name="run_command" value="Run" onclick="runCommand('{host}');"/>
-                </form>
-            "#,
-            host = payload.instance
-        ),
-        entries.len() + 5,
-        entries.join("\n")
-    );
+    let body = instance_status_body(entries, payload.instance).into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -786,7 +632,7 @@ async fn novnc_status_response(
             <br>
             <a href="https://{domain}:8787/vnc.html" target="_blank">Connect to NoVNC</a>
             <br>
-            <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop')"/>
+            <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop', 'POST')"/>
         "#
     ))
 }
@@ -795,7 +641,7 @@ async fn novnc_status_response(
 #[response(description = "Start NoVNC", content = "html")]
 struct NovncStartResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/novnc/start")]
+#[post("/aws/novnc/start")]
 pub async fn novnc_launcher(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -820,7 +666,7 @@ pub async fn novnc_launcher(
 #[response(description = "Stop NoVNC", content = "html")]
 struct NovncStopResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/novnc/stop")]
+#[post("/aws/novnc/stop")]
 pub async fn novnc_shutdown(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -833,10 +679,7 @@ pub async fn novnc_shutdown(
         .novnc_stop_request()
         .await
         .map_err(Into::<Error>::into)?;
-    let body = format_sstr!(
-        "<textarea cols=100 rows=50>{}</textarea>",
-        output.join("\n")
-    );
+    let body = textarea_body(output, "novnc-stop".into()).into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -855,7 +698,7 @@ pub async fn novnc_status(
     let number = data.novnc.get_novnc_status().await;
     let body = if number == 0 {
         r#"
-            <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start')"/>
+            <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start', 'POST')"/>
         "#.into()
     } else {
         novnc_status_response(&data.novnc, number, &data.aws.config.domain)
@@ -884,7 +727,7 @@ pub struct CreateUserRequest {
 #[response(description = "Created Iam User", status = "CREATED")]
 struct CreateUserResponse(JsonBase<IamUserWrapper, Error>);
 
-#[get("/aws/create_user")]
+#[post("/aws/create_user")]
 pub async fn create_user(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -905,7 +748,7 @@ pub async fn create_user(
 #[response(description = "Delete Iam User", content = "html")]
 struct DeleteUserResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/delete_user")]
+#[delete("/aws/delete_user")]
 pub async fn delete_user(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -931,7 +774,7 @@ pub struct AddUserToGroupRequest {
 #[response(description = "Add User to Group", content = "html")]
 struct AddUserGroupResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/add_user_to_group")]
+#[patch("/aws/add_user_to_group")]
 pub async fn add_user_to_group(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -954,7 +797,7 @@ pub async fn add_user_to_group(
 #[response(description = "Remove User to Group", content = "html")]
 struct RemoveUserGroupResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/remove_user_from_group")]
+#[delete("/aws/remove_user_from_group")]
 pub async fn remove_user_from_group(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -985,7 +828,7 @@ pub struct DeleteAccesssKeyRequest {
 #[response(description = "Create Access Key", status = "CREATED")]
 struct CreateKeyResponse(JsonBase<IamAccessKeyWrapper, Error>);
 
-#[get("/aws/create_access_key")]
+#[post("/aws/create_access_key")]
 pub async fn create_access_key(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -1004,7 +847,7 @@ pub async fn create_access_key(
 #[response(description = "Delete Access Key", content = "html")]
 struct DeleteKeyResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/delete_access_key")]
+#[delete("/aws/delete_access_key")]
 pub async fn delete_access_key(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -1039,7 +882,7 @@ pub struct UpdateDnsNameRequest {
 #[response(description = "Update Dns", status = "CREATED", content = "html")]
 struct UpdateDnsResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/update_dns_name")]
+#[patch("/aws/update_dns_name")]
 pub async fn update_dns_name(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -1101,7 +944,7 @@ struct SystemdAction {
 )]
 struct SystemdActionResponse(HtmlBase<StackString, Error>);
 
-#[get("/aws/systemd_action")]
+#[post("/aws/systemd_action")]
 pub async fn systemd_action(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -1125,7 +968,7 @@ pub async fn systemd_action(
 )]
 struct SystemdRestartAllResponse(HtmlBase<String, Error>);
 
-#[get("/aws/systemd_restart_all")]
+#[post("/aws/systemd_restart_all")]
 pub async fn systemd_restart_all(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -1167,20 +1010,16 @@ pub async fn systemd_logs(
     #[data] data: AppState,
     service: StackString,
 ) -> WarpResult<SystemdLogResponse> {
-    let entries = data
+    let entries: Vec<StackString> = data
         .aws
         .systemd
         .get_service_logs(&service)
         .await
         .map_err(Into::<Error>::into)?
         .into_iter()
-        .map(|log| log.to_string())
-        .join("\n");
-    let body = format_sstr!(
-        r#"<textarea autofocus readonly="readonly"
-            name="message" id="systemd_logs"
-            rows=50 cols=100>{entries}</textarea>"#
-    );
+        .map(|log| log.to_string().into())
+        .collect();
+    let body = textarea_body(entries, "systemd-logs".into()).into();
     Ok(HtmlBase::new(body).into())
 }
 

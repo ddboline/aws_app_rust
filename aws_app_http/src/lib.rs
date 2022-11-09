@@ -7,6 +7,7 @@
 #![recursion_limit = "256"]
 
 pub mod app;
+pub mod elements;
 pub mod errors;
 pub mod ipv4addr_wrapper;
 pub mod logged_user;

@@ -26,7 +26,7 @@ impl SystemdInstance {
     /// Returns error if spawn of systemctl fails
     pub async fn list_running_services(&self) -> Result<BTreeMap<StackString, RunStatus>, Error> {
         let command = Command::new("systemctl")
-            .args(&["list-units"])
+            .args(["list-units"])
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&command.stdout);
@@ -60,7 +60,7 @@ impl SystemdInstance {
         service: impl AsRef<str>,
     ) -> Result<ServiceStatus, Error> {
         let command = Command::new("systemctl")
-            .args(&["show", service.as_ref()])
+            .args(["show", service.as_ref()])
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&command.stdout);
@@ -93,7 +93,7 @@ impl SystemdInstance {
         service: impl AsRef<str>,
     ) -> Result<Vec<ServiceLogEntry>, Error> {
         let command = Command::new("journalctl")
-            .args(&[
+            .args([
                 "-b",
                 "-u",
                 service.as_ref(),
@@ -124,7 +124,7 @@ impl SystemdInstance {
         service: impl AsRef<str>,
     ) -> Result<StackString, Error> {
         let command = Command::new("sudo")
-            .args(&["systemctl", action.as_ref(), service.as_ref()])
+            .args(["systemctl", action.as_ref(), service.as_ref()])
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&command.stdout);
@@ -132,7 +132,7 @@ impl SystemdInstance {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RunStatus {
     Running,
     NotRunning,

@@ -12,7 +12,7 @@ lazy_static! {
     static ref CONFIG_DIR: PathBuf = dirs::config_dir().expect("No CONFIG directory");
 }
 
-#[derive(Default, Debug, Deserialize)]
+#[derive(Default, Debug, Deserialize, PartialEq)]
 pub struct ConfigInner {
     #[serde(default = "default_database_url")]
     pub database_url: StackString,
@@ -71,7 +71,7 @@ fn default_secret_path() -> PathBuf {
     CONFIG_DIR.join("aws_app_rust").join("secret.bin")
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Config(Arc<ConfigInner>);
 
 impl Deref for Config {

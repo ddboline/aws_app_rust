@@ -6,6 +6,7 @@ use stack_string::{format_sstr, StackString};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
+    sync::Arc,
 };
 use stdout_channel::StdoutChannel;
 use time_tz::OffsetDateTimeExt;
@@ -31,10 +32,11 @@ use crate::{
 };
 
 lazy_static! {
-    pub static ref INSTANCE_LIST: RwLock<Vec<Ec2InstanceInfo>> = RwLock::new(Vec::new());
+    pub static ref INSTANCE_LIST: RwLock<Arc<Vec<Ec2InstanceInfo>>> =
+        RwLock::new(Arc::new(Vec::new()));
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct AwsInstancePrice {
     pub instance_type: StackString,
     pub ondemand_price: Option<f64>,
@@ -105,7 +107,7 @@ impl AwsAppInterface {
             instances.sort_by_key(|inst| inst.launch_time);
             instances.sort_by_key(|inst| &inst.state != "running");
         }
-        *INSTANCE_LIST.write().await = instances;
+        *INSTANCE_LIST.write().await = Arc::new(instances);
         Ok(())
     }
 
@@ -876,6 +878,7 @@ async fn get_id_host_map() -> Result<HashMap<StackString, StackString>, Error> {
 mod tests {
     use anyhow::Error;
     use stack_string::StackString;
+    use std::sync::Arc;
 
     use crate::{
         aws_app_interface::{get_id_host_map, get_name_map, INSTANCE_LIST},
@@ -886,7 +889,7 @@ mod tests {
     async fn test_get_id_host_map() -> Result<(), Error> {
         let js = include_str!("../../tests/data/ec2_instances.json");
         let instances: Vec<Ec2InstanceInfo> = serde_json::from_str(&js)?;
-        *INSTANCE_LIST.write().await = instances;
+        *INSTANCE_LIST.write().await = Arc::new(instances);
         let host_map = get_id_host_map().await?;
         assert!(host_map.len() == 1);
         assert_eq!(
@@ -901,7 +904,7 @@ mod tests {
         let js = include_str!("../../tests/data/ec2_instances.json");
         let instances: Vec<Ec2InstanceInfo> = serde_json::from_str(&js)?;
         println!("{:?}", instances);
-        *INSTANCE_LIST.write().await = instances;
+        *INSTANCE_LIST.write().await = Arc::new(instances);
         let name_map = get_name_map().await?;
         assert!(name_map.len() == 1);
         assert_eq!(
