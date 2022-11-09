@@ -1383,117 +1383,141 @@ fn build_spot_request_element(
     cx.render(rsx! {
         form {
             action: "javascript:createScript()",
-            br {
-                "Ami: ",
-                select {
-                    id: "ami",
-                    amis.iter().enumerate().map(|(idx, ami)| {
-                        let id = &ami.id;
-                        let name = &ami.name;
-                        rsx! {
-                            option {
-                                key: "ami-key-{idx}",
-                                value: "{id}",
-                                "{name}"
+            table {
+                tbody {
+                    tr {
+                        td {"Ami:"},
+                        td {
+                            select {
+                                id: "ami",
+                                amis.iter().enumerate().map(|(idx, ami)| {
+                                    let id = &ami.id;
+                                    let name = &ami.name;
+                                    rsx! {
+                                        option {
+                                            key: "ami-key-{idx}",
+                                            value: "{id}",
+                                            "{name}"
+                                        }
+                                    }
+                                })
                             }
                         }
-                    })
-                }
-            },
-            br {
-                "Instance family: ",
-                select {
-                    id: "inst_fam",
-                    "onchange": "instanceOptions()",
-                    inst_fams.iter().enumerate().map(|(idx, fam)| {
-                        let n = &fam.family_name;
-                        rsx! {
-                            option {
-                                key: "inst-fam-key-{idx}",
-                                value: "{n}",
-                                "{n}",
+                    },
+                    tr {
+                        td {"Instance family"},
+                        td {
+                            select {
+                                id: "inst_fam",
+                                "onchange": "instanceOptions()",
+                                inst_fams.iter().enumerate().map(|(idx, fam)| {
+                                    let n = &fam.family_name;
+                                    rsx! {
+                                        option {
+                                            key: "inst-fam-key-{idx}",
+                                            value: "{n}",
+                                            "{n}",
+                                        }
+                                    }
+                                })
+                            }
+                        },
+                    },
+                    tr {
+                        td {"Instance type"},
+                        td {
+                            select {
+                                id: "instance_type",
+                                instances.iter().enumerate().map(|(idx, i)| {
+                                    let i = &i.instance_type;
+                                    rsx! {
+                                        option {
+                                            key: "instance-type-key-{idx}",
+                                            value: "{i}",
+                                            "{i}",
+                                        }
+                                    }
+                                })
                             }
                         }
-                    })
-                }
-            },
-            br {
-                "Instance type: ",
-                select {
-                    id: "instance_type",
-                    instances.iter().enumerate().map(|(idx, i)| {
-                        let i = &i.instance_type;
-                        rsx! {
-                            option {
-                                key: "instance-type-key-{idx}",
-                                value: "{i}",
-                                "{i}",
+                    },
+                    tr {
+                        td {"Security group"},
+                        td {
+                            input {
+                                "type": "text",
+                                name: "security_group",
+                                id: "security_group",
+                                value: "{sec}",
                             }
                         }
-                    })
-                }
-            },
-            br {
-                "Security group: ",
-                input {
-                    "type": "text",
-                    name: "security_group",
-                    id: "security_group",
-                    value: "{sec}",
-                }
-            },
-            br {
-                "Script: ",
-                select {
-                    id: "script",
-                    files.iter().enumerate().map(|(idx, f)| {
-                        rsx! {
-                            option {
-                                key: "script-key-{idx}",
-                                value: "{f}",
-                                "{f}",
+                    },
+                    tr {
+                        td {"Script"},
+                        td {
+                            select {
+                                id: "script",
+                                files.iter().enumerate().map(|(idx, f)| {
+                                    rsx! {
+                                        option {
+                                            key: "script-key-{idx}",
+                                            value: "{f}",
+                                            "{f}",
+                                        }
+                                    }
+                                })
                             }
                         }
-                    })
-                }
-            },
-            br {
-                "Key :",
-                select {
-                    id: "key",
-                    keys.iter().enumerate().map(|(idx, (k, _))| {
-                        rsx! {
-                            option {
-                                key: "key-{idx}",
-                                value: "{k}",
-                                "{k}",
+                    },
+                    tr {
+                        td {"Key"},
+                        td {
+                            select {
+                                id: "key",
+                                keys.iter().enumerate().map(|(idx, (k, _))| {
+                                    rsx! {
+                                        option {
+                                            key: "key-{idx}",
+                                            value: "{k}",
+                                            "{k}",
+                                        }
+                                    }
+                                })
                             }
                         }
-                    })
+                    },
+                    tr {
+                        td {"Price"},
+                        td {
+                            input {
+                                "type": "text",
+                                name: "price",
+                                id: "price",
+                                value: "{price}",
+                            }
+                        }
+                    },
+                    tr {
+                        td {"Name"},
+                        td {
+                            input {
+                                "type": "text",
+                                name: "name",
+                                id: "name",
+                            }
+                        }
+                    },
+                    tr {
+                        td {
+                            input {
+                                "type": "button",
+                                name: "create_request",
+                                value: "Request",
+                                "onclick": "requestSpotInstance();",
+                            }
+                        }
+                    },
                 }
-            },
-            br {
-                "Price: ",
-                input {
-                    "type": "text",
-                    name: "price",
-                    id: "price",
-                    value: "{price}",
-                }
-            },
-            br {
-                "Name: ",
-                input {
-                    "type": "text",
-                    name: "name",
-                    id: "name",
-                }
-            },
-            input {
-                "type": "button",
-                name: "create_request",
-                value: "Request",
-                "onclick": "requestSpotInstance();",
             }
         }
     })
