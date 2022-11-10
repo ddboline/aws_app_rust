@@ -791,25 +791,30 @@ fn script_element(cx: Scope, scripts: Vec<StackString>) -> Element {
             input {"type": "text", name: "script_filename", id: "script_filename"},
             input {"type": "button", name: "create_script", value: "New", "onclick": "createScript();"}
         }
-        scripts.iter().enumerate().map(|(idx, fname)| {
-            rsx! {
-                div {
-                    key: "script-key-{idx}",
-                    input {
-                        "type": "button", name: "Edit", value: "Edit", "onclick": "editScript('{fname}')",
-                    },
-                    input {
-                        "type": "button", name: "Rm", value: "Rm", "onclick": "deleteScript('{fname}')",
-                    },
-                    input {
-                        "type": "button", name: "Request", value: "Request", "onclick": "buildSpotRequest(null, null, '{fname}')",
-                    },
-                    br {
-                        " {fname} ",
+        table {
+            thead {th {}, th {}},
+            tbody {
+                scripts.iter().enumerate().map(|(idx, fname)| {
+                    rsx! {
+                        tr {
+                            key: "script-key-{idx}",
+                            td {
+                                input {
+                                    "type": "button", name: "Edit", value: "Edit", "onclick": "editScript('{fname}')",
+                                },
+                                input {
+                                    "type": "button", name: "Rm", value: "Rm", "onclick": "deleteScript('{fname}')",
+                                },
+                                input {
+                                    "type": "button", name: "Request", value: "Request", "onclick": "buildSpotRequest(null, null, '{fname}')",
+                                },
+                            },
+                            td {" {fname} "},
+                        }
                     }
-                }
+                })
             }
-        })
+        }
     })
 }
 
