@@ -457,7 +457,7 @@ fn spot_element(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
                     let st = &req.spot_type;
                     let s = &req.status;
                     let pf = match req.status.as_str() {
-                        "pending" | "pending-fulfillment" => Some(rsx! {
+                        "pending" | "pending-fulfillment" | "capacity-not-available" => Some(rsx! {
                             input {
                                 "type": "button",
                                 name: "cancel",
