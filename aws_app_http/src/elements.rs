@@ -804,7 +804,9 @@ fn script_element(cx: Scope, scripts: Vec<StackString>) -> Element {
                     input {
                         "type": "button", name: "Request", value: "Request", "onclick": "buildSpotRequest(null, null, '{fname}')",
                     },
-                    " {fname} <br>",
+                    br {
+                        " {fname} ",
+                    }
                 }
             }
         })
@@ -1583,6 +1585,112 @@ fn instance_status_element(cx: Scope, entries: Vec<StackString>, instance: Stack
             rows: "{rows}",
             cols: "100",
             "{text}",
+        }
+    })
+}
+
+pub fn textarea_fixed_size_body(body: StackString, id: StackString) -> String {
+    let mut app = VirtualDom::new_with_props(
+        textarea_fixed_size_element,
+        textarea_fixed_size_elementProps { body, id },
+    );
+    app.rebuild();
+    dioxus::ssr::render_vdom(&app)
+}
+
+#[inline_props]
+fn textarea_fixed_size_element(cx: Scope, body: StackString, id: StackString) -> Element {
+    cx.render(rsx! {
+        textarea {
+            autofocus: "true",
+            readonly: "readonly",
+            name: "message",
+            id: "{id}",
+            rows: "50",
+            cols: "100",
+            "{body}",
+        }
+
+    })
+}
+
+pub fn instance_types_body(instances: Vec<InstanceList>) -> String {
+    let mut app = VirtualDom::new_with_props(
+        instance_types_element,
+        instance_types_elementProps { instances },
+    );
+    app.rebuild();
+    dioxus::ssr::render_vdom(&app)
+}
+
+#[inline_props]
+fn instance_types_element(cx: Scope, instances: Vec<InstanceList>) -> Element {
+    cx.render(rsx! {
+        instances.iter().enumerate().map(|(idx, i)| {
+            let i = &i.instance_type;
+            rsx! {
+                option {
+                    key: "instance-type-key-{idx}",
+                    value: "{i}",
+                    "{i}",
+                }
+            }
+        })
+    })
+}
+
+pub fn novnc_start_body() -> String {
+    let mut app = VirtualDom::new_with_props(novnc_start_element, novnc_start_elementProps {});
+    app.rebuild();
+    dioxus::ssr::render_vdom(&app)
+}
+
+pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -> String {
+    let mut app = VirtualDom::new_with_props(
+        novnc_status_element,
+        novnc_status_elementProps {
+            number,
+            domain,
+            pids,
+        },
+    );
+    app.rebuild();
+    dioxus::ssr::render_vdom(&app)
+}
+
+#[inline_props]
+fn novnc_status_element(
+    cx: Scope,
+    number: usize,
+    domain: StackString,
+    pids: Vec<usize>,
+) -> Element {
+    cx.render(rsx! {
+        br {
+            "{number} processes currently running {pids:?}"
+        },
+        a {
+            href: "https://{domain}:8787/vnc.html",
+            target: "_blank",
+            "Connect to NoVNC",
+        }
+        input {
+            "type": "button",
+            name: "novnc",
+            value: "Stop NoVNC",
+            "onclick": "noVncTab('/aws/novnc/stop', 'POST')",
+        }
+    })
+}
+
+#[inline_props]
+fn novnc_start_element(cx: Scope) -> Element {
+    cx.render(rsx! {
+        input {
+            "type": "button",
+            name: "novnc",
+            value: "Start NoVNC",
+            "onclick": "noVncTab('/aws/novnc/start', 'POST')",
         }
     })
 }

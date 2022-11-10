@@ -7,7 +7,7 @@ use rweb_helper::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::{format_sstr, StackString};
-use std::{collections::HashMap, fmt::Display, path::Path, sync::Arc};
+use std::{collections::HashMap, path::Path, sync::Arc};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -17,14 +17,14 @@ use tokio::{
 use aws_app_lib::{
     ec2_instance::{AmiInfo, SpotRequest},
     models::{InstanceFamily, InstanceList},
-    novnc_instance::NoVncInstance,
 };
 
 use super::{
     app::AppState,
     elements::{
         build_spot_request_body, edit_script_body, get_frontpage, get_index, instance_family_body,
-        instance_status_body, prices_body, textarea_body,
+        instance_status_body, instance_types_body, novnc_start_body, novnc_status_body,
+        prices_body, textarea_body, textarea_fixed_size_body,
     },
     errors::ServiceError as Error,
     ipv4addr_wrapper::Ipv4AddrWrapper,
@@ -610,31 +610,15 @@ pub async fn get_instances(
     query: Query<InstancesRequest>,
 ) -> WarpResult<InstancesResponse> {
     let query = query.into_inner();
-    let instances: Vec<_> = InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
-        .await
-        .map_err(Into::<Error>::into)?
-        .map_ok(|i| format_sstr!(r#"<option value="{i}">{i}</option>"#, i = i.instance_type,))
-        .try_collect()
-        .await
-        .map_err(Into::<Error>::into)?;
-    let instances = instances.join("\n");
-    Ok(HtmlBase::new(instances).into())
-}
-
-async fn novnc_status_response(
-    novnc: &NoVncInstance,
-    number: usize,
-    domain: impl Display,
-) -> Result<StackString, Error> {
-    let pids = novnc.get_websock_pids().await?;
-    Ok(format_sstr!(
-        r#"{number} processes currenty running {pids:?}
-            <br>
-            <a href="https://{domain}:8787/vnc.html" target="_blank">Connect to NoVNC</a>
-            <br>
-            <input type="button" name="novnc" value="Stop NoVNC" onclick="noVncTab('/aws/novnc/stop', 'POST')"/>
-        "#
-    ))
+    let instances: Vec<InstanceList> =
+        InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
+            .await
+            .map_err(Into::<Error>::into)?
+            .try_collect()
+            .await
+            .map_err(Into::<Error>::into)?;
+    let body = instance_types_body(instances);
+    Ok(HtmlBase::new(body).into())
 }
 
 #[derive(RwebResponse)]
@@ -655,7 +639,12 @@ pub async fn novnc_launcher(
             .await
             .map_err(Into::<Error>::into)?;
         let number = data.novnc.get_novnc_status().await;
-        let body = novnc_status_response(&data.novnc, number, &data.aws.config.domain).await?;
+        let pids = data
+            .novnc
+            .get_websock_pids()
+            .await
+            .map_err(Into::<Error>::into)?;
+        let body = novnc_status_body(number, data.aws.config.domain.clone(), pids).into();
         Ok(HtmlBase::new(body).into())
     } else {
         Ok(HtmlBase::new("NoVNC not configured".into()).into())
@@ -697,13 +686,14 @@ pub async fn novnc_status(
     }
     let number = data.novnc.get_novnc_status().await;
     let body = if number == 0 {
-        r#"
-            <input type="button" name="novnc" value="Start NoVNC" onclick="noVncTab('/aws/novnc/start', 'POST')"/>
-        "#.into()
+        novnc_start_body().into()
     } else {
-        novnc_status_response(&data.novnc, number, &data.aws.config.domain)
+        let pids = data
+            .novnc
+            .get_websock_pids()
             .await
-            .map_err(Into::<Error>::into)?
+            .map_err(Into::<Error>::into)?;
+        novnc_status_body(number, data.aws.config.domain.clone(), pids).into()
     };
     Ok(HtmlBase::new(body).into())
 }
@@ -1038,16 +1028,16 @@ pub async fn crontab_logs(
         Path::new("/tmp/crontab_root.log")
     };
     let body = if crontab_path.exists() {
-        read_to_string(crontab_path)
-            .await
-            .map_err(Into::<Error>::into)?
+        textarea_fixed_size_body(
+            read_to_string(crontab_path)
+                .await
+                .map_err(Into::<Error>::into)?
+                .into(),
+            "systemd_logs".into(),
+        )
+        .into()
     } else {
-        String::new()
+        StackString::new()
     };
-    let body = format_sstr!(
-        r#"<textarea autofocus readonly="readonly"
-            name="message" id="systemd_logs"
-            rows=50 cols=100>{body}</textarea>"#
-    );
     Ok(HtmlBase::new(body).into())
 }
