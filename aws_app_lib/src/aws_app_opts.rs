@@ -29,10 +29,10 @@ pub enum AwsAppOpts {
     Update,
     /// List information about resources
     List {
-        #[clap(short)]
-        /// Possible values are: -r instances -r reserved -r spot -r ami -r
-        /// volume -r snapshot -r ecr -r key -r script -r user -r group -r
-        /// access-key -r route53 -r systemd
+        #[clap(short, use_value_delimiter = true, value_delimiter = ',')]
+        /// Possible values are:
+        /// -r instances,reserved,spot,ami,volume,snapshot,ecr,key,script,user,
+        /// group,access-key,route53,systemd
         resources: Vec<ResourceType>,
         #[clap(short, long)]
         /// List all regions
@@ -40,7 +40,7 @@ pub enum AwsAppOpts {
     },
     /// Terminate a running ec2 instance
     Terminate {
-        #[clap(short, long)]
+        #[clap(short, long, use_value_delimiter = true, value_delimiter = ',')]
         /// Instance IDs
         instance_ids: Vec<StackString>,
     },
@@ -48,21 +48,21 @@ pub enum AwsAppOpts {
     Request(SpotRequestOpt),
     /// Cancel Spot Request
     CancelRequest {
-        #[clap(short, long)]
+        #[clap(short, long, use_value_delimiter = true, value_delimiter = ',')]
         instance_ids: Vec<StackString>,
     },
     /// Run a new ec2 instance
     Run(InstanceOpt),
     /// Get On-demand/Reserved and Spot instance pricing
     Price {
-        #[clap(short, long)]
+        #[clap(short, long, use_value_delimiter = true, value_delimiter = ',')]
         search: Vec<StackString>,
     },
     /// List Instance Families
     ListFamilies,
     /// List Instance Types
     ListInstances {
-        #[clap(short, long)]
+        #[clap(short, long, use_value_delimiter = true, value_delimiter = ',')]
         search: Vec<StackString>,
     },
     /// Create an ami image from a running ec2 instance
@@ -123,7 +123,13 @@ pub enum AwsAppOpts {
     CreateSnapshot {
         #[clap(long)]
         volid: StackString,
-        #[clap(short, long, long = "tag")]
+        #[clap(
+            short,
+            long,
+            long = "tag",
+            use_value_delimiter = true,
+            value_delimiter = ','
+        )]
         tags: Vec<StackString>,
     },
     /// Delete Snapshot
@@ -135,14 +141,20 @@ pub enum AwsAppOpts {
     Tag {
         #[clap(short, long)]
         id: StackString,
-        #[clap(short, long, long = "tag")]
+        #[clap(
+            short,
+            long,
+            long = "tag",
+            use_value_delimiter = true,
+            value_delimiter = ','
+        )]
         tags: Vec<StackString>,
     },
     /// Delete ECR Images
     DeleteEcrImages {
         #[clap(short, long)]
         reponame: StackString,
-        #[clap(short, long)]
+        #[clap(short, long, use_value_delimiter = true, value_delimiter = ',')]
         imageids: Vec<StackString>,
     },
     /// Cleanup ECR Images
