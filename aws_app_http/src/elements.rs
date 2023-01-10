@@ -1,6 +1,6 @@
 use dioxus::prelude::{
-    dioxus_elements, fc_to_builder, format_args_f, inline_props, rsx, Element, LazyNodes,
-    NodeFactory, Props, Scope, VNode, VirtualDom,
+    dioxus_elements, inline_props, rsx, Element, GlobalAttributes, LazyNodes, Props, Scope,
+    VirtualDom,
 };
 use futures::{future::try_join_all, stream::FuturesUnordered, try_join, TryStreamExt};
 use stack_string::{format_sstr, StackString};
@@ -40,8 +40,8 @@ pub async fn get_index(app: &AwsAppInterface) -> Result<StackString, Error> {
     let instances = INSTANCE_LIST.read().await.clone();
     let body = {
         let mut app = VirtualDom::new_with_props(index_list_element, InstanceProps { instances });
-        app.rebuild();
-        dioxus::ssr::render_vdom(&app)
+        drop(app.rebuild());
+        dioxus_ssr::render(&app)
     };
     Ok(body.into())
 }
@@ -57,9 +57,9 @@ pub async fn get_frontpage(
             aws.fill_instance_list().await?;
             let instances = INSTANCE_LIST.read().await.clone();
             let mut app =
-                VirtualDom::new_with_props(list_instance_element, InstanceProps { instances });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+                VirtualDom::new_with_props(list_instance_body, InstanceProps { instances });
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Reserved => {
             let reserved: Vec<_> = aws.ec2.get_reserved_instances().await?.collect();
@@ -68,8 +68,8 @@ pub async fn get_frontpage(
             }
             let mut app =
                 VirtualDom::new_with_props(reserved_element, reserved_elementProps { reserved });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Spot => {
             let requests: Vec<_> = aws.ec2.get_spot_instance_requests().await?.collect();
@@ -77,27 +77,27 @@ pub async fn get_frontpage(
                 return Ok(StackString::new());
             }
             let mut app = VirtualDom::new_with_props(spot_element, spot_elementProps { requests });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Ami => {
             let ami_tags = get_ami_tags(aws).await?;
             let mut app = VirtualDom::new_with_props(ami_element, ami_elementProps { ami_tags });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Key => {
             let keys: Vec<_> = aws.ec2.get_all_key_pairs().await?.collect();
             let mut app = VirtualDom::new_with_props(key_element, key_elementProps { keys });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Volume => {
             let volumes: Vec<_> = aws.ec2.get_all_volumes().await?.collect();
             let mut app =
                 VirtualDom::new_with_props(volume_element, volume_elementProps { volumes });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Snapshot => {
             let mut snapshots: Vec<_> = aws.ec2.get_all_snapshots().await?.collect();
@@ -111,8 +111,8 @@ pub async fn get_frontpage(
             });
             let mut app =
                 VirtualDom::new_with_props(snapshot_element, snapshot_elementProps { snapshots });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Ecr => {
             let futures = aws
@@ -129,8 +129,8 @@ pub async fn get_frontpage(
                 return Ok(StackString::new());
             }
             let mut app = VirtualDom::new_with_props(ecr_element, ecr_elementProps { images });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Script => {
             let scripts = aws.get_all_scripts();
@@ -139,8 +139,8 @@ pub async fn get_frontpage(
             }
             let mut app =
                 VirtualDom::new_with_props(script_element, script_elementProps { scripts });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::User => {
             let user_name: Option<&str> = None;
@@ -180,8 +180,8 @@ pub async fn get_frontpage(
                     key_map,
                 },
             );
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Group => {
             let (users, groups) = try_join!(aws.iam.list_users(), aws.iam.list_groups())?;
@@ -209,8 +209,8 @@ pub async fn get_frontpage(
                     users,
                 },
             );
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::AccessKey => {
             let futures = aws
@@ -223,8 +223,8 @@ pub async fn get_frontpage(
             let keys: Vec<AccessKeyMetadata> = results?.into_iter().flatten().collect();
             let mut app =
                 VirtualDom::new_with_props(access_key_element, access_key_elementProps { keys });
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::Route53 => {
             let current_ip = aws.route53.get_ip_address().await?;
@@ -236,8 +236,8 @@ pub async fn get_frontpage(
                     current_ip,
                 },
             );
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
         ResourceType::SystemD => {
             let processes: HashMap<StackString, Vec<_>> = aws
@@ -258,18 +258,17 @@ pub async fn get_frontpage(
                     config,
                 },
             );
-            app.rebuild();
-            dioxus::ssr::render_vdom(&app)
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
         }
     };
     Ok(body.into())
 }
 
-#[inline_props]
-fn index_element<'a>(cx: Scope<'a>, children: Element<'a>) -> Element<'a> {
-    cx.render(rsx! {
+fn index_element<'a>(children: LazyNodes<'a, 'a>) -> LazyNodes<'a, 'a> {
+    rsx! {
         head {
-            style {[include_str!("../../templates/style.css")]},
+            style {include_str!("../../templates/style.css")},
         },
         body {
             input {"type": "button", name: "list_inst", value: "Instances", "onclick": "listResource('instances')"},
@@ -295,8 +294,8 @@ fn index_element<'a>(cx: Scope<'a>, children: Element<'a>) -> Element<'a> {
         },
         article {id: "main_article", children},
         article {id: "sub_article", "&nbsp"},
-        script {"language": "Javascript", "type": "text/javascript", [include_str!("../../templates/scripts.js")]},
-    })
+        script {"language": "Javascript", "type": "text/javascript", include_str!("../../templates/scripts.js")},
+    }
 }
 
 struct InstanceProps {
@@ -306,15 +305,19 @@ struct InstanceProps {
 fn index_list_element(cx: Scope<InstanceProps>) -> Element {
     cx.render(rsx! {
         index_element(
-            children: crate::elements::list_instance_element(cx)
+            crate::elements::list_instance_element(&cx.props.instances)
         )
     })
 }
 
-fn list_instance_element(cx: Scope<InstanceProps>) -> Element {
+fn list_instance_body(cx: Scope<InstanceProps>) -> Element {
+    cx.render(list_instance_element(&cx.props.instances))
+}
+
+fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
     let local_tz = DateTimeWrapper::local_tz();
     let empty: StackString = "".into();
-    cx.render(rsx! {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -330,7 +333,7 @@ fn list_instance_element(cx: Scope<InstanceProps>) -> Element {
                 }
             },
             tbody {
-                cx.props.instances.iter().enumerate().map(|(idx, inst)| {
+                instances.iter().enumerate().map(|(idx, inst)| {
                     let inst_id = &inst.id;
                     let status_button = if &inst.state == "running" {
                         Some(rsx! {
@@ -388,7 +391,7 @@ fn list_instance_element(cx: Scope<InstanceProps>) -> Element {
                 })
             }
         }
-    })
+    }
 }
 
 #[inline_props]
@@ -961,7 +964,7 @@ fn groups_element(
                     Some(rsx! {
                         select {
                             id: "{group_name}_user_opt",
-                            user_opts,
+                            user_opts.into_iter(),
                         }
                     })
                 };
@@ -1194,8 +1197,8 @@ pub fn instance_family_body(inst_fam: Vec<InstanceFamily>) -> String {
         instance_family_element,
         instance_family_elementProps { inst_fam },
     );
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1226,8 +1229,8 @@ fn instance_family_element(cx: Scope, inst_fam: Vec<InstanceFamily>) -> Element 
 
 pub fn prices_body(prices: Vec<AwsInstancePrice>) -> String {
     let mut app = VirtualDom::new_with_props(price_element, price_elementProps { prices });
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1304,8 +1307,8 @@ pub fn edit_script_body(fname: StackString, text: StackString) -> String {
         edit_script_element,
         edit_script_elementProps { fname, text },
     );
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1366,8 +1369,8 @@ pub fn build_spot_request_body(
             config,
         },
     );
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1533,8 +1536,8 @@ fn build_spot_request_element(
 pub fn textarea_body(entries: Vec<StackString>, id: StackString) -> String {
     let mut app =
         VirtualDom::new_with_props(textarea_element, textarea_elementProps { entries, id });
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1559,8 +1562,8 @@ pub fn instance_status_body(entries: Vec<StackString>, instance: StackString) ->
         instance_status_element,
         instance_status_elementProps { entries, instance },
     );
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1599,8 +1602,8 @@ pub fn textarea_fixed_size_body(body: StackString, id: StackString) -> String {
         textarea_fixed_size_element,
         textarea_fixed_size_elementProps { body, id },
     );
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1624,8 +1627,8 @@ pub fn instance_types_body(instances: Vec<InstanceList>) -> String {
         instance_types_element,
         instance_types_elementProps { instances },
     );
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]
@@ -1646,8 +1649,8 @@ fn instance_types_element(cx: Scope, instances: Vec<InstanceList>) -> Element {
 
 pub fn novnc_start_body() -> String {
     let mut app = VirtualDom::new_with_props(novnc_start_element, novnc_start_elementProps {});
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -> String {
@@ -1659,8 +1662,8 @@ pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -
             pids,
         },
     );
-    app.rebuild();
-    dioxus::ssr::render_vdom(&app)
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
 }
 
 #[inline_props]

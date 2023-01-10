@@ -1,4 +1,5 @@
 use anyhow::{format_err, Error};
+use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use itertools::Itertools;
 use log::debug;
 use maplit::hashmap;
@@ -510,7 +511,7 @@ impl Ec2Instance {
                     image_id: Some(spot.ami.to_string()),
                     instance_type: Some(spot.instance_type.to_string()),
                     security_group_ids: Some(vec![spot.security_group.to_string()]),
-                    user_data: Some(base64::encode(&user_data)),
+                    user_data: Some(STANDARD_NO_PAD.encode(&user_data)),
                     key_name: Some(spot.key_name.to_string()),
                     ..RequestSpotLaunchSpecification::default()
                 }),
@@ -664,7 +665,7 @@ impl Ec2Instance {
                 max_count: 1,
                 key_name: Some(request.key_name.to_string()),
                 security_group_ids: Some(vec![request.security_group.to_string()]),
-                user_data: Some(base64::encode(&user_data)),
+                user_data: Some(STANDARD_NO_PAD.encode(&user_data)),
                 ..RunInstancesRequest::default()
             })
             .await?;
