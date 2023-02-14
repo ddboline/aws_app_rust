@@ -165,10 +165,7 @@ impl Route53Instance {
         let request = ChangeResourceRecordSetsRequest {
             hosted_zone_id: zone_id.into(),
             change_batch: ChangeBatch {
-                comment: Some(format!(
-                    "change ip of {} from {} to {}",
-                    name, old_ip, new_ip
-                )),
+                comment: Some(format!("change ip of {name} from {old_ip} to {new_ip}",)),
                 changes: vec![Change {
                     action: "UPSERT".into(),
                     resource_record_set: record,
