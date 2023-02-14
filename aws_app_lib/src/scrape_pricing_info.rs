@@ -48,7 +48,7 @@ fn get_url(ptype: PricingType) -> Result<Url, Error> {
 
 async fn extract_json_url(url: Url) -> Result<Url, Error> {
     let body = reqwest::get(url).await?.text().await?;
-    parse_json_url_body(&body)
+    parse_json_url_body(body)
 }
 
 fn parse_json_url_body(body: impl AsRef<str>) -> Result<Url, Error> {
