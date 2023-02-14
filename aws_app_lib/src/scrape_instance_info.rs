@@ -345,16 +345,16 @@ fn extract_instance_type_object_hvm(
             .is_ok(),
     );
 
-    let instance_type: StackString = row[(indicies.instance_type - idx)]
+    let instance_type: StackString = row[indicies.instance_type - idx]
         .as_ref()
         .replace('*', "")
         .into();
     let family_name = instance_type.split('.').next().unwrap_or("").into();
-    let n_cpu: i32 = row[(indicies.n_cpu - idx)]
+    let n_cpu: i32 = row[indicies.n_cpu - idx]
         .as_ref()
         .replace('*', "")
         .parse()?;
-    let memory_gib: f64 = row[(indicies.memory - idx)]
+    let memory_gib: f64 = row[indicies.memory - idx]
         .as_ref()
         .replace(',', "")
         .parse()?;
@@ -374,16 +374,16 @@ fn extract_instance_type_object_pv(
 ) -> Result<InstanceList, Error> {
     let idx = usize::from(row[indicies.instance_type].as_ref().parse::<i32>().is_ok());
 
-    let instance_type: StackString = row[(indicies.instance_type - idx)]
+    let instance_type: StackString = row[indicies.instance_type - idx]
         .as_ref()
         .replace('*', "")
         .into();
     let family_name = instance_type.split('.').next().unwrap_or("").into();
-    let n_cpu: i32 = row[(indicies.n_cpu - idx)]
+    let n_cpu: i32 = row[indicies.n_cpu - idx]
         .as_ref()
         .replace('*', "")
         .parse()?;
-    let memory_gib: f64 = row[(indicies.memory - idx)]
+    let memory_gib: f64 = row[indicies.memory - idx]
         .as_ref()
         .replace(',', "")
         .parse()?;
