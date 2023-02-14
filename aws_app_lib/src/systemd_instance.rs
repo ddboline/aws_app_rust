@@ -196,8 +196,8 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
             println!("{}", line.timestamp);
             e
         })?;
-        let ts = (timestamp / 1_000_000) as i64;
-        let ns = ((timestamp % 1_000_000) * 1000) as i64;
+        let ts = timestamp / 1_000_000;
+        let ns = (timestamp % 1_000_000) * 1000;
         let timestamp = (OffsetDateTime::from_unix_timestamp(ts)
             .unwrap_or_else(|_| OffsetDateTime::now_utc())
             + Duration::nanoseconds(ns))
