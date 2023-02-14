@@ -227,8 +227,8 @@ impl AwsAppOpts {
                         .ec2
                         .get_all_regions()
                         .await?
-                        .into_iter()
-                        .map(|(region, _)| {
+                        .into_keys()
+                        .map(|region| {
                             let mut app_ = app.clone();
                             let resources = resources.clone();
                             async move {
