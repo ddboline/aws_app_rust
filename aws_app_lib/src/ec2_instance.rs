@@ -144,8 +144,7 @@ impl Ec2Instance {
                 Filter {
                     name: Some("name".to_string()),
                     values: Some(vec![format!(
-                        "ubuntu/images/hvm-ssd/ubuntu-{}-{}-server*",
-                        ubuntu_release, arch,
+                        "ubuntu/images/hvm-ssd/ubuntu-{ubuntu_release}-{arch}-server*",
                     )]),
                 },
             ]),
