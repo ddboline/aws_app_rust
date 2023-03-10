@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.10.2"
+version = "0.10.3"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -17,7 +17,7 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 lazy_static = "1.4"
-tokio = {version="1.21", features=["time"]}
+tokio = {version="1.26", features=["time"]}
 log = "0.4"
 parking_lot = "0.12"
 maplit = "1.0"
@@ -34,7 +34,7 @@ indexmap = "1.0"
 serde_yaml = "0.9"
 uuid = "1.0"
 rweb-helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.4.14"}
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.4"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.5"}
 stack-string = { version="0.8", features=["postgres_types", "rweb-openapi"] }
 postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.4", features=["deadpool"]}
 dioxus = "0.3"
@@ -42,6 +42,6 @@ dioxus-ssr = "0.3"
 
 [dev-dependencies]
 reqwest = {version = "0.11", features=["cookies", "rustls-tls", "gzip", "json"], default-features=false}
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.4"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.4"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.5"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.5"}
 env_logger = "0.10"
