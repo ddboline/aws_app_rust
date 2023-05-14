@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.10.3"
+version = "0.10.4"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -25,8 +25,8 @@ walkdir = "2.3"
 anyhow = "1.0"
 thiserror = "1.0"
 async-trait = "0.1"
-cached = "0.42"
-dirs = "4.0"
+cached = "0.43"
+dirs = "5.0"
 itertools = "0.10"
 smallvec = "1.6"
 derive_more = "0.99"

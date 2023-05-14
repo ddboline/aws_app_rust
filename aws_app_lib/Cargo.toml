@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_lib"
-version = "0.10.3"
+version = "0.10.4"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -32,7 +32,7 @@ log = "0.4"
 url = "2.3"
 thiserror = "1.0"
 anyhow = "1.0"
-dirs = "4.0"
+dirs = "5.0"
 tokio = { version="1.26", features=["full"]}
 futures = "0.3"
 derive_more = "0.99"
@@ -42,7 +42,7 @@ itertools = "0.10"
 smallvec = "1.6"
 deadqueue = "0.2"
 bytes = "1.1"
-sysinfo = "0.28"
+sysinfo = "0.29"
 uuid = { version = "1.0", features = ["serde", "v4"] }
 refinery = {version="0.8", features=["tokio-postgres"]}
 deadpool = { version = "0.9", features=["serde", "rt_tokio_1"] }
