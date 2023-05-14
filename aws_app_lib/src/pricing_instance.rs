@@ -328,7 +328,7 @@ mod tests {
         let config = Config::init_config()?;
         let pricing = PricingInstance::new(&config);
         let services = pricing.describe_services(None).await?;
-        assert_eq!(services.len(), 209);
+        assert_eq!(services.len(), 212);
         Ok(())
     }
 
@@ -338,7 +338,7 @@ mod tests {
         let pricing = PricingInstance::new(&config);
         let ec2_service = pricing.describe_services(Some("AmazonEC2")).await?;
         let ec2_service = &ec2_service["AmazonEC2"];
-        assert_eq!(ec2_service.attributes.len(), 81);
+        assert_eq!(ec2_service.attributes.len(), 80);
         Ok(())
     }
 
@@ -350,7 +350,7 @@ mod tests {
             .get_attribute_values("AmazonEC2", "operatingSystem")
             .await?;
         println!("{:?}", values);
-        assert_eq!(values.len(), 6);
+        assert_eq!(values.len(), 7);
         Ok(())
     }
 
