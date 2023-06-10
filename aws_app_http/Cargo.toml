@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.10.4"
+version = "0.10.5"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
-rweb = {version="0.15", features=["openapi"], default-features=false}
+rweb = {git = "https://github.com/ddboline/rweb.git", features=["openapi"], default-features=false}
 http = "0.2"
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="1.0", features=["system"]}
@@ -25,7 +25,7 @@ walkdir = "2.3"
 anyhow = "1.0"
 thiserror = "1.0"
 async-trait = "0.1"
-cached = "0.43"
+cached = "0.44"
 dirs = "5.0"
 itertools = "0.10"
 smallvec = "1.6"
@@ -33,15 +33,15 @@ derive_more = "0.99"
 indexmap = "1.0"
 serde_yaml = "0.9"
 uuid = "1.0"
-rweb-helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.4.14"}
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.5"}
-stack-string = { version="0.8", features=["postgres_types", "rweb-openapi"] }
+rweb-helper = { git = "https://github.com/ddboline/rweb_helper.git" }
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.7"}
+stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", features=["postgres_types", "rweb-openapi"] }
 postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.4", features=["deadpool"]}
 dioxus = "0.3"
 dioxus-ssr = "0.3"
 
 [dev-dependencies]
 reqwest = {version = "0.11", features=["cookies", "rustls-tls", "gzip", "json"], default-features=false}
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.5"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.5"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.7"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.10.7"}
 env_logger = "0.10"
