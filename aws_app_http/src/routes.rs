@@ -75,21 +75,21 @@ pub async fn list(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Finished", content = "html")]
-struct FinishedResource(HtmlBase<&'static str, Error>);
+#[response(description = "Deleted", content = "html", status = "NO_CONTENT")]
+struct DeletedResource(HtmlBase<&'static str, Error>);
 
 #[delete("/aws/terminate")]
 pub async fn terminate(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<TerminateRequest>,
-) -> WarpResult<FinishedResource> {
+) -> WarpResult<DeletedResource> {
     let query = query.into_inner();
     data.aws
         .terminate(&[query.instance])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("Finished").into())
+    Ok(HtmlBase::new("Deleted").into())
 }
 
 #[derive(RwebResponse)]
@@ -117,13 +117,13 @@ pub async fn delete_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteImageRequest>,
-) -> WarpResult<FinishedResource> {
+) -> WarpResult<DeletedResource> {
     let query = query.into_inner();
     data.aws
         .delete_image(&query.ami)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("Finished").into())
+    Ok(HtmlBase::new("Deleted").into())
 }
 
 #[delete("/aws/delete_volume")]
@@ -131,7 +131,7 @@ pub async fn delete_volume(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteVolumeRequest>,
-) -> WarpResult<FinishedResource> {
+) -> WarpResult<DeletedResource> {
     let query = query.into_inner();
     data.aws
         .delete_ebs_volume(&query.volid)
@@ -139,6 +139,10 @@ pub async fn delete_volume(
         .map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new("Finished").into())
 }
+
+#[derive(RwebResponse)]
+#[response(description = "Finished", content = "html", status = "CREATED")]
+struct FinishedResource(HtmlBase<&'static str, Error>);
 
 #[patch("/aws/modify_volume")]
 pub async fn modify_volume(
@@ -159,13 +163,13 @@ pub async fn delete_snapshot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteSnapshotRequest>,
-) -> WarpResult<FinishedResource> {
+) -> WarpResult<DeletedResource> {
     let query = query.into_inner();
     data.aws
         .delete_ebs_snapshot(&query.snapid)
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("Finished").into())
+    Ok(HtmlBase::new("Deleted").into())
 }
 
 #[post("/aws/create_snapshot")]
@@ -214,27 +218,27 @@ pub async fn delete_ecr_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<DeleteEcrImageRequest>,
-) -> WarpResult<FinishedResource> {
+) -> WarpResult<DeletedResource> {
     let query = query.into_inner();
     data.aws
         .ecr
         .delete_ecr_images(&query.reponame, &[query.imageid])
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("Finished").into())
+    Ok(HtmlBase::new("Deleted").into())
 }
 
 #[delete("/aws/cleanup_ecr_images")]
 pub async fn cleanup_ecr_images(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
-) -> WarpResult<FinishedResource> {
+) -> WarpResult<DeletedResource> {
     data.aws
         .ecr
         .cleanup_ecr_images()
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(HtmlBase::new("Finished").into())
+    Ok(HtmlBase::new("Deleted").into())
 }
 
 #[derive(Serialize, Deserialize, Schema)]
@@ -295,13 +299,13 @@ pub async fn delete_script(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
     query: Query<ScriptFilename>,
-) -> WarpResult<FinishedResource> {
+) -> WarpResult<DeletedResource> {
     let query = query.into_inner();
     let filename = data.aws.config.script_directory.join(&query.filename);
     if filename.exists() {
         remove_file(&filename).await.map_err(Into::<Error>::into)?;
     }
-    Ok(HtmlBase::new("Finished").into())
+    Ok(HtmlBase::new("Deleted").into())
 }
 
 #[derive(Serialize, Deserialize, Debug, Schema)]
