@@ -289,12 +289,12 @@ fn index_element<'a>(children: LazyNodes<'a, 'a>) -> LazyNodes<'a, 'a> {
             input {"type": "button", name: "list_price", value: "Price", "onclick": "listAllPrices()"},
             input {"type": "button", name: "novnc", value: "NoVNC", "onclick": "noVncTab('/aws/novnc/status', 'GET')"},
             input {"type": "button", name: "update", value: "Update", "onclick": "updateMetadata()"},
-            button {name: "garminconnectoutput", id: "garminconnectoutput", "&nbsp"},
+            button {name: "garminconnectoutput", id: "garminconnectoutput", dangerous_inner_html: "&nbsp"},
             },
         },
         article {id: "main_article", children},
-        article {id: "sub_article", "&nbsp"},
-        script {"language": "Javascript", "type": "text/javascript", include_str!("../../templates/scripts.js")},
+        article {id: "sub_article", dangerous_inner_html: "&nbsp"},
+        script {"language": "Javascript", "type": "text/javascript", dangerous_inner_html: include_str!("../../templates/scripts.js")},
     }
 }
 
@@ -305,7 +305,7 @@ struct InstanceProps {
 fn index_list_element(cx: Scope<InstanceProps>) -> Element {
     cx.render(rsx! {
         index_element(
-            crate::elements::list_instance_element(&cx.props.instances)
+            list_instance_element(&cx.props.instances)
         )
     })
 }
