@@ -1,4 +1,4 @@
-use anyhow::{Error, format_err};
+use anyhow::{format_err, Error};
 use clap::Parser;
 use stack_string::StackString;
 use std::collections::HashMap;

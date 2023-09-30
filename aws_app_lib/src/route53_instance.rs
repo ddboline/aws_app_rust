@@ -136,9 +136,7 @@ impl Route53Instance {
             .list_record_sets(zone_id)
             .await?
             .into_iter()
-            .find(|r| {
-                r.r#type == Some(RrType::A) && r.name.as_deref() == Some(name)
-            })
+            .find(|r| r.r#type == Some(RrType::A) && r.name.as_deref() == Some(name))
             .ok_or_else(|| format_err!("No record found"))?;
 
         let value = record
