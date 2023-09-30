@@ -93,8 +93,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
             .await?
             .map_ok(|user| user.email)
             .try_collect()
-            .await
-            .map_err(Into::<anyhow::Error>::into)?
+            .await?
     } else {
         AUTHORIZED_USERS.get_users()
     };
