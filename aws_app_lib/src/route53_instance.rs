@@ -1,19 +1,16 @@
 use anyhow::{format_err, Error};
-use futures::{stream::FuturesUnordered, TryStreamExt};
-use rusoto_core::Region;
-use rusoto_route53::{
-    Change, ChangeBatch, ChangeResourceRecordSetsRequest, HostedZone, ListHostedZonesRequest,
-    ListResourceRecordSetsRequest, ResourceRecordSet, Route53, Route53Client,
+use aws_config::SdkConfig;
+use aws_sdk_route53::{
+    types::{Change, ChangeAction, ChangeBatch, HostedZone, ResourceRecordSet, RrType},
+    Client as Route53Client,
 };
+use aws_types::region::Region;
+use futures::{stream::FuturesUnordered, TryStreamExt};
 use std::{fmt, net::Ipv4Addr};
-use sts_profile_auth::get_client_sts;
-
-use crate::config::Config;
 
 #[derive(Clone)]
 pub struct Route53Instance {
     route53_client: Route53Client,
-    region: Region,
 }
 
 impl fmt::Debug for Route53Instance {
@@ -24,34 +21,28 @@ impl fmt::Debug for Route53Instance {
 
 impl Default for Route53Instance {
     fn default() -> Self {
+        let config = SdkConfig::builder().build();
         Self {
-            route53_client: get_client_sts!(Route53Client, Region::UsEast1)
-                .expect("StsProfile failed"),
-            region: Region::UsEast1,
+            route53_client: Route53Client::from_conf((&config).into()),
         }
     }
 }
 
 impl Route53Instance {
     #[must_use]
-    pub fn new(config: &Config) -> Self {
-        let region: Region = config
-            .aws_region_name
-            .parse()
-            .ok()
-            .unwrap_or(Region::UsEast1);
+    pub fn new(config: &SdkConfig) -> Self {
         Self {
-            route53_client: get_client_sts!(Route53Client, region.clone())
-                .expect("StsProfile failed"),
-            region,
+            route53_client: Route53Client::from_conf(config.into()),
         }
     }
 
     /// # Errors
     /// Returns error if aws api fails
-    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
-        self.region = region.as_ref().parse()?;
-        self.route53_client = get_client_sts!(Route53Client, self.region.clone())?;
+    pub async fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
+        let region: String = region.as_ref().into();
+        let region = Region::new(region);
+        let sdk_config = aws_config::from_env().region(region).load().await;
+        self.route53_client = Route53Client::from_conf((&sdk_config).into());
         Ok(())
     }
 
@@ -59,10 +50,11 @@ impl Route53Instance {
     /// Returns error if aws api fails
     pub async fn get_hosted_zones(&self) -> Result<Vec<HostedZone>, Error> {
         self.route53_client
-            .list_hosted_zones(ListHostedZonesRequest::default())
+            .list_hosted_zones()
+            .send()
             .await
+            .map(|r| r.hosted_zones.unwrap_or_default())
             .map_err(Into::into)
-            .map(|r| r.hosted_zones)
     }
 
     /// # Errors
@@ -71,15 +63,13 @@ impl Route53Instance {
         &self,
         id: impl Into<String>,
     ) -> Result<Vec<ResourceRecordSet>, Error> {
-        let request = ListResourceRecordSetsRequest {
-            hosted_zone_id: id.into(),
-            ..ListResourceRecordSetsRequest::default()
-        };
         self.route53_client
-            .list_resource_record_sets(request)
+            .list_resource_record_sets()
+            .hosted_zone_id(id)
+            .send()
             .await
             .map_err(Into::into)
-            .map(|r| r.resource_record_sets)
+            .map(|r| r.resource_record_sets.unwrap_or_default())
     }
 
     /// # Errors
@@ -92,9 +82,9 @@ impl Route53Instance {
             result
                 .into_iter()
                 .filter_map(|record| {
-                    if record.type_ == "A" {
-                        let dnsname = record.name.trim_end_matches('.').into();
-                        let value = record.resource_records?.pop()?.value;
+                    if record.r#type == Some(RrType::A) {
+                        let dnsname = record.name?.trim_end_matches('.').into();
+                        let value = record.resource_records?.pop()?.value?;
                         Some((dnsname, value))
                     } else {
                         None
@@ -111,11 +101,15 @@ impl Route53Instance {
         let futures: FuturesUnordered<_> = hosted_zones
             .into_iter()
             .map(|zone| async move {
-                self.list_dns_records(&zone.id).await.map(|v| {
-                    v.into_iter()
-                        .map(|(name, ip)| (zone.id.clone(), name, ip))
-                        .collect::<Vec<_>>()
-                })
+                if let Some(id) = &zone.id {
+                    self.list_dns_records(id).await.map(|v| {
+                        v.into_iter()
+                            .map(|(name, ip)| (id.clone(), name, ip))
+                            .collect::<Vec<_>>()
+                    })
+                } else {
+                    Ok(Vec::new())
+                }
             })
             .collect();
         let results: Vec<_> = futures.try_collect().await?;
@@ -142,7 +136,9 @@ impl Route53Instance {
             .list_record_sets(zone_id)
             .await?
             .into_iter()
-            .find(|r| r.type_ == "A" && r.name == name)
+            .find(|r| {
+                r.r#type == Some(RrType::A) && r.name.as_deref() == Some(name)
+            })
             .ok_or_else(|| format_err!("No record found"))?;
 
         let value = record
@@ -150,30 +146,32 @@ impl Route53Instance {
             .as_mut()
             .ok_or_else(|| format_err!("No resource records"))?;
         if let Some(r) = value.get_mut(0) {
-            if r.value != old_ip {
+            if r.value.as_ref() != Some(&old_ip) {
                 return Err(format_err!(
-                    "old_ip {} does not match current ip {}",
-                    old_ip,
+                    "old_ip {} does not match current ip {:?}",
+                    &old_ip,
                     r.value
                 ));
             }
-            r.value = new_ip.clone();
+            r.value.replace(new_ip.clone());
         } else {
             return Err(format_err!("No resource records"));
         }
 
-        let request = ChangeResourceRecordSetsRequest {
-            hosted_zone_id: zone_id.into(),
-            change_batch: ChangeBatch {
-                comment: Some(format!("change ip of {name} from {old_ip} to {new_ip}",)),
-                changes: vec![Change {
-                    action: "UPSERT".into(),
-                    resource_record_set: record,
-                }],
-            },
-        };
+        let change_batch = ChangeBatch::builder()
+            .comment(format!("change ip of {name} from {old_ip} to {new_ip}"))
+            .changes(
+                Change::builder()
+                    .action(ChangeAction::Upsert)
+                    .resource_record_set(record)
+                    .build(),
+            )
+            .build();
         self.route53_client
-            .change_resource_record_sets(request)
+            .change_resource_record_sets()
+            .hosted_zone_id(zone_id)
+            .change_batch(change_batch)
+            .send()
             .await?;
         Ok(())
     }
@@ -201,15 +199,21 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_route53_instance() -> Result<(), Error> {
-        let config = Config::init_config()?;
+        let config = aws_config::load_from_env().await;
         let r53 = Route53Instance::new(&config);
         for zone in r53.get_hosted_zones().await? {
-            for record_set in r53.list_record_sets(&zone.id).await? {
+            let id = zone.id.unwrap();
+            for record_set in r53.list_record_sets(&id).await? {
                 if let Some(records) = record_set.resource_records {
-                    println!("{} {} {}", record_set.name, record_set.type_, records.len());
+                    println!(
+                        "{:?} {:?} {}",
+                        record_set.name,
+                        record_set.r#type,
+                        records.len()
+                    );
                 }
             }
-            let result = r53.list_dns_records(&zone.id).await?;
+            let result = r53.list_dns_records(&id).await?;
             println!("{:?}", result);
         }
         Ok(())
@@ -218,7 +222,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_list_all_dns_records() -> Result<(), Error> {
-        let config = Config::init_config()?;
+        let config = aws_config::load_from_env().await;
         let r53 = Route53Instance::new(&config);
         let result = r53.list_all_dns_records().await?;
         assert!(result.len() > 0);
@@ -229,7 +233,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_get_ip_address() -> Result<(), Error> {
-        let config = Config::init_config()?;
+        let config = aws_config::load_from_env().await;
         let r53 = Route53Instance::new(&config);
         let ip = r53.get_ip_address().await?;
         let name_map: HashMap<_, _> = r53
@@ -238,6 +242,7 @@ mod tests {
             .into_iter()
             .map(|(_, name, ip)| (name, ip))
             .collect();
+        let config = Config::init_config()?;
         if config.domain == "www.ddboline.net" || config.domain == "cloud.ddboline.net" {
             if let Some(home_ip) = name_map.get(config.domain.as_str()) {
                 assert_eq!(&ip.to_string(), home_ip);

@@ -1,33 +1,27 @@
 use anyhow::{format_err, Error};
+use aws_config::SdkConfig;
+use aws_sdk_ec2::{
+    primitives::DateTime,
+    types::{
+        Filter, InstanceType, RequestSpotLaunchSpecification, ResourceType, Tag, TagSpecification,
+        VolumeType,
+    },
+    Client as Ec2Client,
+};
+use aws_types::region::Region;
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use itertools::Itertools;
 use log::debug;
 use maplit::hashmap;
-use rusoto_core::Region;
-use rusoto_ec2::{
-    AttachVolumeRequest, CancelSpotInstanceRequestsRequest, CreateImageRequest,
-    CreateSnapshotRequest, CreateTagsRequest, CreateVolumeRequest, DeleteSnapshotRequest,
-    DeleteVolumeRequest, DeregisterImageRequest, DescribeAvailabilityZonesRequest,
-    DescribeImagesRequest, DescribeInstancesRequest, DescribeKeyPairsRequest,
-    DescribeRegionsRequest, DescribeReservedInstancesRequest, DescribeSnapshotsRequest,
-    DescribeSpotInstanceRequestsRequest, DescribeSpotPriceHistoryRequest, DescribeVolumesRequest,
-    DetachVolumeRequest, Ec2, Ec2Client, Filter, ModifyVolumeRequest, RequestSpotInstancesRequest,
-    RequestSpotLaunchSpecification, RunInstancesRequest, Tag, TagSpecification,
-    TerminateInstancesRequest,
-};
 use serde::{Deserialize, Serialize};
-use stack_string::StackString;
+use stack_string::{format_sstr, StackString};
 use std::{
     collections::HashMap,
     fmt,
     fs::read_to_string,
     path::{Path, PathBuf},
 };
-use sts_profile_auth::get_client_sts;
-use time::{
-    format_description::well_known::Rfc3339, macros::format_description, Duration, OffsetDateTime,
-    UtcOffset,
-};
+use time::{Duration, OffsetDateTime, UtcOffset};
 use tokio::{task::spawn, time::sleep};
 
 use crate::{config::Config, date_time_wrapper::DateTimeWrapper};
@@ -38,8 +32,8 @@ static UBUNTU_OWNER: &str = "099720109477";
 pub struct Ec2Instance {
     ec2_client: Ec2Client,
     my_owner_id: Option<StackString>,
-    region: Region,
     script_dir: PathBuf,
+    region: Region,
 }
 
 impl fmt::Debug for Ec2Instance {
@@ -50,37 +44,38 @@ impl fmt::Debug for Ec2Instance {
 
 impl Default for Ec2Instance {
     fn default() -> Self {
+        let sdk_config = SdkConfig::builder().build();
         let config = Config::new();
+        let region: String = config.aws_region_name.as_str().into();
         Self {
-            ec2_client: get_client_sts!(Ec2Client, Region::UsEast1).expect("StsProfile failed"),
+            ec2_client: Ec2Client::from_conf((&sdk_config).into()),
             my_owner_id: config.my_owner_id.clone(),
-            region: Region::UsEast1,
             script_dir: config.script_directory.clone(),
+            region: Region::new(region),
         }
     }
 }
 
 impl Ec2Instance {
     #[must_use]
-    pub fn new(config: &Config) -> Self {
-        let region: Region = config
-            .aws_region_name
-            .parse()
-            .ok()
-            .unwrap_or(Region::UsEast1);
+    pub fn new(config: &Config, sdk_config: &SdkConfig) -> Self {
+        let region: String = config.aws_region_name.as_str().into();
         Self {
-            ec2_client: get_client_sts!(Ec2Client, region.clone()).expect("StsProfile failed"),
+            ec2_client: Ec2Client::from_conf(sdk_config.into()),
             my_owner_id: config.my_owner_id.clone(),
-            region,
             script_dir: config.script_directory.clone(),
+            region: Region::new(region),
         }
     }
 
     /// # Errors
-    /// Returns error if aws api call fails
-    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
-        self.region = region.as_ref().parse()?;
-        self.ec2_client = get_client_sts!(Ec2Client, self.region.clone())?;
+    /// Returns error if aws api fails
+    pub async fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
+        let region: String = region.as_ref().into();
+        let region = Region::new(region);
+        self.region = region.clone();
+        let sdk_config = aws_config::from_env().region(region).load().await;
+        self.ec2_client = Ec2Client::from_conf((&sdk_config).into());
         Ok(())
     }
 
@@ -96,15 +91,11 @@ impl Ec2Instance {
             .as_ref()
             .map(ToString::to_string)
             .ok_or_else(|| format_err!("No owner id"))?;
-        let req = DescribeImagesRequest {
-            filters: Some(vec![Filter {
-                name: Some("owner-id".to_string()),
-                values: Some(vec![owner_id]),
-            }]),
-            ..DescribeImagesRequest::default()
-        };
+        let filter = Filter::builder().name("owner-id").values(owner_id).build();
         self.ec2_client
-            .describe_images(req)
+            .describe_images()
+            .filters(filter)
+            .send()
             .await
             .map(|l| {
                 l.images
@@ -114,7 +105,7 @@ impl Ec2Instance {
                         Some(AmiInfo {
                             id: image.image_id?.into(),
                             name: image.name?.into(),
-                            state: image.state?.into(),
+                            state: image.state?.as_str().into(),
                             snapshot_ids: image
                                 .block_device_mappings?
                                 .into_iter()
@@ -135,24 +126,25 @@ impl Ec2Instance {
         ubuntu_release: impl fmt::Display,
         arch: impl fmt::Display,
     ) -> Result<Option<AmiInfo>, Error> {
-        let request = DescribeImagesRequest {
-            filters: Some(vec![
-                Filter {
-                    name: Some("owner-id".to_string()),
-                    values: Some(vec![UBUNTU_OWNER.to_string()]),
-                },
-                Filter {
-                    name: Some("name".to_string()),
-                    values: Some(vec![format!(
-                        "ubuntu/images/hvm-ssd/ubuntu-{ubuntu_release}-{arch}-server*",
-                    )]),
-                },
-            ]),
-            ..DescribeImagesRequest::default()
-        };
-        let req = self.ec2_client.describe_images(request).await?;
+        let owner_filter = Filter::builder()
+            .name("owner-id")
+            .values(UBUNTU_OWNER)
+            .build();
+        let name_filter = Filter::builder()
+            .name("name")
+            .values(format_sstr!(
+                "ubuntu/images/hvm-ssd/ubuntu-{ubuntu_release}-{arch}-server*"
+            ))
+            .build();
+        let resp = self
+            .ec2_client
+            .describe_images()
+            .filters(owner_filter)
+            .filters(name_filter)
+            .send()
+            .await?;
 
-        let image = req
+        let image = resp
             .images
             .unwrap_or_default()
             .into_iter()
@@ -160,7 +152,7 @@ impl Ec2Instance {
                 Some(AmiInfo {
                     id: image.image_id?.into(),
                     name: image.name?.into(),
-                    state: image.state?.into(),
+                    state: image.state?.as_str().into(),
                     snapshot_ids: image
                         .block_device_mappings?
                         .into_iter()
@@ -216,7 +208,8 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn get_all_regions(&self) -> Result<HashMap<StackString, StackString>, Error> {
         self.ec2_client
-            .describe_regions(DescribeRegionsRequest::default())
+            .describe_regions()
+            .send()
             .await
             .map(|r| {
                 r.regions
@@ -234,7 +227,8 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn get_all_instances(&self) -> Result<impl Iterator<Item = Ec2InstanceInfo>, Error> {
         self.ec2_client
-            .describe_instances(DescribeInstancesRequest::default())
+            .describe_instances()
+            .send()
             .await
             .map(|instances| {
                 instances
@@ -262,12 +256,17 @@ impl Ec2Instance {
                                 Some(Ec2InstanceInfo {
                                     id: inst.instance_id?.into(),
                                     dns_name: inst.public_dns_name?.into(),
-                                    state: inst.state?.name?.into(),
-                                    instance_type: inst.instance_type?.into(),
+                                    state: inst.state?.name?.as_str().into(),
+                                    instance_type: inst.instance_type?.as_str().into(),
                                     availability_zone: inst.placement?.availability_zone?.into(),
                                     launch_time: inst
                                         .launch_time
-                                        .and_then(|t| OffsetDateTime::parse(&t, &Rfc3339).ok())
+                                        .and_then(|t| {
+                                            OffsetDateTime::from_unix_timestamp(
+                                                t.as_secs_f64() as i64
+                                            )
+                                            .ok()
+                                        })
                                         .map(|t| t.to_offset(UtcOffset::UTC).into())?,
                                     tags,
                                     volumes,
@@ -286,7 +285,8 @@ impl Ec2Instance {
         &self,
     ) -> Result<impl Iterator<Item = ReservedInstanceInfo>, Error> {
         self.ec2_client
-            .describe_reserved_instances(DescribeReservedInstancesRequest::default())
+            .describe_reserved_instances()
+            .send()
             .await
             .map(|res| {
                 res.reserved_instances
@@ -294,14 +294,14 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|inst| {
                         let state = inst.state.as_ref()?;
-                        if state == "retired" {
+                        if state.as_str() == "retired" {
                             return None;
                         }
                         Some(ReservedInstanceInfo {
                             id: inst.reserved_instances_id?.into(),
                             price: inst.fixed_price?,
-                            instance_type: inst.instance_type?.into(),
-                            state: inst.state?.into(),
+                            instance_type: inst.instance_type?.as_str().into(),
+                            state: inst.state?.as_str().into(),
                             availability_zone: inst.availability_zone.map(Into::into),
                         })
                     })
@@ -312,16 +312,15 @@ impl Ec2Instance {
     /// # Errors
     /// Returns error if aws api call fails
     pub async fn get_availability_zones(&self) -> Result<Vec<String>, Error> {
-        let req = DescribeAvailabilityZonesRequest {
-            filters: Some(vec![Filter {
-                name: Some("region-name".into()),
-                values: Some(vec![self.region.name().into()]),
-            }]),
-            ..DescribeAvailabilityZonesRequest::default()
-        };
+        let filter = Filter::builder()
+            .name("region-name")
+            .values(self.region.as_ref())
+            .build();
         let zones = self
             .ec2_client
-            .describe_availability_zones(req)
+            .describe_availability_zones()
+            .filters(filter)
+            .send()
             .await?
             .availability_zones
             .unwrap_or_default()
@@ -340,28 +339,27 @@ impl Ec2Instance {
         let inst_list: Vec<_> = inst_list.into_iter().map(|x| x.as_ref().into()).collect();
         let zones = self.get_availability_zones().await?;
         let filters = vec![
-            Filter {
-                name: Some("product-description".to_string()),
-                values: Some(vec!["Linux/UNIX".to_string()]),
-            },
-            Filter {
-                name: Some("availability-zone".to_string()),
-                values: Some(zones),
-            },
+            Filter::builder()
+                .name("product-description")
+                .values("Linux/UNIX")
+                .build(),
+            Filter::builder()
+                .name("availability-zone")
+                .set_values(Some(zones))
+                .build(),
         ];
-        let start_time = OffsetDateTime::now_utc() - Duration::hours(4);
-        let utc_format = format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
-        self.ec2_client
-            .describe_spot_price_history(DescribeSpotPriceHistoryRequest {
-                start_time: start_time.format(&utc_format).ok(),
-                filters: Some(filters),
-                instance_types: if inst_list.is_empty() {
-                    None
-                } else {
-                    Some(inst_list)
-                },
-                ..DescribeSpotPriceHistoryRequest::default()
-            })
+        let start_time =
+            DateTime::from_secs((OffsetDateTime::now_utc() - Duration::hours(4)).unix_timestamp());
+        let mut builder = self
+            .ec2_client
+            .describe_spot_price_history()
+            .start_time(start_time)
+            .set_filters(Some(filters));
+        if !inst_list.is_empty() {
+            builder = builder.set_instance_types(Some(inst_list));
+        }
+        builder
+            .send()
             .await
             .map(|spot_hist| {
                 spot_hist
@@ -370,7 +368,7 @@ impl Ec2Instance {
                     .into_iter()
                     .filter_map(|spot_price| {
                         Some((
-                            spot_price.instance_type?.into(),
+                            spot_price.instance_type?.as_str().into(),
                             spot_price.spot_price.and_then(|s| s.parse().ok())?,
                         ))
                     })
@@ -385,7 +383,8 @@ impl Ec2Instance {
         &self,
     ) -> Result<impl Iterator<Item = SpotInstanceRequestInfo>, Error> {
         self.ec2_client
-            .describe_spot_instance_requests(DescribeSpotInstanceRequestsRequest::default())
+            .describe_spot_instance_requests()
+            .send()
             .await
             .map(|s| {
                 s.spot_instance_requests
@@ -399,8 +398,8 @@ impl Ec2Instance {
                                 .spot_price
                                 .and_then(|s| s.parse::<f32>().ok())
                                 .unwrap_or(0.0),
-                            instance_type: launch_spec.instance_type?.into(),
-                            spot_type: inst.type_?.into(),
+                            instance_type: launch_spec.instance_type?.as_str().into(),
+                            spot_type: inst.r#type?.as_str().into(),
                             status: inst.status?.code?.into(),
                             imageid: launch_spec.image_id?.into(),
                             instance_id: inst.instance_id.map(Into::into),
@@ -414,16 +413,17 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn get_all_volumes(&self) -> Result<impl Iterator<Item = VolumeInfo>, Error> {
         self.ec2_client
-            .describe_volumes(DescribeVolumesRequest::default())
+            .describe_volumes()
+            .send()
             .await
             .map(|v| {
                 v.volumes.unwrap_or_default().into_iter().filter_map(|v| {
                     Some(VolumeInfo {
                         id: v.volume_id?.into(),
                         availability_zone: v.availability_zone?.into(),
-                        size: v.size?,
-                        iops: v.iops.unwrap_or(0),
-                        state: v.state?.into(),
+                        size: v.size?.into(),
+                        iops: v.iops.unwrap_or(0).into(),
+                        state: v.state?.as_str().into(),
                         tags: v
                             .tags
                             .unwrap_or_default()
@@ -444,15 +444,11 @@ impl Ec2Instance {
             .as_ref()
             .map(ToString::to_string)
             .ok_or_else(|| format_err!("No owner id"))?;
-
+        let filter = Filter::builder().name("owner-id").values(owner_id).build();
         self.ec2_client
-            .describe_snapshots(DescribeSnapshotsRequest {
-                filters: Some(vec![Filter {
-                    name: Some("owner-id".to_string()),
-                    values: Some(vec![owner_id]),
-                }]),
-                ..DescribeSnapshotsRequest::default()
-            })
+            .describe_snapshots()
+            .filters(filter)
+            .send()
             .await
             .map(|s| {
                 s.snapshots
@@ -461,8 +457,8 @@ impl Ec2Instance {
                     .filter_map(|snap| {
                         Some(SnapshotInfo {
                             id: snap.snapshot_id?.into(),
-                            volume_size: snap.volume_size?,
-                            state: snap.state?.into(),
+                            volume_size: snap.volume_size?.into(),
+                            state: snap.state?.as_str().into(),
                             progress: snap.progress?.into(),
                             tags: snap
                                 .tags
@@ -487,10 +483,9 @@ impl Ec2Instance {
             .map(|s| s.as_ref().to_string())
             .collect();
         self.ec2_client
-            .terminate_instances(TerminateInstancesRequest {
-                instance_ids,
-                ..TerminateInstancesRequest::default()
-            })
+            .terminate_instances()
+            .set_instance_ids(Some(instance_ids))
+            .send()
             .await
             .map(|_| ())
             .map_err(Into::into)
@@ -500,23 +495,23 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<Vec<String>, Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
-
-        let req = self
+        let instance_type: InstanceType = spot.instance_type.parse()?;
+        let launch_specification = RequestSpotLaunchSpecification::builder()
+            .image_id(&spot.ami)
+            .instance_type(instance_type)
+            .security_group_ids(&spot.security_group)
+            .user_data(STANDARD_NO_PAD.encode(&user_data))
+            .key_name(&spot.key_name)
+            .build();
+        let mut builder = self
             .ec2_client
-            .request_spot_instances(RequestSpotInstancesRequest {
-                spot_price: spot.price.map(|x| x.to_string()),
-                instance_count: Some(1),
-                launch_specification: Some(RequestSpotLaunchSpecification {
-                    image_id: Some(spot.ami.to_string()),
-                    instance_type: Some(spot.instance_type.to_string()),
-                    security_group_ids: Some(vec![spot.security_group.to_string()]),
-                    user_data: Some(STANDARD_NO_PAD.encode(&user_data)),
-                    key_name: Some(spot.key_name.to_string()),
-                    ..RequestSpotLaunchSpecification::default()
-                }),
-                ..RequestSpotInstancesRequest::default()
-            })
-            .await?;
+            .request_spot_instances()
+            .instance_count(1)
+            .launch_specification(launch_specification);
+        if let Some(spot_price) = spot.price {
+            builder = builder.spot_price(format_sstr!("{spot_price}"));
+        }
+        let req = builder.send().await?;
         let spot_ids = req
             .spot_instance_requests
             .unwrap_or_default()
@@ -618,10 +613,9 @@ impl Ec2Instance {
             .map(|s| s.as_ref().to_string())
             .collect();
         self.ec2_client
-            .cancel_spot_instance_requests(CancelSpotInstanceRequestsRequest {
-                spot_instance_request_ids: inst_ids,
-                ..CancelSpotInstanceRequestsRequest::default()
-            })
+            .cancel_spot_instance_requests()
+            .set_spot_instance_request_ids(Some(inst_ids))
+            .send()
             .await
             .map(|_| ())
             .map_err(Into::into)
@@ -635,18 +629,16 @@ impl Ec2Instance {
         tags: &HashMap<StackString, StackString>,
     ) -> Result<(), Error> {
         self.ec2_client
-            .create_tags(CreateTagsRequest {
-                resources: vec![inst_id.into()],
-                tags: tags
-                    .iter()
-                    .map(|(k, v)| Tag {
-                        key: Some(k.to_string()),
-                        value: Some(v.to_string()),
-                    })
+            .create_tags()
+            .resources(inst_id)
+            .set_tags(Some(
+                tags.iter()
+                    .map(|(k, v)| Tag::builder().key(k).value(v).build())
                     .collect(),
-                ..CreateTagsRequest::default()
-            })
+            ))
+            .send()
             .await
+            .map(|_| ())
             .map_err(Into::into)
     }
 
@@ -654,21 +646,19 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &request.script)?;
-
+        let instance_type: InstanceType = request.instance_type.parse()?;
         let req = self
             .ec2_client
-            .run_instances(RunInstancesRequest {
-                image_id: Some(request.ami.to_string()),
-                instance_type: Some(request.instance_type.to_string()),
-                min_count: 1,
-                max_count: 1,
-                key_name: Some(request.key_name.to_string()),
-                security_group_ids: Some(vec![request.security_group.to_string()]),
-                user_data: Some(STANDARD_NO_PAD.encode(&user_data)),
-                ..RunInstancesRequest::default()
-            })
+            .run_instances()
+            .image_id(&request.ami)
+            .instance_type(instance_type)
+            .min_count(1)
+            .max_count(1)
+            .key_name(&request.key_name)
+            .security_group_ids(&request.security_group)
+            .user_data(STANDARD_NO_PAD.encode(&user_data))
+            .send()
             .await?;
-
         for inst in req.instances.unwrap_or_default() {
             if let Some(inst) = inst.instance_id {
                 self.tag_ec2_instance(&inst, &request.tags).await?;
@@ -686,11 +676,10 @@ impl Ec2Instance {
     ) -> Result<Option<StackString>, Error> {
         let name = name.into();
         self.ec2_client
-            .create_image(CreateImageRequest {
-                instance_id: inst_id.into(),
-                name: name.clone(),
-                ..CreateImageRequest::default()
-            })
+            .create_image()
+            .instance_id(inst_id)
+            .name(&name)
+            .send()
             .await
             .map_err(Into::into)
             .map(|r| {
@@ -709,11 +698,11 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn delete_image(&self, ami: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
-            .deregister_image(DeregisterImageRequest {
-                image_id: ami.into(),
-                ..DeregisterImageRequest::default()
-            })
+            .deregister_image()
+            .image_id(ami)
+            .send()
             .await
+            .map(|_| ())
             .map_err(Into::into)
     }
 
@@ -722,18 +711,17 @@ impl Ec2Instance {
     pub async fn create_ebs_volume(
         &self,
         zoneid: impl Into<String>,
-        size: Option<i64>,
+        size: Option<i32>,
         snapid: Option<impl AsRef<str>>,
     ) -> Result<Option<StackString>, Error> {
         let snapid = snapid.as_ref().map(|s| s.as_ref().to_string());
         self.ec2_client
-            .create_volume(CreateVolumeRequest {
-                availability_zone: zoneid.into(),
-                size,
-                snapshot_id: snapid,
-                volume_type: Some("standard".to_string()),
-                ..CreateVolumeRequest::default()
-            })
+            .create_volume()
+            .availability_zone(zoneid)
+            .set_size(size)
+            .set_snapshot_id(snapid)
+            .volume_type(VolumeType::Standard)
+            .send()
             .await
             .map(|v| v.volume_id.map(Into::into))
             .map_err(Into::into)
@@ -743,11 +731,11 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn delete_ebs_volume(&self, volid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
-            .delete_volume(DeleteVolumeRequest {
-                volume_id: volid.into(),
-                ..DeleteVolumeRequest::default()
-            })
+            .delete_volume()
+            .volume_id(volid)
+            .send()
             .await
+            .map(|_| ())
             .map_err(Into::into)
     }
 
@@ -760,12 +748,11 @@ impl Ec2Instance {
         device: impl Into<String>,
     ) -> Result<(), Error> {
         self.ec2_client
-            .attach_volume(AttachVolumeRequest {
-                device: device.into(),
-                instance_id: instid.into(),
-                volume_id: volid.into(),
-                ..AttachVolumeRequest::default()
-            })
+            .attach_volume()
+            .device(device)
+            .instance_id(instid)
+            .volume_id(volid)
+            .send()
             .await
             .map(|_| ())
             .map_err(Into::into)
@@ -775,10 +762,9 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn detach_ebs_volume(&self, volid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
-            .detach_volume(DetachVolumeRequest {
-                volume_id: volid.into(),
-                ..DetachVolumeRequest::default()
-            })
+            .detach_volume()
+            .volume_id(volid)
+            .send()
             .await
             .map(|_| ())
             .map_err(Into::into)
@@ -789,14 +775,13 @@ impl Ec2Instance {
     pub async fn modify_ebs_volume(
         &self,
         volid: impl Into<String>,
-        size: i64,
+        size: i32,
     ) -> Result<(), Error> {
         self.ec2_client
-            .modify_volume(ModifyVolumeRequest {
-                volume_id: volid.into(),
-                size: Some(size),
-                ..ModifyVolumeRequest::default()
-            })
+            .modify_volume()
+            .volume_id(volid)
+            .size(size)
+            .send()
             .await
             .map(|_| ())
             .map_err(Into::into)
@@ -809,26 +794,21 @@ impl Ec2Instance {
         volid: impl Into<String>,
         tags: &HashMap<StackString, StackString>,
     ) -> Result<Option<StackString>, Error> {
-        self.ec2_client
-            .create_snapshot(CreateSnapshotRequest {
-                volume_id: volid.into(),
-                tag_specifications: if tags.is_empty() {
-                    None
-                } else {
-                    Some(vec![TagSpecification {
-                        resource_type: Some("snapshot".to_string()),
-                        tags: Some(
-                            tags.iter()
-                                .map(|(k, v)| Tag {
-                                    key: Some(k.to_string()),
-                                    value: Some(v.to_string()),
-                                })
-                                .collect(),
-                        ),
-                    }])
-                },
-                ..CreateSnapshotRequest::default()
-            })
+        let mut builder = self.ec2_client.create_snapshot().volume_id(volid);
+        if !tags.is_empty() {
+            let tags: Vec<_> = tags
+                .iter()
+                .map(|(k, v)| Tag::builder().key(k).value(v).build())
+                .collect();
+            builder = builder.tag_specifications(
+                TagSpecification::builder()
+                    .resource_type(ResourceType::Snapshot)
+                    .set_tags(Some(tags))
+                    .build(),
+            );
+        }
+        builder
+            .send()
             .await
             .map(|s| {
                 s.snapshot_id.map(|snapshot_id| {
@@ -848,11 +828,11 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn delete_ebs_snapshot(&self, snapid: impl Into<String>) -> Result<(), Error> {
         self.ec2_client
-            .delete_snapshot(DeleteSnapshotRequest {
-                snapshot_id: snapid.into(),
-                ..DeleteSnapshotRequest::default()
-            })
+            .delete_snapshot()
+            .snapshot_id(snapid)
+            .send()
             .await
+            .map(|_| ())
             .map_err(Into::into)
     }
 
@@ -862,7 +842,8 @@ impl Ec2Instance {
         &self,
     ) -> Result<impl Iterator<Item = (StackString, StackString)>, Error> {
         self.ec2_client
-            .describe_key_pairs(DescribeKeyPairsRequest::default())
+            .describe_key_pairs()
+            .send()
             .await
             .map(|x| {
                 x.key_pairs
@@ -1000,7 +981,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_all_instances() -> Result<(), Error> {
         let config = Config::init_config()?;
-        let ec2 = Ec2Instance::new(&config);
+        let sdk_config = aws_config::load_from_env().await;
+        let ec2 = Ec2Instance::new(&config, &sdk_config);
         let instances: Vec<_> = ec2.get_all_instances().await?.collect();
 
         assert!(instances.len() > 0);

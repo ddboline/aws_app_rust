@@ -825,7 +825,7 @@ fn script_element(cx: Scope, scripts: Vec<StackString>) -> Element {
 fn users_element(
     cx: Scope,
     users: Vec<IamUser>,
-    current_user: IamUser,
+    current_user: Option<IamUser>,
     group_map: HashMap<StackString, Vec<IamGroup>>,
     key_map: HashMap<StackString, Vec<AccessKeyMetadata>>,
 ) -> Element {
@@ -878,7 +878,7 @@ fn users_element(
                             }
                         })
                     };
-                    let delete_button = if u.user_id == current_user.user_id {
+                    let delete_button = if Some(&u.user_id) == current_user.as_ref().map(|u| &u.user_id) {
                         None
                     } else {
                         Some(rsx! {
@@ -1017,8 +1017,8 @@ fn access_key_element(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
                 keys.iter().enumerate().filter_map(|(idx, key)| {
                     let user_name = key.user_name.as_ref()?;
                     let access_key_id = key.access_key_id.as_ref()?;
-                    let cd = key.create_date.as_ref()?;
-                    let st = key.status.as_ref()?;
+                    let cd = OffsetDateTime::from_unix_timestamp(key.create_date.as_ref()?.as_secs_f64() as i64).ok()?;
+                    let st = key.status.as_ref()?.as_str();
                     Some(rsx! {
                         tr {
                             key: "key-{idx}",

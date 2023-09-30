@@ -1,4 +1,5 @@
 use anyhow::{format_err, Error};
+use aws_config::SdkConfig;
 use futures::{future::try_join_all, stream::FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -9,6 +10,7 @@ use std::{
     sync::Arc,
 };
 use stdout_channel::StdoutChannel;
+use time::OffsetDateTime;
 use time_tz::OffsetDateTimeExt;
 use tokio::{sync::RwLock, try_join};
 use walkdir::WalkDir;
@@ -64,13 +66,13 @@ pub struct AwsAppInterface {
 
 impl AwsAppInterface {
     #[must_use]
-    pub fn new(config: Config, pool: PgPool) -> Self {
+    pub fn new(config: Config, sdk_config: &SdkConfig, pool: PgPool) -> Self {
         Self {
-            ec2: Ec2Instance::new(&config),
-            ecr: EcrInstance::new(&config),
-            iam: IamInstance::new(&config),
-            route53: Route53Instance::new(&config),
-            pricing: PricingInstance::new(&config),
+            ec2: Ec2Instance::new(&config, sdk_config),
+            ecr: EcrInstance::new(&config, sdk_config),
+            iam: IamInstance::new(sdk_config),
+            route53: Route53Instance::new(sdk_config),
+            pricing: PricingInstance::new(sdk_config),
             systemd: SystemdInstance::new(&config.systemd_services),
             sysinfo: SysinfoInstance::new(&config.systemd_services),
             config,
@@ -81,11 +83,12 @@ impl AwsAppInterface {
 
     /// # Errors
     /// Returns error if aws api call fails
-    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
-        self.ec2
-            .set_region(&region)
-            .and_then(|_| self.ecr.set_region(&region))
-            .and_then(|_| self.route53.set_region(region))
+    pub async fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
+        let region = region.as_ref();
+        self.ec2.set_region(region).await?;
+        self.ecr.set_region(region).await?;
+        self.route53.set_region(region).await?;
+        Ok(())
     }
 
     /// # Errors
@@ -360,12 +363,16 @@ impl AwsAppInterface {
                     .map(|keys| {
                         keys.into_iter()
                             .filter_map(|key| {
+                                let create_date = OffsetDateTime::from_unix_timestamp(
+                                    key.create_date?.as_secs_f64() as i64,
+                                )
+                                .ok()?;
                                 Some(format_sstr!(
                                     "{} {:30} {} {}",
                                     key.access_key_id?,
                                     key.user_name?,
-                                    key.create_date?,
-                                    key.status?
+                                    create_date,
+                                    key.status?.as_str()
                                 ))
                             })
                             .join("\n")
@@ -673,7 +680,7 @@ impl AwsAppInterface {
     pub async fn create_ebs_volume(
         &self,
         zoneid: impl Into<String>,
-        size: Option<i64>,
+        size: Option<i32>,
         snapid: Option<impl AsRef<str>>,
     ) -> Result<Option<StackString>, Error> {
         let snap_map = self.get_snapshot_map().await?;
@@ -725,7 +732,7 @@ impl AwsAppInterface {
 
     /// # Errors
     /// Returns error if aws api call fails
-    pub async fn modify_ebs_volume(&self, volid: impl AsRef<str>, size: i64) -> Result<(), Error> {
+    pub async fn modify_ebs_volume(&self, volid: impl AsRef<str>, size: i32) -> Result<(), Error> {
         let vol_map = self.get_volume_map().await?;
         let volid = map_or_val(&vol_map, &volid);
         self.ec2.modify_ebs_volume(volid, size).await
@@ -814,7 +821,7 @@ impl AwsAppInterface {
     pub async fn create_access_key(
         &self,
         user_name: impl Into<String>,
-    ) -> Result<IamAccessKey, Error> {
+    ) -> Result<Option<IamAccessKey>, Error> {
         self.iam.create_access_key(user_name).await
     }
 

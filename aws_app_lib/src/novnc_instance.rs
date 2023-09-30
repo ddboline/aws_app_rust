@@ -28,7 +28,7 @@ impl NoVncInstance {
         cert: &Path,
         key: &Path,
     ) -> Result<(), Error> {
-        let home_dir = dirs::home_dir().expect("No home directory");
+        let home_dir = dirs::home_dir().ok_or_else(|| format_err!("No home directory"))?;
         let x11vnc = Path::new("/usr/bin/x11vnc");
         // let vncserver = Path::new("/usr/bin/vncserver");
         let vncpwd = home_dir.join(".vnc/passwd");

@@ -1,4 +1,5 @@
 use anyhow::{format_err, Error};
+use aws_sdk_route53::types::RrType;
 use clap::Parser;
 use futures::{future, stream::FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
@@ -83,7 +84,7 @@ pub enum AwsAppOpts {
     /// Create new EBS Volume
     CreateVolume {
         #[clap(short = 's', long)]
-        size: Option<i64>,
+        size: Option<i32>,
         #[clap(short, long)]
         zoneid: StackString,
         #[clap(long)]
@@ -117,7 +118,7 @@ pub enum AwsAppOpts {
         #[clap(long)]
         volid: StackString,
         #[clap(short, long)]
-        size: i64,
+        size: i32,
     },
     /// Create EBS Snapshot
     CreateSnapshot {
@@ -203,7 +204,8 @@ impl AwsAppOpts {
         let opts = Self::parse();
         let config = Config::init_config()?;
         let pool = PgPool::new(&config.database_url);
-        let app = AwsAppInterface::new(config, pool);
+        let sdk_config = aws_config::load_from_env().await;
+        let app = AwsAppInterface::new(config, &sdk_config, pool);
 
         let result = match opts {
             Self::Update => {
@@ -232,7 +234,7 @@ impl AwsAppOpts {
                             let mut app_ = app.clone();
                             let resources = resources.clone();
                             async move {
-                                app_.set_region(&region)?;
+                                app_.set_region(&region).await?;
                                 app_.list(resources.iter()).await
                             }
                         })
@@ -244,14 +246,14 @@ impl AwsAppOpts {
             }
             Self::Terminate { instance_ids } => app.terminate(&instance_ids).await,
             Self::Request(req) => {
-                app.request_spot_instance(&mut req.into_spot_request(&app.config))
+                app.request_spot_instance(&mut req.into_spot_request(&app.config)?)
                     .await
             }
             Self::CancelRequest { instance_ids } => {
                 app.ec2.cancel_spot_instance_request(&instance_ids).await
             }
             Self::Run(req) => {
-                app.run_ec2_instance(&mut req.into_instance_request(&app.config))
+                app.run_ec2_instance(&mut req.into_instance_request(&app.config)?)
                     .await
             }
             Self::Price { search } => app.print_ec2_prices(&search).await,
@@ -360,9 +362,11 @@ impl AwsAppOpts {
                     .await?
                     .into_iter()
                     .find_map(|record| {
-                        if record.type_ == "A" && record.name.as_str() == record_name.as_str() {
+                        if record.r#type == Some(RrType::A)
+                            && record.name.as_deref() == Some(record_name.as_str())
+                        {
                             let ip: Ipv4Addr =
-                                record.resource_records?.pop()?.value.parse().ok()?;
+                                record.resource_records?.pop()?.value?.parse().ok()?;
                             Some(ip)
                         } else {
                             None
