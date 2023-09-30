@@ -1,13 +1,10 @@
 use anyhow::Error;
+use aws_config::SdkConfig;
+use aws_sdk_ecr::{types::ImageIdentifier, Client as EcrClient};
+use aws_types::region::Region;
 use futures::{stream::FuturesUnordered, TryStreamExt};
-use rusoto_core::Region;
-use rusoto_ecr::{
-    BatchDeleteImageRequest, DescribeImagesRequest, DescribeRepositoriesRequest, Ecr, EcrClient,
-    ImageIdentifier,
-};
 use stack_string::{format_sstr, StackString};
 use std::{fmt, sync::Arc};
-use sts_profile_auth::get_client_sts;
 use time::{Duration, OffsetDateTime};
 
 use crate::config::Config;
@@ -26,32 +23,38 @@ impl fmt::Debug for EcrInstance {
 
 impl Default for EcrInstance {
     fn default() -> Self {
+        let sdk_config = SdkConfig::builder().build();
         Self {
-            ecr_client: get_client_sts!(EcrClient, Region::UsEast1).expect("StsProfile failed"),
-            region: Region::UsEast1,
+            ecr_client: EcrClient::from_conf((&sdk_config).into()),
+            region: Region::new("us-east-1"),
         }
     }
 }
 
 impl EcrInstance {
     #[must_use]
-    pub fn new(config: &Config) -> Self {
-        let region: Region = config
-            .aws_region_name
-            .parse()
-            .ok()
-            .unwrap_or(Region::UsEast1);
+    pub fn new(config: &Config, sdk_config: &SdkConfig) -> Self {
+        let region = sdk_config.region().map_or_else(
+            || {
+                let region: String = config.aws_region_name.as_str().into();
+                Region::new(region)
+            },
+            Region::clone,
+        );
         Self {
-            ecr_client: get_client_sts!(EcrClient, region.clone()).expect("StsProfile failed"),
+            ecr_client: EcrClient::from_conf(sdk_config.into()),
             region,
         }
     }
 
     /// # Errors
-    /// Returns error if aws api call fails
-    pub fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
-        self.region = region.as_ref().parse()?;
-        self.ecr_client = get_client_sts!(EcrClient, self.region.clone())?;
+    /// Returns error if aws api fails
+    pub async fn set_region(&mut self, region: impl AsRef<str>) -> Result<(), Error> {
+        let region: String = region.as_ref().into();
+        let region = Region::new(region);
+        self.region = region.clone();
+        let sdk_config = aws_config::from_env().region(region).load().await;
+        self.ecr_client = EcrClient::from_conf((&sdk_config).into());
         Ok(())
     }
 
@@ -59,7 +62,8 @@ impl EcrInstance {
     /// Returns error if aws api call fails
     pub async fn get_all_repositories(&self) -> Result<impl Iterator<Item = StackString>, Error> {
         self.ecr_client
-            .describe_repositories(DescribeRepositoriesRequest::default())
+            .describe_repositories()
+            .send()
             .await
             .map_err(Into::into)
             .map(|r| {
@@ -78,10 +82,9 @@ impl EcrInstance {
     ) -> Result<impl Iterator<Item = ImageInfo>, Error> {
         let reponame: Arc<StackString> = Arc::new(reponame.into());
         self.ecr_client
-            .describe_images(DescribeImagesRequest {
-                repository_name: reponame.to_string(),
-                ..DescribeImagesRequest::default()
-            })
+            .describe_images()
+            .repository_name(reponame.as_str())
+            .send()
             .await
             .map_err(Into::into)
             .map(move |i| {
@@ -93,11 +96,10 @@ impl EcrInstance {
                             image
                                 .image_pushed_at
                                 .map_or_else(OffsetDateTime::now_utc, |p| {
-                                    let s = p as i64;
-                                    let ns = p.fract() * 1.0e9;
-                                    OffsetDateTime::from_unix_timestamp(s)
+                                    let ns = p.subsec_nanos();
+                                    OffsetDateTime::from_unix_timestamp(p.as_secs_f64() as i64)
                                         .unwrap_or_else(|_| OffsetDateTime::now_utc())
-                                        + Duration::nanoseconds(ns as i64)
+                                        + Duration::nanoseconds(i64::from(ns))
                                 });
                         let image_size = image.image_size_in_bytes.map_or(0.0, |s| s as f64 / 1e6);
                         let tags = image
@@ -126,20 +128,16 @@ impl EcrInstance {
     ) -> Result<(), Error> {
         let image_ids: Vec<_> = image_ids
             .into_iter()
-            .map(|i| ImageIdentifier {
-                image_digest: Some(i.as_ref().into()),
-                ..ImageIdentifier::default()
-            })
+            .map(|i| ImageIdentifier::builder().image_digest(i.as_ref()).build())
             .collect();
         if image_ids.is_empty() {
             return Ok(());
         }
         self.ecr_client
-            .batch_delete_image(BatchDeleteImageRequest {
-                repository_name: reponame.into(),
-                image_ids,
-                ..BatchDeleteImageRequest::default()
-            })
+            .batch_delete_image()
+            .repository_name(reponame)
+            .set_image_ids(Some(image_ids))
+            .send()
             .await
             .map_err(Into::into)
             .map(|_| ())

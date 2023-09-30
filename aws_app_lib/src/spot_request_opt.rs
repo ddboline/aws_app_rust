@@ -1,3 +1,4 @@
+use anyhow::{format_err, Error};
 use clap::Parser;
 use stack_string::StackString;
 use std::collections::HashMap;
@@ -23,26 +24,18 @@ pub struct SpotRequestOpt {
 }
 
 impl SpotRequestOpt {
-    #[must_use]
-    pub fn into_spot_request(self, config: &Config) -> SpotRequest {
-        let security_group = self.security_group.unwrap_or_else(|| {
-            config.spot_security_group.as_ref().map_or_else(
-                || {
-                    config
-                        .default_security_group
-                        .clone()
-                        .expect("DEFAULT_SECURITY_GROUP NOT SET")
-                },
-                Clone::clone,
-            )
-        });
-        let key_name = self.key_name.unwrap_or_else(|| {
-            config
-                .default_key_name
-                .clone()
-                .expect("NO DEFAULT_KEY_NAME")
-        });
-        SpotRequest {
+    /// # Errors
+    /// Returns error if missing configs
+    pub fn into_spot_request(self, config: &Config) -> Result<SpotRequest, Error> {
+        let security_group = self
+            .security_group
+            .or_else(|| config.default_security_group.clone())
+            .ok_or_else(|| format_err!("NO DEFAULT_SECURITY_GROUP"))?;
+        let key_name = self
+            .key_name
+            .or_else(|| config.default_key_name.clone())
+            .ok_or_else(|| format_err!("NO DEFAULT_KEY_NAME"))?;
+        Ok(SpotRequest {
             ami: self.ami,
             instance_type: self.instance_type,
             security_group,
@@ -50,7 +43,7 @@ impl SpotRequestOpt {
             key_name,
             price: self.price,
             tags: get_tags(&self.tags),
-        }
+        })
     }
 }
 

@@ -1,19 +1,17 @@
 use anyhow::Error;
-use futures::TryStreamExt;
-use rusoto_core::Region;
-use rusoto_pricing::{
-    DescribeServicesRequest, Filter, GetAttributeValuesRequest, GetProductsRequest, Pricing,
-    PricingClient,
+use aws_config::SdkConfig;
+use aws_sdk_pricing::{
+    types::{Filter, FilterType},
+    Client as PricingClient,
 };
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{collections::HashMap, fmt};
 use stdout_channel::rate_limiter::RateLimiter;
-use sts_profile_auth::get_client_sts;
 use time::OffsetDateTime;
 
 use crate::{
-    config::Config,
     date_time_wrapper::DateTimeWrapper,
     models::{InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
@@ -33,9 +31,9 @@ impl fmt::Debug for PricingInstance {
 
 impl Default for PricingInstance {
     fn default() -> Self {
+        let sdk_config = SdkConfig::builder().build();
         Self {
-            pricing_client: get_client_sts!(PricingClient, Region::UsEast1)
-                .expect("StsProfile failed"),
+            pricing_client: PricingClient::from_conf((&sdk_config).into()),
             limit: RateLimiter::new(10, 5000),
         }
     }
@@ -43,14 +41,9 @@ impl Default for PricingInstance {
 
 impl PricingInstance {
     #[must_use]
-    pub fn new(config: &Config) -> Self {
-        let region: Region = config
-            .aws_region_name
-            .parse()
-            .ok()
-            .unwrap_or(Region::UsEast1);
+    pub fn new(sdk_config: &SdkConfig) -> Self {
         Self {
-            pricing_client: get_client_sts!(PricingClient, region).expect("StsProfile failed"),
+            pricing_client: PricingClient::from_conf(sdk_config.into()),
             limit: RateLimiter::new(10, 5000),
         }
     }
@@ -64,13 +57,15 @@ impl PricingInstance {
         let mut next_token = None;
         let mut all_services = HashMap::new();
         loop {
-            let input = DescribeServicesRequest {
-                service_code: service_code.map(Into::into),
-                next_token: next_token.clone(),
-                ..DescribeServicesRequest::default()
-            };
+            let mut builder = self.pricing_client.describe_services();
+            if let Some(service_code) = service_code {
+                builder = builder.service_code(service_code);
+            }
+            if let Some(next_token) = &next_token {
+                builder = builder.next_token(next_token);
+            }
             self.limit.acquire().await;
-            let mut result = self.pricing_client.describe_services(input).await?;
+            let mut result = builder.send().await?;
             if let Some(services) = result.services.take() {
                 for service in services {
                     if let Some(service_code) = service.service_code.map(Into::<StackString>::into)
@@ -107,14 +102,16 @@ impl PricingInstance {
         let mut next_token = None;
         let mut results = Vec::new();
         loop {
-            let input = GetAttributeValuesRequest {
-                service_code: service_code.into(),
-                attribute_name: attribute_name.into(),
-                next_token: next_token.clone(),
-                ..GetAttributeValuesRequest::default()
-            };
+            let mut builder = self
+                .pricing_client
+                .get_attribute_values()
+                .service_code(service_code)
+                .attribute_name(attribute_name);
+            if let Some(next_token) = &next_token {
+                builder = builder.next_token(next_token);
+            }
             self.limit.acquire().await;
-            let mut response = self.pricing_client.get_attribute_values(input).await?;
+            let mut response = builder.send().await?;
             if let Some(values) = response.attribute_values.take() {
                 results.extend(
                     values
@@ -140,41 +137,51 @@ impl PricingInstance {
         let mut next_token = None;
         let mut entries: HashMap<(StackString, PricingType), InstancePricing> = HashMap::new();
         loop {
-            let input = GetProductsRequest {
-                format_version: Some("aws_v1".into()),
-                service_code: Some("AmazonEC2".into()),
-                filters: Some(vec![
-                    Filter {
-                        field: "operatingSystem".into(),
-                        type_: "TERM_MATCH".into(),
-                        value: "Linux".into(),
-                    },
-                    Filter {
-                        field: "instanceType".into(),
-                        type_: "TERM_MATCH".into(),
-                        value: instance_type.into(),
-                    },
-                    Filter {
-                        field: "location".into(),
-                        type_: "TERM_MATCH".into(),
-                        value: "US East (N. Virginia)".into(),
-                    },
-                    Filter {
-                        field: "OfferingClass".into(),
-                        type_: "TERM_MATCH".into(),
-                        value: "standard".into(),
-                    },
-                    Filter {
-                        field: "locationType".into(),
-                        type_: "TERM_MATCH".into(),
-                        value: "AWS Region".into(),
-                    },
-                ]),
-                next_token: next_token.clone(),
-                ..GetProductsRequest::default()
-            };
+            let mut builder = self
+                .pricing_client
+                .get_products()
+                .format_version("aws_v1")
+                .service_code("AmazonEC2")
+                .filters(
+                    Filter::builder()
+                        .field("operatingSystem")
+                        .r#type(FilterType::TermMatch)
+                        .value("Linux")
+                        .build(),
+                )
+                .filters(
+                    Filter::builder()
+                        .field("instanceType")
+                        .r#type(FilterType::TermMatch)
+                        .value(instance_type)
+                        .build(),
+                )
+                .filters(
+                    Filter::builder()
+                        .field("location")
+                        .r#type(FilterType::TermMatch)
+                        .value("US East (N. Virginia)")
+                        .build(),
+                )
+                .filters(
+                    Filter::builder()
+                        .field("OfferingClass")
+                        .r#type(FilterType::TermMatch)
+                        .value("standard")
+                        .build(),
+                )
+                .filters(
+                    Filter::builder()
+                        .field("locationType")
+                        .r#type(FilterType::TermMatch)
+                        .value("AWS Region")
+                        .build(),
+                );
+            if let Some(next_token) = &next_token {
+                builder = builder.next_token(next_token);
+            }
             self.limit.acquire().await;
-            let mut response = self.pricing_client.get_products(input).await?;
+            let mut response = builder.send().await?;
             if let Some(price_list) = response.price_list.take() {
                 for price in price_list {
                     #[derive(Deserialize, Debug)]
@@ -321,20 +328,20 @@ pub struct AwsService {
 mod tests {
     use anyhow::Error;
 
-    use crate::{config::Config, pricing_instance::PricingInstance};
+    use crate::pricing_instance::PricingInstance;
 
     #[tokio::test]
     async fn test_describe_services() -> Result<(), Error> {
-        let config = Config::init_config()?;
+        let config = aws_config::load_from_env().await;
         let pricing = PricingInstance::new(&config);
         let services = pricing.describe_services(None).await?;
-        assert_eq!(services.len(), 216);
+        assert_eq!(services.len(), 219);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_get_attributes() -> Result<(), Error> {
-        let config = Config::init_config()?;
+        let config = aws_config::load_from_env().await;
         let pricing = PricingInstance::new(&config);
         let ec2_service = pricing.describe_services(Some("AmazonEC2")).await?;
         let ec2_service = &ec2_service["AmazonEC2"];
@@ -344,7 +351,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_attribute_values() -> Result<(), Error> {
-        let config = Config::init_config()?;
+        let config = aws_config::load_from_env().await;
         let pricing = PricingInstance::new(&config);
         let values = pricing
             .get_attribute_values("AmazonEC2", "operatingSystem")
@@ -356,7 +363,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_prices() -> Result<(), Error> {
-        let config = Config::init_config()?;
+        let config = aws_config::load_from_env().await;
         let pricing = PricingInstance::new(&config);
         let prices = pricing.get_prices("t3.micro").await?;
         assert_eq!(prices.len(), 2);

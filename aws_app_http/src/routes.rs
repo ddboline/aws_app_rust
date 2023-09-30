@@ -820,7 +820,7 @@ pub struct DeleteAccesssKeyRequest {
 
 #[derive(RwebResponse)]
 #[response(description = "Create Access Key", status = "CREATED")]
-struct CreateKeyResponse(JsonBase<IamAccessKeyWrapper, Error>);
+struct CreateKeyResponse(JsonBase<Option<IamAccessKeyWrapper>, Error>);
 
 #[post("/aws/create_access_key")]
 pub async fn create_access_key(
@@ -834,7 +834,7 @@ pub async fn create_access_key(
         .create_access_key(query.user_name.as_str())
         .await
         .map_err(Into::<Error>::into)?;
-    Ok(JsonBase::new(access_key.into()).into())
+    Ok(JsonBase::new(access_key.map(Into::into)).into())
 }
 
 #[derive(RwebResponse)]

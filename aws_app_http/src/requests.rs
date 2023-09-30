@@ -66,7 +66,7 @@ pub struct ModifyVolumeRequest {
     #[schema(description = "Volume ID")]
     pub volid: StackString,
     #[schema(description = "Volume Size GiB")]
-    pub size: i64,
+    pub size: i32,
 }
 
 #[derive(Serialize, Deserialize, Schema)]

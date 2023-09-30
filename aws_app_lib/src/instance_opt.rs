@@ -1,3 +1,4 @@
+use anyhow::{format_err, Error};
 use clap::Parser;
 use stack_string::StackString;
 
@@ -20,27 +21,24 @@ pub struct InstanceOpt {
 }
 
 impl InstanceOpt {
-    #[must_use]
-    pub fn into_instance_request(self, config: &Config) -> InstanceRequest {
-        let security_group = self.security_group.unwrap_or_else(|| {
-            config
-                .default_security_group
-                .clone()
-                .expect("NO DEFAULT_SECURITY_GROUP")
-        });
-        let key_name = self.key_name.unwrap_or_else(|| {
-            config
-                .default_key_name
-                .clone()
-                .expect("NO DEFAULT_KEY_NAME")
-        });
-        InstanceRequest {
+    /// # Errors
+    /// Returns error if configs are missing
+    pub fn into_instance_request(self, config: &Config) -> Result<InstanceRequest, Error> {
+        let security_group = self
+            .security_group
+            .or_else(|| config.default_security_group.clone())
+            .ok_or_else(|| format_err!("NO DEFAULT_SECURITY_GROUP"))?;
+        let key_name = self
+            .key_name
+            .or_else(|| config.default_key_name.clone())
+            .ok_or_else(|| format_err!("NO DEFAULT_KEY_NAME"))?;
+        Ok(InstanceRequest {
             ami: self.ami,
             instance_type: self.instance_type,
             security_group,
             script: self.script.unwrap_or_else(|| "setup_aws.sh".into()),
             key_name,
             tags: get_tags(&self.tags),
-        }
+        })
     }
 }
