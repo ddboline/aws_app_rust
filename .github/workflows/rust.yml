@@ -47,7 +47,7 @@ jobs:
         ./target/debug/aws-app-rust update && \
         cargo test --all && \
         cargo install cargo-tarpaulin && \
-        cargo tarpaulin --all-features --workspace --out Xml
+        cargo tarpaulin --all-features --workspace --out xml
       env:
         DATABASE_URL: postgresql://postgres:2UtcMAAvNuBHPqK9@localhost:5432/aws_app_cache
         AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
