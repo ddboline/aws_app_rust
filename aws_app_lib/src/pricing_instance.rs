@@ -29,16 +29,6 @@ impl fmt::Debug for PricingInstance {
     }
 }
 
-impl Default for PricingInstance {
-    fn default() -> Self {
-        let sdk_config = SdkConfig::builder().build();
-        Self {
-            pricing_client: PricingClient::from_conf((&sdk_config).into()),
-            limit: RateLimiter::new(10, 5000),
-        }
-    }
-}
-
 impl PricingInstance {
     #[must_use]
     pub fn new(sdk_config: &SdkConfig) -> Self {

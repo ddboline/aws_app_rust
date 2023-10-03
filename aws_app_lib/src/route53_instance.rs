@@ -19,15 +19,6 @@ impl fmt::Debug for Route53Instance {
     }
 }
 
-impl Default for Route53Instance {
-    fn default() -> Self {
-        let config = SdkConfig::builder().build();
-        Self {
-            route53_client: Route53Client::from_conf((&config).into()),
-        }
-    }
-}
-
 impl Route53Instance {
     #[must_use]
     pub fn new(config: &SdkConfig) -> Self {

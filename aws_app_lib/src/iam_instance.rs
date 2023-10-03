@@ -18,15 +18,6 @@ pub struct IamInstance {
     iam_client: IamClient,
 }
 
-impl Default for IamInstance {
-    fn default() -> Self {
-        let config = SdkConfig::builder().build();
-        Self {
-            iam_client: IamClient::from_conf((&config).into()),
-        }
-    }
-}
-
 impl IamInstance {
     #[must_use]
     pub fn new(sdk_config: &SdkConfig) -> Self {

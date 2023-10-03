@@ -42,20 +42,6 @@ impl fmt::Debug for Ec2Instance {
     }
 }
 
-impl Default for Ec2Instance {
-    fn default() -> Self {
-        let sdk_config = SdkConfig::builder().build();
-        let config = Config::new();
-        let region: String = config.aws_region_name.as_str().into();
-        Self {
-            ec2_client: Ec2Client::from_conf((&sdk_config).into()),
-            my_owner_id: config.my_owner_id.clone(),
-            script_dir: config.script_directory.clone(),
-            region: Region::new(region),
-        }
-    }
-}
-
 impl Ec2Instance {
     #[must_use]
     pub fn new(config: &Config, sdk_config: &SdkConfig) -> Self {

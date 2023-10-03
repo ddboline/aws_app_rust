@@ -21,16 +21,6 @@ impl fmt::Debug for EcrInstance {
     }
 }
 
-impl Default for EcrInstance {
-    fn default() -> Self {
-        let sdk_config = SdkConfig::builder().build();
-        Self {
-            ecr_client: EcrClient::from_conf((&sdk_config).into()),
-            region: Region::new("us-east-1"),
-        }
-    }
-}
-
 impl EcrInstance {
     #[must_use]
     pub fn new(config: &Config, sdk_config: &SdkConfig) -> Self {
