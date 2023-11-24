@@ -443,7 +443,7 @@ impl AwsAppInterface {
                 let visit_resource = visited_resources.insert(resource);
                 async move {
                     if visit_resource {
-                        self.process_resource(resource).await?;
+                        Box::pin(self.process_resource(resource)).await?;
                     }
                     Ok(())
                 }

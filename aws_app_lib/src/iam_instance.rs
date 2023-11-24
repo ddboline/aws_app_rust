@@ -45,7 +45,6 @@ impl IamInstance {
             .send()
             .await?
             .users
-            .unwrap_or_default()
             .into_iter()
             .filter_map(IamUser::from_user);
         Ok(users)
@@ -75,7 +74,6 @@ impl IamInstance {
             .send()
             .await?
             .groups
-            .unwrap_or_default()
             .into_iter()
             .filter_map(IamGroup::from_group);
         Ok(groups)
@@ -94,7 +92,6 @@ impl IamInstance {
             .send()
             .await?
             .groups
-            .unwrap_or_default()
             .into_iter()
             .filter_map(IamGroup::from_group);
         Ok(groups)
@@ -172,7 +169,7 @@ impl IamInstance {
             .user_name(user_name)
             .send()
             .await
-            .map(|r| r.access_key_metadata.unwrap_or_default())
+            .map(|r| r.access_key_metadata)
             .map_err(Into::into)
     }
 
@@ -221,20 +218,20 @@ pub struct IamUser {
 impl IamUser {
     fn from_user(user: User) -> Option<Self> {
         let create_date =
-            OffsetDateTime::from_unix_timestamp(user.create_date?.as_secs_f64() as i64)
+            OffsetDateTime::from_unix_timestamp(user.create_date.as_secs_f64() as i64)
                 .ok()?
                 .into();
         let tags = user
             .tags
             .unwrap_or_default()
             .into_iter()
-            .filter_map(|t| Some((t.key?, t.value?.into())))
+            .map(|t| (t.key, t.value.into()))
             .collect();
         Some(IamUser {
-            arn: user.arn?.into(),
+            arn: user.arn.into(),
             create_date,
-            user_id: user.user_id?.into(),
-            user_name: user.user_name?.into(),
+            user_id: user.user_id.into(),
+            user_name: user.user_name.into(),
             tags,
         })
     }
@@ -251,12 +248,12 @@ pub struct IamGroup {
 impl IamGroup {
     fn from_group(group: Group) -> Option<Self> {
         let create_date =
-            OffsetDateTime::from_unix_timestamp(group.create_date?.as_secs_f64() as i64).ok()?;
+            OffsetDateTime::from_unix_timestamp(group.create_date.as_secs_f64() as i64).ok()?;
         Some(Self {
-            arn: group.arn?.into(),
+            arn: group.arn.into(),
             create_date,
-            group_id: group.group_id?.into(),
-            group_name: group.group_name?.into(),
+            group_id: group.group_id.into(),
+            group_name: group.group_name.into(),
         })
     }
 }
@@ -276,11 +273,11 @@ impl IamAccessKey {
             OffsetDateTime::from_unix_timestamp(key.create_date?.as_secs_f64() as i64)
                 .map_or_else(|_| DateTimeWrapper::now(), Into::into);
         Some(Self {
-            access_key_id: key.access_key_id?.into(),
+            access_key_id: key.access_key_id.into(),
             create_date,
-            access_key_secret: key.secret_access_key?.into(),
-            status: key.status?.as_str().into(),
-            user_name: key.user_name?.into(),
+            access_key_secret: key.secret_access_key.into(),
+            status: key.status.as_str().into(),
+            user_name: key.user_name.into(),
         })
     }
 }

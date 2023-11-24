@@ -1,6 +1,7 @@
 use anyhow::{format_err, Error};
 use clap::Parser;
 use stack_string::StackString;
+use std::path::PathBuf;
 
 use crate::{config::Config, ec2_instance::InstanceRequest, spot_request_opt::get_tags};
 
@@ -13,7 +14,7 @@ pub struct InstanceOpt {
     #[clap(long)]
     security_group: Option<StackString>,
     #[clap(short, long)]
-    script: Option<StackString>,
+    script: Option<PathBuf>,
     #[clap(short, long, long = "tag")]
     tags: Vec<StackString>,
     #[clap(short, long)]

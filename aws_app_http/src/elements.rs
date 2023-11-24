@@ -81,7 +81,7 @@ pub async fn get_frontpage(
             dioxus_ssr::render(&app)
         }
         ResourceType::Ami => {
-            let ami_tags = get_ami_tags(aws).await?;
+            let ami_tags = Box::pin(get_ami_tags(aws)).await?;
             let mut app = VirtualDom::new_with_props(ami_element, ami_elementProps { ami_tags });
             drop(app.rebuild());
             dioxus_ssr::render(&app)

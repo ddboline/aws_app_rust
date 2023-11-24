@@ -850,7 +850,7 @@ pub struct InstanceRequest {
     pub instance_type: StackString,
     pub key_name: StackString,
     pub security_group: StackString,
-    pub script: StackString,
+    pub script: PathBuf,
     pub tags: HashMap<StackString, StackString>,
 }
 
@@ -859,7 +859,7 @@ pub struct SpotRequest {
     pub ami: StackString,
     pub instance_type: StackString,
     pub security_group: StackString,
-    pub script: StackString,
+    pub script: PathBuf,
     pub key_name: StackString,
     pub price: Option<f32>,
     pub tags: HashMap<StackString, StackString>,
@@ -930,8 +930,8 @@ pub fn get_user_data_from_script(
     default_dir: impl AsRef<Path>,
     script: impl AsRef<Path>,
 ) -> Result<StackString, Error> {
-    let fname = if Path::new(script.as_ref()).exists() {
-        Path::new(script.as_ref()).to_path_buf()
+    let fname = if script.as_ref().exists() {
+        script.as_ref().to_path_buf()
     } else {
         let fname = default_dir.as_ref().join(script);
         if !fname.exists() {

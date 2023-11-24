@@ -4,6 +4,7 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::unused_async)]
+#![allow(clippy::ignored_unit_patterns)]
 #![recursion_limit = "256"]
 
 pub mod app;

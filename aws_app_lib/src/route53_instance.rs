@@ -44,7 +44,7 @@ impl Route53Instance {
             .list_hosted_zones()
             .send()
             .await
-            .map(|r| r.hosted_zones.unwrap_or_default())
+            .map(|r| r.hosted_zones)
             .map_err(Into::into)
     }
 
@@ -60,7 +60,7 @@ impl Route53Instance {
             .send()
             .await
             .map_err(Into::into)
-            .map(|r| r.resource_record_sets.unwrap_or_default())
+            .map(|r| r.resource_record_sets)
     }
 
     /// # Errors
@@ -73,9 +73,9 @@ impl Route53Instance {
             result
                 .into_iter()
                 .filter_map(|record| {
-                    if record.r#type == Some(RrType::A) {
-                        let dnsname = record.name?.trim_end_matches('.').into();
-                        let value = record.resource_records?.pop()?.value?;
+                    if record.r#type == RrType::A {
+                        let dnsname = record.name.trim_end_matches('.').into();
+                        let value = record.resource_records?.pop()?.value().into();
                         Some((dnsname, value))
                     } else {
                         None
@@ -92,15 +92,11 @@ impl Route53Instance {
         let futures: FuturesUnordered<_> = hosted_zones
             .into_iter()
             .map(|zone| async move {
-                if let Some(id) = &zone.id {
-                    self.list_dns_records(id).await.map(|v| {
-                        v.into_iter()
-                            .map(|(name, ip)| (id.clone(), name, ip))
-                            .collect::<Vec<_>>()
-                    })
-                } else {
-                    Ok(Vec::new())
-                }
+                self.list_dns_records(&zone.id).await.map(|v| {
+                    v.into_iter()
+                        .map(|(name, ip)| (zone.id.clone(), name, ip))
+                        .collect::<Vec<_>>()
+                })
             })
             .collect();
         let results: Vec<_> = futures.try_collect().await?;
@@ -127,7 +123,7 @@ impl Route53Instance {
             .list_record_sets(zone_id)
             .await?
             .into_iter()
-            .find(|r| r.r#type == Some(RrType::A) && r.name.as_deref() == Some(name))
+            .find(|r| r.r#type == RrType::A && r.name == name)
             .ok_or_else(|| format_err!("No record found"))?;
 
         let value = record
@@ -135,14 +131,14 @@ impl Route53Instance {
             .as_mut()
             .ok_or_else(|| format_err!("No resource records"))?;
         if let Some(r) = value.get_mut(0) {
-            if r.value.as_ref() != Some(&old_ip) {
+            if r.value != old_ip {
                 return Err(format_err!(
                     "old_ip {} does not match current ip {:?}",
                     &old_ip,
                     r.value
                 ));
             }
-            r.value.replace(new_ip.clone());
+            r.value = new_ip.clone();
         } else {
             return Err(format_err!("No resource records"));
         }
@@ -153,9 +149,9 @@ impl Route53Instance {
                 Change::builder()
                     .action(ChangeAction::Upsert)
                     .resource_record_set(record)
-                    .build(),
+                    .build()?,
             )
-            .build();
+            .build()?;
         self.route53_client
             .change_resource_record_sets()
             .hosted_zone_id(zone_id)
@@ -191,8 +187,7 @@ mod tests {
         let config = aws_config::load_from_env().await;
         let r53 = Route53Instance::new(&config);
         for zone in r53.get_hosted_zones().await? {
-            let id = zone.id.unwrap();
-            for record_set in r53.list_record_sets(&id).await? {
+            for record_set in r53.list_record_sets(&zone.id).await? {
                 if let Some(records) = record_set.resource_records {
                     println!(
                         "{:?} {:?} {}",
@@ -202,7 +197,7 @@ mod tests {
                     );
                 }
             }
-            let result = r53.list_dns_records(&id).await?;
+            let result = r53.list_dns_records(&zone.id).await?;
             println!("{:?}", result);
         }
         Ok(())

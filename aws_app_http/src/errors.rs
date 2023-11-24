@@ -1,9 +1,9 @@
 use crate::logged_user::TRIGGER_DB_UPDATE;
 use anyhow::Error as AnyhowError;
-use http::StatusCode;
 use log::error;
 use postgres_query::Error as PqError;
 use rweb::{
+    http::StatusCode,
     openapi::{
         ComponentDescriptor, ComponentOrInlineSchema, Entity, Response, ResponseEntity, Responses,
     },

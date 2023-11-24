@@ -1,7 +1,7 @@
 use anyhow::{format_err, Error};
 use clap::Parser;
 use stack_string::StackString;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::{config::Config, ec2_instance::SpotRequest};
 
@@ -14,7 +14,7 @@ pub struct SpotRequestOpt {
     #[clap(long)]
     security_group: Option<StackString>,
     #[clap(short, long)]
-    script: Option<StackString>,
+    script: Option<PathBuf>,
     #[clap(long)]
     price: Option<f32>,
     #[clap(short, long, long = "tag")]

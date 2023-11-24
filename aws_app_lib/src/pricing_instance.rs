@@ -58,18 +58,16 @@ impl PricingInstance {
             let mut result = builder.send().await?;
             if let Some(services) = result.services.take() {
                 for service in services {
-                    if let Some(service_code) = service.service_code.map(Into::<StackString>::into)
-                    {
-                        if let Some(attributes) = service.attribute_names {
-                            let attributes = attributes.into_iter().map(Into::into).collect();
-                            all_services.insert(
-                                service_code.clone(),
-                                AwsService {
-                                    service_code,
-                                    attributes,
-                                },
-                            );
-                        }
+                    let service_code: StackString = service.service_code.into();
+                    if let Some(attributes) = service.attribute_names {
+                        let attributes = attributes.into_iter().map(Into::into).collect();
+                        all_services.insert(
+                            service_code.clone(),
+                            AwsService {
+                                service_code,
+                                attributes,
+                            },
+                        );
                     }
                 }
             }
@@ -137,35 +135,35 @@ impl PricingInstance {
                         .field("operatingSystem")
                         .r#type(FilterType::TermMatch)
                         .value("Linux")
-                        .build(),
+                        .build()?,
                 )
                 .filters(
                     Filter::builder()
                         .field("instanceType")
                         .r#type(FilterType::TermMatch)
                         .value(instance_type)
-                        .build(),
+                        .build()?,
                 )
                 .filters(
                     Filter::builder()
                         .field("location")
                         .r#type(FilterType::TermMatch)
                         .value("US East (N. Virginia)")
-                        .build(),
+                        .build()?,
                 )
                 .filters(
                     Filter::builder()
                         .field("OfferingClass")
                         .r#type(FilterType::TermMatch)
                         .value("standard")
-                        .build(),
+                        .build()?,
                 )
                 .filters(
                     Filter::builder()
                         .field("locationType")
                         .r#type(FilterType::TermMatch)
                         .value("AWS Region")
-                        .build(),
+                        .build()?,
                 );
             if let Some(next_token) = &next_token {
                 builder = builder.next_token(next_token);

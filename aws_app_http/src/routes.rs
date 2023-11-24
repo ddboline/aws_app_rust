@@ -344,9 +344,7 @@ pub async fn build_spot_request(
     query: Query<SpotBuilder>,
 ) -> WarpResult<BuildSpotResponse> {
     let query = query.into_inner();
-    let mut amis: Vec<AmiInfo> = data
-        .aws
-        .get_all_ami_tags()
+    let mut amis: Vec<AmiInfo> = Box::pin(data.aws.get_all_ami_tags())
         .await
         .map_err(Into::<Error>::into)?
         .into_iter()
@@ -433,7 +431,7 @@ impl From<SpotRequestData> for SpotRequest {
             ami: item.ami,
             instance_type: item.instance_type,
             security_group: item.security_group,
-            script: item.script,
+            script: item.script.as_str().into(),
             key_name: item.key_name,
             price: item.price.parse().ok(),
             tags: hashmap! { "Name".into() => item.name },

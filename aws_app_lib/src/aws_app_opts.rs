@@ -362,11 +362,9 @@ impl AwsAppOpts {
                     .await?
                     .into_iter()
                     .find_map(|record| {
-                        if record.r#type == Some(RrType::A)
-                            && record.name.as_deref() == Some(record_name.as_str())
-                        {
+                        if record.r#type == RrType::A && record.name == record_name.as_str() {
                             let ip: Ipv4Addr =
-                                record.resource_records?.pop()?.value?.parse().ok()?;
+                                record.resource_records?.pop()?.value().parse().ok()?;
                             Some(ip)
                         } else {
                             None
