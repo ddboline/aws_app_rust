@@ -1,6 +1,6 @@
 use dioxus::prelude::{
-    dioxus_elements, inline_props, rsx, Element, GlobalAttributes, LazyNodes, Props, Scope,
-    VirtualDom,
+    dioxus_elements, component, rsx, Element, GlobalAttributes, LazyNodes, Props, Scope,
+    VirtualDom, IntoDynNode,
 };
 use futures::{future::try_join_all, stream::FuturesUnordered, try_join, TryStreamExt};
 use stack_string::{format_sstr, StackString};
@@ -394,7 +394,7 @@ fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
     }
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn reserved_element(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
     cx.render(rsx! {
         table {
@@ -435,7 +435,7 @@ fn reserved_element(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn spot_element(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
     cx.render(rsx! {
         table {
@@ -489,7 +489,7 @@ fn spot_element(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn ami_element(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
     cx.render(rsx! {
         table {
@@ -543,7 +543,7 @@ fn ami_element(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn key_element(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
     cx.render(rsx! {
         table {
@@ -571,7 +571,7 @@ fn key_element(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn volume_element(cx: Scope, volumes: Vec<VolumeInfo>) -> Element {
     let local_tz = DateTimeWrapper::local_tz();
     cx.render(
@@ -677,7 +677,7 @@ fn volume_element(cx: Scope, volumes: Vec<VolumeInfo>) -> Element {
     )
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn snapshot_element(cx: Scope, snapshots: Vec<SnapshotInfo>) -> Element {
     cx.render(
         rsx! {
@@ -736,7 +736,7 @@ fn snapshot_element(cx: Scope, snapshots: Vec<SnapshotInfo>) -> Element {
     )
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn ecr_element(cx: Scope, images: Vec<ImageInfo>) -> Element {
     cx.render(rsx! {
         table {
@@ -786,7 +786,7 @@ fn ecr_element(cx: Scope, images: Vec<ImageInfo>) -> Element {
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn script_element(cx: Scope, scripts: Vec<StackString>) -> Element {
     cx.render(rsx! {
         form {
@@ -821,7 +821,7 @@ fn script_element(cx: Scope, scripts: Vec<StackString>) -> Element {
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn users_element(
     cx: Scope,
     users: Vec<IamUser>,
@@ -924,7 +924,7 @@ fn users_element(
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn groups_element(
     cx: Scope,
     groups: Vec<IamGroup>,
@@ -999,7 +999,7 @@ fn groups_element(
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn access_key_element(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
     cx.render(rsx! {
         table {
@@ -1043,7 +1043,7 @@ fn access_key_element(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn dns_record_element(
     cx: Scope,
     records: Vec<(String, String, String)>,
@@ -1085,7 +1085,7 @@ fn dns_record_element(
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn systemd_element(
     cx: Scope,
     processes: HashMap<StackString, Vec<ProcessInfo>>,
@@ -1201,7 +1201,7 @@ pub fn instance_family_body(inst_fam: Vec<InstanceFamily>) -> String {
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn instance_family_element(cx: Scope, inst_fam: Vec<InstanceFamily>) -> Element {
     cx.render(rsx! {
         br {
@@ -1233,7 +1233,7 @@ pub fn prices_body(prices: Vec<AwsInstancePrice>) -> String {
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn price_element(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
     cx.render(rsx! {
         table {
@@ -1311,7 +1311,7 @@ pub fn edit_script_body(fname: StackString, text: StackString) -> String {
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn edit_script_element(cx: Scope, fname: StackString, text: StackString) -> Element {
     let rows = text.split('\n').count() + 5;
     cx.render(rsx! {
@@ -1373,7 +1373,7 @@ pub fn build_spot_request_body(
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn build_spot_request_element(
     cx: Scope,
     amis: Vec<AmiInfo>,
@@ -1540,7 +1540,7 @@ pub fn textarea_body(entries: Vec<StackString>, id: StackString) -> String {
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn textarea_element(cx: Scope, entries: Vec<StackString>, id: StackString) -> Element {
     let rows = entries.len() + 5;
     let text = entries.join("\n");
@@ -1566,7 +1566,7 @@ pub fn instance_status_body(entries: Vec<StackString>, instance: StackString) ->
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn instance_status_element(cx: Scope, entries: Vec<StackString>, instance: StackString) -> Element {
     let rows = entries.len() + 5;
     let text = entries.join("\n");
@@ -1606,7 +1606,7 @@ pub fn textarea_fixed_size_body(body: StackString, id: StackString) -> String {
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn textarea_fixed_size_element(cx: Scope, body: StackString, id: StackString) -> Element {
     cx.render(rsx! {
         textarea {
@@ -1631,7 +1631,7 @@ pub fn instance_types_body(instances: Vec<InstanceList>) -> String {
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn instance_types_element(cx: Scope, instances: Vec<InstanceList>) -> Element {
     cx.render(rsx! {
         instances.iter().enumerate().map(|(idx, i)| {
@@ -1648,7 +1648,7 @@ fn instance_types_element(cx: Scope, instances: Vec<InstanceList>) -> Element {
 }
 
 pub fn novnc_start_body() -> String {
-    let mut app = VirtualDom::new_with_props(novnc_start_element, novnc_start_elementProps {});
+    let mut app = VirtualDom::new(novnc_start_element);
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
@@ -1666,7 +1666,7 @@ pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -
     dioxus_ssr::render(&app)
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn novnc_status_element(
     cx: Scope,
     number: usize,
@@ -1691,7 +1691,7 @@ fn novnc_status_element(
     })
 }
 
-#[inline_props]
+#[component(no_case_check)]
 fn novnc_start_element(cx: Scope) -> Element {
     cx.render(rsx! {
         input {
