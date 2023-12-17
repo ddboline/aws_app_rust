@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_lib"
-version = "0.10.9"
+version = "0.10.10"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -19,7 +19,7 @@ aws-sdk-sts = "1.1"
 base64 = "0.21"
 bytes = "1.1"
 clap = {version="4.0", features=["derive"]}
-deadpool-postgres = { version = "0.11", features=["serde"] }
+deadpool-postgres = { version = "0.12", features=["serde"] }
 derive_more = "0.99"
 dirs = "5.0"
 dotenv = "0.15"
@@ -31,7 +31,7 @@ log = "0.4"
 maplit = "1.0"
 parking_lot = "0.12"
 postgres-types = "0.2"
-postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.5", features=["deadpool"]}
+postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.6", features=["deadpool"]}
 refinery = {version="0.8", features=["tokio-postgres"]}
 reqwest = {version="0.11", features=["cookies", "json", "rustls-tls"], default-features=false}
 select = "0.6"
