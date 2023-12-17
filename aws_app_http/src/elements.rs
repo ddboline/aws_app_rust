@@ -39,7 +39,7 @@ pub async fn get_index(app: &AwsAppInterface) -> Result<StackString, Error> {
     app.fill_instance_list().await?;
     let instances = INSTANCE_LIST.read().await.clone();
     let body = {
-        let mut app = VirtualDom::new_with_props(index_list_element, InstanceProps { instances });
+        let mut app = VirtualDom::new_with_props(IndexListElement, IndexListElementProps { instances });
         drop(app.rebuild());
         dioxus_ssr::render(&app)
     };
@@ -57,7 +57,7 @@ pub async fn get_frontpage(
             aws.fill_instance_list().await?;
             let instances = INSTANCE_LIST.read().await.clone();
             let mut app =
-                VirtualDom::new_with_props(list_instance_body, InstanceProps { instances });
+                VirtualDom::new_with_props(ListInstanceBody, ListInstanceBodyProps { instances });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -67,7 +67,7 @@ pub async fn get_frontpage(
                 return Ok(StackString::new());
             }
             let mut app =
-                VirtualDom::new_with_props(reserved_element, reserved_elementProps { reserved });
+                VirtualDom::new_with_props(ReservedElement, ReservedElementProps { reserved });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -76,26 +76,26 @@ pub async fn get_frontpage(
             if requests.is_empty() {
                 return Ok(StackString::new());
             }
-            let mut app = VirtualDom::new_with_props(spot_element, spot_elementProps { requests });
+            let mut app = VirtualDom::new_with_props(SpotElement, SpotElementProps { requests });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
         ResourceType::Ami => {
             let ami_tags = Box::pin(get_ami_tags(aws)).await?;
-            let mut app = VirtualDom::new_with_props(ami_element, ami_elementProps { ami_tags });
+            let mut app = VirtualDom::new_with_props(AmiElement, AmiElementProps { ami_tags });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
         ResourceType::Key => {
             let keys: Vec<_> = aws.ec2.get_all_key_pairs().await?.collect();
-            let mut app = VirtualDom::new_with_props(key_element, key_elementProps { keys });
+            let mut app = VirtualDom::new_with_props(KeyElement, KeyElementProps { keys });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
         ResourceType::Volume => {
             let volumes: Vec<_> = aws.ec2.get_all_volumes().await?.collect();
             let mut app =
-                VirtualDom::new_with_props(volume_element, volume_elementProps { volumes });
+                VirtualDom::new_with_props(VolumeElement, VolumeElementProps { volumes });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -110,7 +110,7 @@ pub async fn get_frontpage(
                 x.cmp(y)
             });
             let mut app =
-                VirtualDom::new_with_props(snapshot_element, snapshot_elementProps { snapshots });
+                VirtualDom::new_with_props(SnapshotElement, SnapshotElementProps { snapshots });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -128,7 +128,7 @@ pub async fn get_frontpage(
             if images.is_empty() {
                 return Ok(StackString::new());
             }
-            let mut app = VirtualDom::new_with_props(ecr_element, ecr_elementProps { images });
+            let mut app = VirtualDom::new_with_props(EcrElement, EcrElementProps { images });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -138,7 +138,7 @@ pub async fn get_frontpage(
                 return Ok(StackString::new());
             }
             let mut app =
-                VirtualDom::new_with_props(script_element, script_elementProps { scripts });
+                VirtualDom::new_with_props(ScriptElement, ScriptElementProps { scripts });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -172,8 +172,8 @@ pub async fn get_frontpage(
                 .collect();
             let key_map: HashMap<StackString, _> = futures.try_collect().await?;
             let mut app = VirtualDom::new_with_props(
-                users_element,
-                users_elementProps {
+                UsersElement,
+                UsersElementProps {
                     users,
                     current_user,
                     group_map,
@@ -202,8 +202,8 @@ pub async fn get_frontpage(
                 });
             let groups: Vec<_> = groups.collect();
             let mut app = VirtualDom::new_with_props(
-                groups_element,
-                groups_elementProps {
+                GroupsElement,
+                GroupsElementProps {
                     groups,
                     user_map,
                     users,
@@ -222,7 +222,7 @@ pub async fn get_frontpage(
                 try_join_all(futures).await.map_err(Into::into);
             let keys: Vec<AccessKeyMetadata> = results?.into_iter().flatten().collect();
             let mut app =
-                VirtualDom::new_with_props(access_key_element, access_key_elementProps { keys });
+                VirtualDom::new_with_props(AccessKeyElement, AccessKeyElementProps { keys });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -230,8 +230,8 @@ pub async fn get_frontpage(
             let current_ip = aws.route53.get_ip_address().await?;
             let records = aws.route53.list_all_dns_records().await?;
             let mut app = VirtualDom::new_with_props(
-                dns_record_element,
-                dns_record_elementProps {
+                DnsRecordElement,
+                DnsRecordElementProps {
                     records,
                     current_ip,
                 },
@@ -251,8 +251,8 @@ pub async fn get_frontpage(
             let services = aws.systemd.list_running_services().await?;
             let config = aws.config.clone();
             let mut app = VirtualDom::new_with_props(
-                systemd_element,
-                systemd_elementProps {
+                SystemdElement,
+                SystemdElementProps {
                     processes,
                     services,
                     config,
@@ -302,15 +302,17 @@ struct InstanceProps {
     instances: Arc<Vec<Ec2InstanceInfo>>,
 }
 
-fn index_list_element(cx: Scope<InstanceProps>) -> Element {
+#[component]
+fn IndexListElement(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
     cx.render(rsx! {
         index_element(
-            list_instance_element(&cx.props.instances)
+            list_instance_element(&instances)
         )
     })
 }
 
-fn list_instance_body(cx: Scope<InstanceProps>) -> Element {
+#[component]
+fn ListInstanceBody(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
     cx.render(list_instance_element(&cx.props.instances))
 }
 
@@ -394,8 +396,8 @@ fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
     }
 }
 
-#[component(no_case_check)]
-fn reserved_element(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
+#[component]
+fn ReservedElement(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
     cx.render(rsx! {
         table {
             "border": "1",
@@ -435,8 +437,8 @@ fn reserved_element(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
     })
 }
 
-#[component(no_case_check)]
-fn spot_element(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
+#[component]
+fn SpotElement(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
     cx.render(rsx! {
         table {
             "border": "1",
@@ -489,8 +491,8 @@ fn spot_element(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
     })
 }
 
-#[component(no_case_check)]
-fn ami_element(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
+#[component]
+fn AmiElement(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
     cx.render(rsx! {
         table {
             "border": "1",
@@ -543,8 +545,8 @@ fn ami_element(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
     })
 }
 
-#[component(no_case_check)]
-fn key_element(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
+#[component]
+fn KeyElement(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
     cx.render(rsx! {
         table {
             "border": "1",
@@ -571,8 +573,8 @@ fn key_element(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
     })
 }
 
-#[component(no_case_check)]
-fn volume_element(cx: Scope, volumes: Vec<VolumeInfo>) -> Element {
+#[component]
+fn VolumeElement(cx: Scope, volumes: Vec<VolumeInfo>) -> Element {
     let local_tz = DateTimeWrapper::local_tz();
     cx.render(
         rsx! {
@@ -677,8 +679,8 @@ fn volume_element(cx: Scope, volumes: Vec<VolumeInfo>) -> Element {
     )
 }
 
-#[component(no_case_check)]
-fn snapshot_element(cx: Scope, snapshots: Vec<SnapshotInfo>) -> Element {
+#[component]
+fn SnapshotElement(cx: Scope, snapshots: Vec<SnapshotInfo>) -> Element {
     cx.render(
         rsx! {
             table {
@@ -736,8 +738,8 @@ fn snapshot_element(cx: Scope, snapshots: Vec<SnapshotInfo>) -> Element {
     )
 }
 
-#[component(no_case_check)]
-fn ecr_element(cx: Scope, images: Vec<ImageInfo>) -> Element {
+#[component]
+fn EcrElement(cx: Scope, images: Vec<ImageInfo>) -> Element {
     cx.render(rsx! {
         table {
             "border": "1",
@@ -786,8 +788,8 @@ fn ecr_element(cx: Scope, images: Vec<ImageInfo>) -> Element {
     })
 }
 
-#[component(no_case_check)]
-fn script_element(cx: Scope, scripts: Vec<StackString>) -> Element {
+#[component]
+fn ScriptElement(cx: Scope, scripts: Vec<StackString>) -> Element {
     cx.render(rsx! {
         form {
             action: "javascript:createScript()",
@@ -821,8 +823,8 @@ fn script_element(cx: Scope, scripts: Vec<StackString>) -> Element {
     })
 }
 
-#[component(no_case_check)]
-fn users_element(
+#[component]
+fn UsersElement(
     cx: Scope,
     users: Vec<IamUser>,
     current_user: Option<IamUser>,
@@ -924,8 +926,8 @@ fn users_element(
     })
 }
 
-#[component(no_case_check)]
-fn groups_element(
+#[component]
+fn GroupsElement(
     cx: Scope,
     groups: Vec<IamGroup>,
     user_map: HashMap<StackString, HashSet<StackString>>,
@@ -999,8 +1001,8 @@ fn groups_element(
     })
 }
 
-#[component(no_case_check)]
-fn access_key_element(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
+#[component]
+fn AccessKeyElement(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
     cx.render(rsx! {
         table {
             "border": "1",
@@ -1043,8 +1045,8 @@ fn access_key_element(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
     })
 }
 
-#[component(no_case_check)]
-fn dns_record_element(
+#[component]
+fn DnsRecordElement(
     cx: Scope,
     records: Vec<(String, String, String)>,
     current_ip: Ipv4Addr,
@@ -1085,8 +1087,8 @@ fn dns_record_element(
     })
 }
 
-#[component(no_case_check)]
-fn systemd_element(
+#[component]
+fn SystemdElement(
     cx: Scope,
     processes: HashMap<StackString, Vec<ProcessInfo>>,
     services: BTreeMap<StackString, RunStatus>,
@@ -1194,15 +1196,15 @@ fn systemd_element(
 
 pub fn instance_family_body(inst_fam: Vec<InstanceFamily>) -> String {
     let mut app = VirtualDom::new_with_props(
-        instance_family_element,
-        instance_family_elementProps { inst_fam },
+        InstanceFamilyElement,
+        InstanceFamilyElementProps { inst_fam },
     );
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn instance_family_element(cx: Scope, inst_fam: Vec<InstanceFamily>) -> Element {
+#[component]
+fn InstanceFamilyElement(cx: Scope, inst_fam: Vec<InstanceFamily>) -> Element {
     cx.render(rsx! {
         br {
             form {
@@ -1228,13 +1230,13 @@ fn instance_family_element(cx: Scope, inst_fam: Vec<InstanceFamily>) -> Element 
 }
 
 pub fn prices_body(prices: Vec<AwsInstancePrice>) -> String {
-    let mut app = VirtualDom::new_with_props(price_element, price_elementProps { prices });
+    let mut app = VirtualDom::new_with_props(PriceElement, PriceElementProps { prices });
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn price_element(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
+#[component]
+fn PriceElement(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
     cx.render(rsx! {
         table {
             "border": "1",
@@ -1304,15 +1306,15 @@ fn price_element(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
 
 pub fn edit_script_body(fname: StackString, text: StackString) -> String {
     let mut app = VirtualDom::new_with_props(
-        edit_script_element,
-        edit_script_elementProps { fname, text },
+        EditScriptElement,
+        EditScriptElementProps { fname, text },
     );
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn edit_script_element(cx: Scope, fname: StackString, text: StackString) -> Element {
+#[component]
+fn EditScriptElement(cx: Scope, fname: StackString, text: StackString) -> Element {
     let rows = text.split('\n').count() + 5;
     cx.render(rsx! {
         br {
@@ -1359,8 +1361,8 @@ pub fn build_spot_request_body(
     config: Config,
 ) -> String {
     let mut app = VirtualDom::new_with_props(
-        build_spot_request_element,
-        build_spot_request_elementProps {
+        BuildSpotRequestElement,
+        BuildSpotRequestElementProps {
             amis,
             inst_fams,
             instances,
@@ -1373,8 +1375,8 @@ pub fn build_spot_request_body(
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn build_spot_request_element(
+#[component]
+fn BuildSpotRequestElement(
     cx: Scope,
     amis: Vec<AmiInfo>,
     inst_fams: Vec<InstanceFamily>,
@@ -1535,13 +1537,13 @@ fn build_spot_request_element(
 
 pub fn textarea_body(entries: Vec<StackString>, id: StackString) -> String {
     let mut app =
-        VirtualDom::new_with_props(textarea_element, textarea_elementProps { entries, id });
+        VirtualDom::new_with_props(TextAreaElement, TextAreaElementProps { entries, id });
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn textarea_element(cx: Scope, entries: Vec<StackString>, id: StackString) -> Element {
+#[component]
+fn TextAreaElement(cx: Scope, entries: Vec<StackString>, id: StackString) -> Element {
     let rows = entries.len() + 5;
     let text = entries.join("\n");
     cx.render(rsx! {
@@ -1558,16 +1560,16 @@ fn textarea_element(cx: Scope, entries: Vec<StackString>, id: StackString) -> El
 }
 
 pub fn instance_status_body(entries: Vec<StackString>, instance: StackString) -> String {
-    let mut app = VirtualDom::new_with_props(
-        instance_status_element,
-        instance_status_elementProps { entries, instance },
+    let mut app: VirtualDom = VirtualDom::new_with_props(
+        InstanceStatusElement,
+        InstanceStatusElementProps { entries, instance },
     );
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn instance_status_element(cx: Scope, entries: Vec<StackString>, instance: StackString) -> Element {
+#[component]
+fn InstanceStatusElement(cx: Scope, entries: Vec<StackString>, instance: StackString) -> Element {
     let rows = entries.len() + 5;
     let text = entries.join("\n");
     cx.render(rsx! {
@@ -1598,16 +1600,16 @@ fn instance_status_element(cx: Scope, entries: Vec<StackString>, instance: Stack
 }
 
 pub fn textarea_fixed_size_body(body: StackString, id: StackString) -> String {
-    let mut app = VirtualDom::new_with_props(
-        textarea_fixed_size_element,
-        textarea_fixed_size_elementProps { body, id },
+    let mut app: VirtualDom = VirtualDom::new_with_props(
+        TextareaFixedSizeElement,
+        TextareaFixedSizeElementProps { body, id },
     );
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn textarea_fixed_size_element(cx: Scope, body: StackString, id: StackString) -> Element {
+#[component]
+fn TextareaFixedSizeElement(cx: Scope, body: StackString, id: StackString) -> Element {
     cx.render(rsx! {
         textarea {
             autofocus: "true",
@@ -1624,15 +1626,15 @@ fn textarea_fixed_size_element(cx: Scope, body: StackString, id: StackString) ->
 
 pub fn instance_types_body(instances: Vec<InstanceList>) -> String {
     let mut app = VirtualDom::new_with_props(
-        instance_types_element,
-        instance_types_elementProps { instances },
+        InstanceTypesElement,
+        InstanceTypesElementProps { instances },
     );
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn instance_types_element(cx: Scope, instances: Vec<InstanceList>) -> Element {
+#[component]
+fn InstanceTypesElement(cx: Scope, instances: Vec<InstanceList>) -> Element {
     cx.render(rsx! {
         instances.iter().enumerate().map(|(idx, i)| {
             let i = &i.instance_type;
@@ -1648,15 +1650,15 @@ fn instance_types_element(cx: Scope, instances: Vec<InstanceList>) -> Element {
 }
 
 pub fn novnc_start_body() -> String {
-    let mut app = VirtualDom::new(novnc_start_element);
+    let mut app = VirtualDom::new(NovncStartElement);
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
 pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -> String {
     let mut app = VirtualDom::new_with_props(
-        novnc_status_element,
-        novnc_status_elementProps {
+        NovncStatusElement,
+        NovncStatusElementProps {
             number,
             domain,
             pids,
@@ -1666,8 +1668,8 @@ pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -
     dioxus_ssr::render(&app)
 }
 
-#[component(no_case_check)]
-fn novnc_status_element(
+#[component]
+fn NovncStatusElement(
     cx: Scope,
     number: usize,
     domain: StackString,
@@ -1691,8 +1693,8 @@ fn novnc_status_element(
     })
 }
 
-#[component(no_case_check)]
-fn novnc_start_element(cx: Scope) -> Element {
+#[component]
+fn NovncStartElement(cx: Scope) -> Element {
     cx.render(rsx! {
         input {
             "type": "button",
