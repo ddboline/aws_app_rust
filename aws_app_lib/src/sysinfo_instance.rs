@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use stack_string::StackString;
 use std::{collections::BTreeSet, fmt, sync::Arc};
-use sysinfo::{PidExt, Process, ProcessExt, System, SystemExt};
+use sysinfo::{Process, System};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProcessInfo {
