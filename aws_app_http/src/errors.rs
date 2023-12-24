@@ -1,4 +1,4 @@
-use crate::logged_user::TRIGGER_DB_UPDATE;
+use crate::logged_user::{TRIGGER_DB_UPDATE, LOGIN_HTML};
 use anyhow::Error as AnyhowError;
 use log::error;
 use postgres_query::Error as PqError;
@@ -45,16 +45,7 @@ struct ErrorMessage<'a> {
 }
 
 fn login_html() -> impl Reply {
-    rweb::reply::html(
-        "
-            <script>
-                !function() {
-                    let final_url = location.href;
-                    location.replace('/auth/login.html?final_url=' + final_url);
-                }()
-            </script>
-        ",
-    )
+    rweb::reply::html(LOGIN_HTML)
 }
 
 /// # Errors

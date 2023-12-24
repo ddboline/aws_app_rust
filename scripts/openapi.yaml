@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: Frontend for AWS
   description: Web Frontend for AWS Services
-  version: 0.10.5
+  version: 0.10.11
 paths:
   /aws/index.html:
     get:
@@ -24,23 +24,7 @@ paths:
         in: query
         required: true
         schema:
-          description: Resource Type
-          type: string
-          enum:
-          - instances
-          - reserved
-          - spot
-          - ami
-          - volume
-          - snapshot
-          - ecr
-          - key
-          - script
-          - user
-          - group
-          - access-key
-          - route53
-          - systemd
+          $ref: '#/components/schemas/ResourceType'
       responses:
         '200':
           description: List Resources
@@ -360,32 +344,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  arn:
-                    description: Iam Arn
-                    type: string
-                  create_date:
-                    description: Created DateTime
-                    format: date-time
-                    type: string
-                  user_id:
-                    description: User ID
-                    type: string
-                  user_name:
-                    description: User Name
-                    type: string
-                  tags:
-                    description: Tags
-                    additionalProperties:
-                      type: string
-                    type: object
-                type: object
-                required:
-                - arn
-                - create_date
-                - user_id
-                - user_name
-                - tags
+                $ref: '#/components/schemas/IamUser'
         '400':
           description: Bad Request
         '500':
@@ -477,30 +436,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  access_key_id:
-                    description: Access Key ID
-                    type: string
-                  create_date:
-                    description: Created DateTime
-                    format: date-time
-                    type: string
-                  access_key_secret:
-                    description: Access Secret Key
-                    type: string
-                  status:
-                    description: Status
-                    type: string
-                  user_name:
-                    description: User Name
-                    type: string
-                type: object
-                required:
-                - access_key_id
-                - create_date
-                - access_key_secret
-                - status
-                - user_name
+                $ref: '#/components/schemas/IamAccessKey_Opt'
         '400':
           description: Bad Request
         '500':
@@ -746,18 +682,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  email:
-                    description: Email Address
-                    type: string
-                  session:
-                    description: Session Id
-                    format: uuid
-                    type: string
-                type: object
-                required:
-                - email
-                - session
+                $ref: '#/components/schemas/LoggedUser'
         '400':
           description: Bad Request
         '500':
@@ -922,4 +847,115 @@ paths:
           description: Bad Request
         '500':
           description: Internal Server Error
-components: {}
+components:
+  schemas:
+    ResourceType:
+      type: string
+      enum:
+      - instances
+      - reserved
+      - spot
+      - ami
+      - volume
+      - snapshot
+      - ecr
+      - key
+      - script
+      - user
+      - group
+      - access-key
+      - route53
+      - systemd
+    IamUser:
+      properties:
+        arn:
+          description: Iam Arn
+          type: string
+        create_date:
+          description: Created DateTime
+          format: date-time
+          type: string
+        user_id:
+          description: User ID
+          type: string
+        user_name:
+          description: User Name
+          type: string
+        tags:
+          description: Tags
+          additionalProperties:
+            type: string
+          type: object
+      type: object
+      required:
+      - arn
+      - create_date
+      - user_id
+      - user_name
+      - tags
+    IamAccessKey:
+      properties:
+        access_key_id:
+          description: Access Key ID
+          type: string
+        create_date:
+          description: Created DateTime
+          format: date-time
+          type: string
+        access_key_secret:
+          description: Access Secret Key
+          type: string
+        status:
+          description: Status
+          type: string
+        user_name:
+          description: User Name
+          type: string
+      type: object
+      required:
+      - access_key_id
+      - create_date
+      - access_key_secret
+      - status
+      - user_name
+    IamAccessKey_Opt:
+      properties:
+        access_key_id:
+          description: Access Key ID
+          type: string
+        create_date:
+          description: Created DateTime
+          format: date-time
+          type: string
+        access_key_secret:
+          description: Access Secret Key
+          type: string
+        status:
+          description: Status
+          type: string
+        user_name:
+          description: User Name
+          type: string
+      nullable: true
+      type: object
+      required:
+      - access_key_id
+      - create_date
+      - access_key_secret
+      - status
+      - user_name
+    LoggedUser:
+      properties:
+        email:
+          description: Email Address
+          example: user@example.com
+          type: string
+        session:
+          description: Session Id
+          format: uuid
+          example: 334518f4-1bfd-4f20-9978-bfad0dc033e1
+          type: string
+      type: object
+      required:
+      - email
+      - session

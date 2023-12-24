@@ -298,10 +298,6 @@ fn index_element<'a>(children: LazyNodes<'a, 'a>) -> LazyNodes<'a, 'a> {
     }
 }
 
-struct InstanceProps {
-    instances: Arc<Vec<Ec2InstanceInfo>>,
-}
-
 #[component]
 fn IndexListElement(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
     cx.render(rsx! {
@@ -313,7 +309,7 @@ fn IndexListElement(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element 
 
 #[component]
 fn ListInstanceBody(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
-    cx.render(list_instance_element(&cx.props.instances))
+    cx.render(list_instance_element(&instances))
 }
 
 fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
