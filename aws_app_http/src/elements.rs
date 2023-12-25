@@ -301,14 +301,14 @@ fn index_element<'a>(children: LazyNodes<'a, 'a>) -> LazyNodes<'a, 'a> {
 fn IndexListElement(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
     cx.render(rsx! {
         index_element(
-            list_instance_element(&instances)
+            list_instance_element(instances)
         )
     })
 }
 
 #[component]
 fn ListInstanceBody(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
-    cx.render(list_instance_element(&instances))
+    cx.render(list_instance_element(instances))
 }
 
 fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
