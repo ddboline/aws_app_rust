@@ -258,7 +258,7 @@ impl AwsAppOpts {
             }
             Self::Price { search } => app.print_ec2_prices(&search).await,
             Self::ListFamilies => {
-                let mut stream = Box::pin(InstanceFamily::get_all(&app.pool).await?);
+                let mut stream = Box::pin(InstanceFamily::get_all(&app.pool, None).await?);
                 while let Some(fam) = stream.try_next().await? {
                     app.stdout
                         .send(format_sstr!("{:5} {}", fam.family_name, fam.family_type));

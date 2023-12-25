@@ -1,7 +1,7 @@
 use anyhow::Error;
 use futures::Stream;
-use postgres_query::{client::GenericClient, query, Error as PqError, FromSqlRow};
-use stack_string::StackString;
+use postgres_query::{client::GenericClient, query, Error as PqError, FromSqlRow, query_dyn};
+use stack_string::{StackString, format_sstr};
 use std::fmt;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -13,6 +13,7 @@ pub struct InstanceFamily {
     pub family_name: StackString,
     pub family_type: StackString,
     pub data_url: Option<StackString>,
+    pub use_for_spot: bool,
 }
 
 impl InstanceFamily {
@@ -32,14 +33,24 @@ impl InstanceFamily {
     /// # Errors
     /// Returns error if db query fails
     pub async fn get_all(
-        pool: &PgPool,
+        pool: &PgPool, for_spot_instance: Option<bool>,
     ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
-        let query = query!(
-            r#"
-                SELECT * FROM instance_family
+        let constraint = if let Some(for_spot_instance) = for_spot_instance {
+            if for_spot_instance {
+                "WHERE use_for_spot IS true"
+            } else {
+                "WHERE use_for_spot IS false"
+            }
+        } else {
+            ""
+        };
+        let query = format_sstr!(
+            r"
+                SELECT * FROM instance_family {constraint}
                 ORDER BY family_type, family_name
-            "#
+            "
         );
+        let query = query_dyn!(&query)?;
         let conn = pool.get().await?;
         query.fetch_streaming(&conn).await.map_err(Into::into)
     }
@@ -50,12 +61,16 @@ impl InstanceFamily {
     {
         let query = query!(
             r#"
-                INSERT INTO instance_family (family_name, family_type, data_url)
-                VALUES ($family_name, $family_type, $data_url)
+                INSERT INTO instance_family (
+                    family_name, family_type, data_url, use_for_spot
+                ) VALUES (
+                    $family_name, $family_type, $data_url, $use_for_spot
+                )
             "#,
             family_name = self.family_name,
             family_type = self.family_type,
             data_url = self.data_url,
+            use_for_spot = self.use_for_spot,
         );
         query.execute(conn).await?;
         Ok(())
@@ -68,12 +83,15 @@ impl InstanceFamily {
         let query = query!(
             r#"
                 UPDATE instance_family
-                SET family_type=$family_type,data_url=$data_url
+                SET family_type=$family_type,
+                    data_url=$data_url,
+                    use_for_spot=$use_for_spot
                 WHERE family_name=$family_name
             "#,
             family_name = self.family_name,
             family_type = self.family_type,
             data_url = self.data_url,
+            use_for_spot = self.use_for_spot,
         );
         query.execute(conn).await?;
         Ok(())

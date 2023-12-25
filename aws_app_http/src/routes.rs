@@ -356,7 +356,7 @@ pub async fn build_spot_request(
         move_element_to_front(&mut amis, |ami| &ami.id == query_ami);
     }
 
-    let mut inst_fams: Vec<InstanceFamily> = InstanceFamily::get_all(&data.aws.pool)
+    let mut inst_fams: Vec<InstanceFamily> = InstanceFamily::get_all(&data.aws.pool, Some(true))
         .await
         .map_err(Into::<Error>::into)?
         .and_then(|fam| async move { Ok(fam) })
@@ -512,7 +512,7 @@ pub async fn get_prices(
             .map_err(Into::<Error>::into)?;
         prices_body(prices).into()
     } else {
-        let mut inst_fam: Vec<InstanceFamily> = InstanceFamily::get_all(&data.aws.pool)
+        let mut inst_fam: Vec<InstanceFamily> = InstanceFamily::get_all(&data.aws.pool, None)
             .await
             .map_err(Into::<Error>::into)?
             .try_collect()

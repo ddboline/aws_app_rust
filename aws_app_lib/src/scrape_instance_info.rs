@@ -65,6 +65,7 @@ fn parse_result(
                         family_name,
                         family_type: family_type.clone(),
                         data_url: None,
+                        use_for_spot: false,
                     };
                     instance_families.push(ifam);
                 }
@@ -231,6 +232,7 @@ fn extract_instance_family_object_pv(
         family_name,
         family_type,
         data_url: None,
+        use_for_spot: false,
     })
 }
 

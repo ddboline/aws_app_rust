@@ -1,0 +1,1 @@
+ALTER TABLE instance_family ADD COLUMN use_for_spot BOOLEAN DEFAULT false;

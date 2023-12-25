@@ -518,7 +518,7 @@ impl AwsAppInterface {
         &self,
         search: &[impl AsRef<str>],
     ) -> Result<Vec<AwsInstancePrice>, Error> {
-        let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool)
+        let instance_families: HashMap<_, _> = InstanceFamily::get_all(&self.pool, None)
             .await?
             .and_then(|f| async move { Ok((f.family_name.clone(), f)) })
             .try_collect()
