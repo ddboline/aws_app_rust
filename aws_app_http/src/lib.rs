@@ -34,7 +34,7 @@ derive_rweb_schema!(IamUserWrapper, _IamUserWrapper);
 
 #[allow(dead_code)]
 #[derive(Schema)]
-#[schema(component="IamUser")]
+#[schema(component = "IamUser")]
 struct _IamUserWrapper {
     #[schema(description = "Iam Arn")]
     arn: StackString,
@@ -55,7 +55,7 @@ derive_rweb_schema!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
 
 #[allow(dead_code)]
 #[derive(Schema)]
-#[schema(component="IamAccessKey")]
+#[schema(component = "IamAccessKey")]
 struct _IamAccessKeyWrapper {
     #[schema(description = "Access Key ID")]
     access_key_id: StackString,
@@ -76,7 +76,7 @@ derive_rweb_schema!(ResourceTypeWrapper, _ResourceTypeWrapper);
 
 #[allow(dead_code)]
 #[derive(Schema, Serialize)]
-#[schema(component="ResourceType")]
+#[schema(component = "ResourceType")]
 enum _ResourceTypeWrapper {
     #[serde(rename = "instances")]
     Instances,

@@ -1,4 +1,4 @@
-use crate::logged_user::{TRIGGER_DB_UPDATE, LOGIN_HTML};
+use crate::logged_user::{LOGIN_HTML, TRIGGER_DB_UPDATE};
 use anyhow::Error as AnyhowError;
 use log::error;
 use postgres_query::Error as PqError;

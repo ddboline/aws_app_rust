@@ -1,7 +1,7 @@
 use anyhow::Error;
 use futures::Stream;
-use postgres_query::{client::GenericClient, query, Error as PqError, FromSqlRow, query_dyn};
-use stack_string::{StackString, format_sstr};
+use postgres_query::{client::GenericClient, query, query_dyn, Error as PqError, FromSqlRow};
+use stack_string::{format_sstr, StackString};
 use std::fmt;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -33,7 +33,8 @@ impl InstanceFamily {
     /// # Errors
     /// Returns error if db query fails
     pub async fn get_all(
-        pool: &PgPool, for_spot_instance: Option<bool>,
+        pool: &PgPool,
+        for_spot_instance: Option<bool>,
     ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
         let constraint = if let Some(for_spot_instance) = for_spot_instance {
             if for_spot_instance {

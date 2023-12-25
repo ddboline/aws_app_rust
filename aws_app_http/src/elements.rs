@@ -1,6 +1,6 @@
 use dioxus::prelude::{
-    dioxus_elements, component, rsx, Element, GlobalAttributes, LazyNodes, Props, Scope,
-    VirtualDom, IntoDynNode,
+    component, dioxus_elements, rsx, Element, GlobalAttributes, IntoDynNode, LazyNodes, Props,
+    Scope, VirtualDom,
 };
 use futures::{future::try_join_all, stream::FuturesUnordered, try_join, TryStreamExt};
 use stack_string::{format_sstr, StackString};
@@ -39,7 +39,8 @@ pub async fn get_index(app: &AwsAppInterface) -> Result<StackString, Error> {
     app.fill_instance_list().await?;
     let instances = INSTANCE_LIST.read().await.clone();
     let body = {
-        let mut app = VirtualDom::new_with_props(IndexListElement, IndexListElementProps { instances });
+        let mut app =
+            VirtualDom::new_with_props(IndexListElement, IndexListElementProps { instances });
         drop(app.rebuild());
         dioxus_ssr::render(&app)
     };
@@ -94,8 +95,7 @@ pub async fn get_frontpage(
         }
         ResourceType::Volume => {
             let volumes: Vec<_> = aws.ec2.get_all_volumes().await?.collect();
-            let mut app =
-                VirtualDom::new_with_props(VolumeElement, VolumeElementProps { volumes });
+            let mut app = VirtualDom::new_with_props(VolumeElement, VolumeElementProps { volumes });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -137,8 +137,7 @@ pub async fn get_frontpage(
             if scripts.is_empty() {
                 return Ok(StackString::new());
             }
-            let mut app =
-                VirtualDom::new_with_props(ScriptElement, ScriptElementProps { scripts });
+            let mut app = VirtualDom::new_with_props(ScriptElement, ScriptElementProps { scripts });
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
@@ -1303,10 +1302,8 @@ fn PriceElement(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
 }
 
 pub fn edit_script_body(fname: StackString, text: StackString) -> String {
-    let mut app = VirtualDom::new_with_props(
-        EditScriptElement,
-        EditScriptElementProps { fname, text },
-    );
+    let mut app =
+        VirtualDom::new_with_props(EditScriptElement, EditScriptElementProps { fname, text });
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
@@ -1534,8 +1531,7 @@ fn BuildSpotRequestElement(
 }
 
 pub fn textarea_body(entries: Vec<StackString>, id: StackString) -> String {
-    let mut app =
-        VirtualDom::new_with_props(TextAreaElement, TextAreaElementProps { entries, id });
+    let mut app = VirtualDom::new_with_props(TextAreaElement, TextAreaElementProps { entries, id });
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
@@ -1667,12 +1663,7 @@ pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -
 }
 
 #[component]
-fn NovncStatusElement(
-    cx: Scope,
-    number: usize,
-    domain: StackString,
-    pids: Vec<usize>,
-) -> Element {
+fn NovncStatusElement(cx: Scope, number: usize, domain: StackString, pids: Vec<usize>) -> Element {
     cx.render(rsx! {
         br {
             "{number} processes currently running {pids:?}"
