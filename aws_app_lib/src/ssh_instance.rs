@@ -1,5 +1,5 @@
 use anyhow::{format_err, Error};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use log::debug;
 use stack_string::{format_sstr, StackString};
 use std::collections::HashMap;
@@ -8,9 +8,7 @@ use tokio::{
     sync::{Mutex, RwLock},
 };
 
-lazy_static! {
-    static ref LOCK_CACHE: RwLock<HashMap<StackString, Mutex<()>>> = RwLock::new(HashMap::new());
-}
+static LOCK_CACHE: Lazy<RwLock<HashMap<StackString, Mutex<()>>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
 #[derive(Debug, Clone)]
 pub struct SSHInstance {

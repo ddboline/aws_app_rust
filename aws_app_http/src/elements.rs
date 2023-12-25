@@ -1165,7 +1165,7 @@ fn SystemdElement(
                         let memory: u64 = proc_info.iter().map(|p| p.memory).sum();
                         let virtual_memory: u64 = proc_info.iter().map(|p| p.virtual_memory).sum();
                         let memory = if virtual_memory > memory {memory} else {virtual_memory};
-                        let memory = memory as f32 / 1e6;
+                        let memory = memory as f32 / (1 << 20) as f32;
                         rsx! {"{memory:0.1} MiB"}
                     });
                     rsx! {

@@ -1,5 +1,5 @@
 use anyhow::Error;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use stack_string::StackString;
 use std::{
@@ -8,9 +8,7 @@ use std::{
     sync::Arc,
 };
 
-lazy_static! {
-    static ref CONFIG_DIR: PathBuf = dirs::config_dir().expect("No CONFIG directory");
-}
+static CONFIG_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::config_dir().expect("No CONFIG directory"));
 
 #[derive(Default, Debug, Deserialize, PartialEq)]
 pub struct ConfigInner {

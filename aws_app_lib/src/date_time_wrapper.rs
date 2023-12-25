@@ -1,14 +1,12 @@
 use bytes::BytesMut;
 use derive_more::{Deref, DerefMut, Display, From, Into};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use time_tz::{timezones::db::UTC, Tz};
 
-lazy_static! {
-    static ref LOCAL_TZ: &'static Tz = time_tz::system::get_timezone().unwrap_or(UTC);
-}
+static LOCAL_TZ: Lazy<&'static Tz> = Lazy::new(|| time_tz::system::get_timezone().unwrap_or(UTC));
 
 #[derive(
     Serialize,

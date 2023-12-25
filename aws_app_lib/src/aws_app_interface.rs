@@ -2,7 +2,7 @@ use anyhow::{format_err, Error};
 use aws_config::SdkConfig;
 use futures::{future::try_join_all, stream::FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use stack_string::{format_sstr, StackString};
 use std::{
     collections::{HashMap, HashSet},
@@ -33,10 +33,8 @@ use crate::{
     systemd_instance::SystemdInstance,
 };
 
-lazy_static! {
-    pub static ref INSTANCE_LIST: RwLock<Arc<Vec<Ec2InstanceInfo>>> =
-        RwLock::new(Arc::new(Vec::new()));
-}
+pub static INSTANCE_LIST: Lazy<RwLock<Arc<Vec<Ec2InstanceInfo>>>> =
+    Lazy::new(|| RwLock::new(Arc::new(Vec::new())));
 
 #[derive(Debug, PartialEq)]
 pub struct AwsInstancePrice {
