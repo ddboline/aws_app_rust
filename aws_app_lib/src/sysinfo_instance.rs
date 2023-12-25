@@ -11,6 +11,7 @@ pub struct ProcessInfo {
     pub memory: u64,
     pub read_disk_bytes: u64,
     pub write_disk_bytes: u64,
+    pub virtual_memory: u64,
 }
 
 impl fmt::Display for ProcessInfo {
@@ -41,6 +42,7 @@ impl From<&Process> for ProcessInfo {
             memory: proc.memory(),
             read_disk_bytes,
             write_disk_bytes,
+            virtual_memory: proc.virtual_memory(),
         }
     }
 }
