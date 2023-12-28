@@ -63,15 +63,14 @@ impl InstanceFamily {
         let query = query!(
             r#"
                 INSERT INTO instance_family (
-                    family_name, family_type, data_url, use_for_spot
+                    family_name, family_type, data_url
                 ) VALUES (
-                    $family_name, $family_type, $data_url, $use_for_spot
+                    $family_name, $family_type, $data_url
                 )
             "#,
             family_name = self.family_name,
             family_type = self.family_type,
             data_url = self.data_url,
-            use_for_spot = self.use_for_spot,
         );
         query.execute(conn).await?;
         Ok(())
@@ -85,14 +84,12 @@ impl InstanceFamily {
             r#"
                 UPDATE instance_family
                 SET family_type=$family_type,
-                    data_url=$data_url,
-                    use_for_spot=$use_for_spot
+                    data_url=$data_url
                 WHERE family_name=$family_name
             "#,
             family_name = self.family_name,
             family_type = self.family_type,
             data_url = self.data_url,
-            use_for_spot = self.use_for_spot,
         );
         query.execute(conn).await?;
         Ok(())
