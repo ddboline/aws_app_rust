@@ -237,13 +237,10 @@ impl PricingInstance {
                     }
                     if let Some(reserved) = value.terms.get("Reserved") {
                         for dimensions in reserved.values() {
-                            if dimensions.term_attributes.lease_contract_length != Some("1yr")
-                            {
+                            if dimensions.term_attributes.lease_contract_length != Some("1yr") {
                                 continue;
                             }
-                            if dimensions.term_attributes.purchase_option
-                                != Some("All Upfront")
-                            {
+                            if dimensions.term_attributes.purchase_option != Some("All Upfront") {
                                 continue;
                             }
                             for dimension in dimensions.dimensions.values() {

@@ -40,9 +40,9 @@ pub struct ConfigInner {
     pub jwt_secret_path: PathBuf,
     #[serde(default = "Vec::new")]
     pub systemd_services: Vec<StackString>,
-    #[serde(default="default_root_crontab")]
+    #[serde(default = "default_root_crontab")]
     pub root_crontab: PathBuf,
-    #[serde(default="default_user_crontab")]
+    #[serde(default = "default_user_crontab")]
     pub user_crontab: PathBuf,
 }
 
