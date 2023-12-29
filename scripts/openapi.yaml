@@ -6,6 +6,7 @@ info:
 paths:
   /aws/index.html:
     get:
+      description: AWS App Main Page
       responses:
         '200':
           description: Main Page
@@ -19,6 +20,7 @@ paths:
           description: Internal Server Error
   /aws/list:
     get:
+      description: List AWS Resources
       parameters:
       - name: resource
         in: query
@@ -38,6 +40,7 @@ paths:
           description: Internal Server Error
   /aws/terminate:
     delete:
+      description: Terminate Ec2 Instance
       parameters:
       - name: instance
         in: query
@@ -58,6 +61,7 @@ paths:
           description: Internal Server Error
   /aws/create_image:
     post:
+      description: Create EC2 AMI Image
       parameters:
       - name: inst_id
         in: query
@@ -84,6 +88,7 @@ paths:
           description: Internal Server Error
   /aws/delete_image:
     delete:
+      description: Delete EC2 AMI Image
       parameters:
       - name: ami
         in: query
@@ -104,6 +109,7 @@ paths:
           description: Internal Server Error
   /aws/delete_volume:
     delete:
+      description: Delete EC2 Volume
       parameters:
       - name: volid
         in: query
@@ -124,6 +130,7 @@ paths:
           description: Internal Server Error
   /aws/modify_volume:
     patch:
+      description: Modify EC2 Volume
       parameters:
       - name: volid
         in: query
@@ -150,6 +157,7 @@ paths:
           description: Internal Server Error
   /aws/delete_snapshot:
     delete:
+      description: Delete EC2 Snapshot
       parameters:
       - name: snapid
         in: query
@@ -170,6 +178,7 @@ paths:
           description: Internal Server Error
   /aws/create_snapshot:
     post:
+      description: Create EC2 Snapshot
       parameters:
       - name: volid
         in: query
@@ -197,6 +206,7 @@ paths:
           description: Internal Server Error
   /aws/tag_item:
     patch:
+      description: Tag EC2 Resource
       parameters:
       - name: id
         in: query
@@ -223,6 +233,7 @@ paths:
           description: Internal Server Error
   /aws/delete_ecr_image:
     delete:
+      description: Delete ECR Image
       parameters:
       - name: reponame
         in: query
@@ -249,6 +260,7 @@ paths:
           description: Internal Server Error
   /aws/cleanup_ecr_images:
     delete:
+      description: Cleanup ECR Images
       responses:
         '204':
           description: Deleted
@@ -262,6 +274,7 @@ paths:
           description: Internal Server Error
   /aws/edit_script:
     patch:
+      description: Edit Script
       parameters:
       - name: filename
         in: query
@@ -282,6 +295,7 @@ paths:
           description: Internal Server Error
   /aws/replace_script:
     post:
+      description: Replace Script
       requestBody:
         content:
           application/json:
@@ -311,6 +325,7 @@ paths:
           description: Internal Server Error
   /aws/delete_script:
     delete:
+      description: Delete Script
       parameters:
       - name: filename
         in: query
@@ -331,6 +346,7 @@ paths:
           description: Internal Server Error
   /aws/create_user:
     post:
+      description: Create IAM User
       parameters:
       - name: user_name
         in: query
@@ -351,6 +367,7 @@ paths:
           description: Internal Server Error
   /aws/delete_user:
     delete:
+      description: Delete IAM User
       parameters:
       - name: user_name
         in: query
@@ -371,6 +388,7 @@ paths:
           description: Internal Server Error
   /aws/add_user_to_group:
     patch:
+      description: Add IAM User to Group
       parameters:
       - name: user_name
         in: query
@@ -397,6 +415,7 @@ paths:
           description: Internal Server Error
   /aws/remove_user_from_group:
     delete:
+      description: Remove IAM User from Group
       parameters:
       - name: user_name
         in: query
@@ -423,6 +442,7 @@ paths:
           description: Internal Server Error
   /aws/create_access_key:
     post:
+      description: Create Access Key for IAM User
       parameters:
       - name: user_name
         in: query
@@ -443,6 +463,7 @@ paths:
           description: Internal Server Error
   /aws/delete_access_key:
     delete:
+      description: Delete Access Key for IAM User
       parameters:
       - name: user_name
         in: query
@@ -469,6 +490,7 @@ paths:
           description: Internal Server Error
   /aws/build_spot_request:
     post:
+      description: Build Spot Request
       parameters:
       - name: ami
         in: query
@@ -553,6 +575,7 @@ paths:
           description: Internal Server Error
   /aws/cancel_spot:
     delete:
+      description: Cancel Spot Request
       parameters:
       - name: spot_id
         in: query
@@ -573,6 +596,7 @@ paths:
           description: Internal Server Error
   /aws/prices:
     get:
+      description: Get Ec2 Prices
       parameters:
       - name: search
         in: query
@@ -594,6 +618,7 @@ paths:
           description: Internal Server Error
   /aws/update:
     post:
+      description: Update Data
       responses:
         '200':
           description: Update
@@ -607,6 +632,7 @@ paths:
           description: Internal Server Error
   /aws/instance_status:
     get:
+      description: Get Ec2 Instance Status
       parameters:
       - name: instance
         in: query
@@ -627,6 +653,7 @@ paths:
           description: Internal Server Error
   /aws/command:
     post:
+      description: Run command on Ec2 Instance
       requestBody:
         content:
           application/json:
@@ -656,6 +683,7 @@ paths:
           description: Internal Server Error
   /aws/instances:
     get:
+      description: List Ec2 Instances
       parameters:
       - name: inst
         in: query
@@ -676,6 +704,7 @@ paths:
           description: Internal Server Error
   /aws/user:
     get:
+      description: User Object if logged in
       responses:
         '200':
           description: Logged in User
@@ -689,6 +718,7 @@ paths:
           description: Internal Server Error
   /aws/novnc/start:
     post:
+      description: Start NoVNC Service
       responses:
         '200':
           description: Start NoVNC
@@ -702,6 +732,7 @@ paths:
           description: Internal Server Error
   /aws/novnc/status:
     get:
+      description: NoVNC Service Status
       responses:
         '200':
           description: NoVNC Status
@@ -715,6 +746,7 @@ paths:
           description: Internal Server Error
   /aws/novnc/stop:
     post:
+      description: Stop NoVNC Service
       responses:
         '200':
           description: Stop NoVNC
@@ -728,6 +760,7 @@ paths:
           description: Internal Server Error
   /aws/update_dns_name:
     patch:
+      description: Update DNS Name
       parameters:
       - name: zone
         in: query
@@ -768,6 +801,7 @@ paths:
           description: Internal Server Error
   /aws/systemd_action:
     post:
+      description: Perform Systemd Action
       parameters:
       - name: action
         in: query
@@ -798,6 +832,7 @@ paths:
           description: Internal Server Error
   /aws/systemd_logs/{service}:
     get:
+      description: Get Systemd Logs for Service
       parameters:
       - name: service
         in: path
@@ -817,6 +852,7 @@ paths:
           description: Internal Server Error
   /aws/systemd_restart_all:
     post:
+      description: Restart all Systemd Services
       responses:
         '201':
           description: Restart All Systemd Services
@@ -830,6 +866,7 @@ paths:
           description: Internal Server Error
   /aws/crontab_logs/{crontab_type}:
     get:
+      description: Get Crontab Logs
       parameters:
       - name: crontab_type
         in: path
