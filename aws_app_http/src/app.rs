@@ -80,7 +80,7 @@ fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
     let systemd_action_path = systemd_action(app.clone()).boxed();
     let systemd_logs_path = systemd_logs(app.clone()).boxed();
     let systemd_restart_all_path = systemd_restart_all(app.clone()).boxed();
-    let crontab_logs_path = crontab_logs().boxed();
+    let crontab_logs_path = crontab_logs(app.clone()).boxed();
 
     let novnc_scope = novnc_launcher_path
         .or(novnc_status_path)

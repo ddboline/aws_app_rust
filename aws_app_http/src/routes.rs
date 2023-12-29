@@ -1023,11 +1023,12 @@ struct CrontabLogResponse(HtmlBase<StackString, Error>);
 pub async fn crontab_logs(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     crontab_type: StackString,
+    #[data] data: AppState,
 ) -> WarpResult<CrontabLogResponse> {
     let crontab_path = if crontab_type == "user" {
-        Path::new("/tmp/crontab.log")
+        &data.aws.config.user_crontab
     } else {
-        Path::new("/tmp/crontab_root.log")
+        &data.aws.config.root_crontab
     };
     let body = if crontab_path.exists() {
         textarea_fixed_size_body(

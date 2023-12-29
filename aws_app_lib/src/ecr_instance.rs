@@ -178,7 +178,7 @@ impl ImageInfo {
                 self.digest,
             ),
             self.repo,
-            self.tags.get(0).map_or_else(|| "None", StackString::as_str),
+            self.tags.first().map_or_else(|| "None", StackString::as_str),
             self.digest,
             self.pushed_at,
             self.image_size,

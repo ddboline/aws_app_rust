@@ -218,7 +218,7 @@ impl AwsAppOpts {
                 resources,
                 all_regions,
             } => {
-                let resources = if resources.get(0) == Some(&ResourceType::All) {
+                let resources = if resources.first() == Some(&ResourceType::All) {
                     ALL_RESOURCES.to_vec()
                 } else {
                     resources

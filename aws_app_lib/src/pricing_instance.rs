@@ -193,7 +193,7 @@ impl PricingInstance {
                     #[derive(Deserialize, Debug)]
                     struct PriceDimensions<'a> {
                         #[serde(rename = "priceDimensions", borrow)]
-                        price_dimensions: HashMap<&'a str, PriceDimension<'a>>,
+                        dimensions: HashMap<&'a str, PriceDimension<'a>>,
                         #[serde(rename = "effectiveDate")]
                         effective_date: DateTimeWrapper,
                         #[serde(rename = "termAttributes")]
@@ -207,15 +207,15 @@ impl PricingInstance {
 
                     let value: PriceList = serde_json::from_str(&price)?;
                     if let Some(ondemand) = value.terms.get("OnDemand") {
-                        for price_dimensions in ondemand.values() {
-                            for dimension in price_dimensions.price_dimensions.values() {
+                        for dimensions in ondemand.values() {
+                            for dimension in dimensions.dimensions.values() {
                                 if dimension.unit != "Hrs" {
                                     continue;
                                 }
                                 if let Ok(price) = dimension.price_per_unit.usd.parse::<f64>() {
                                     let price_type = PricingType::OnDemand;
                                     let price_timestamp: OffsetDateTime =
-                                        price_dimensions.effective_date.into();
+                                        dimensions.effective_date.into();
                                     let instance_type: StackString = instance_type.into();
                                     if let Some(i) =
                                         entries.get(&(instance_type.clone(), price_type))
@@ -228,7 +228,7 @@ impl PricingInstance {
                                         instance_type.as_str(),
                                         price,
                                         price_type.to_str(),
-                                        price_dimensions.effective_date.into(),
+                                        dimensions.effective_date.into(),
                                     );
                                     entries.insert((instance_type, price_type), i);
                                 }
@@ -236,17 +236,17 @@ impl PricingInstance {
                         }
                     }
                     if let Some(reserved) = value.terms.get("Reserved") {
-                        for price_dimensions in reserved.values() {
-                            if price_dimensions.term_attributes.lease_contract_length != Some("1yr")
+                        for dimensions in reserved.values() {
+                            if dimensions.term_attributes.lease_contract_length != Some("1yr")
                             {
                                 continue;
                             }
-                            if price_dimensions.term_attributes.purchase_option
+                            if dimensions.term_attributes.purchase_option
                                 != Some("All Upfront")
                             {
                                 continue;
                             }
-                            for dimension in price_dimensions.price_dimensions.values() {
+                            for dimension in dimensions.dimensions.values() {
                                 if dimension.unit != "Quantity" {
                                     continue;
                                 }
@@ -257,7 +257,7 @@ impl PricingInstance {
                                     let price = price / (365.0 * 24.0);
 
                                     let price_type = PricingType::Reserved;
-                                    let price_timestamp = price_dimensions.effective_date.into();
+                                    let price_timestamp = dimensions.effective_date.into();
                                     let instance_type: StackString = instance_type.into();
                                     if let Some(i) =
                                         entries.get(&(instance_type.clone(), price_type))

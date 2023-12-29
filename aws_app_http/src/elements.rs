@@ -755,7 +755,7 @@ fn EcrElement(cx: Scope, images: Vec<ImageInfo>) -> Element {
                 images.iter().enumerate().map(|(idx, image)| {
                     let repo = &image.repo;
                     let digest = &image.digest;
-                    let tag = image.tags.get(0).map_or_else(|| "None", StackString::as_str);
+                    let tag = image.tags.first().map_or_else(|| "None", StackString::as_str);
                     let pushed_at = image.pushed_at;
                     let image_size = image.image_size;
                     rsx! {

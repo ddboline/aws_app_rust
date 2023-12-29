@@ -292,7 +292,7 @@ impl AwsAppInterface {
                                 format_sstr!(
                                     "{} {} {} {} {:0.2} MB",
                                     repo,
-                                    image.tags.get(0).map_or_else(|| "None", AsRef::as_ref),
+                                    image.tags.first().map_or_else(|| "None", AsRef::as_ref),
                                     image.digest,
                                     image.pushed_at,
                                     image.image_size,

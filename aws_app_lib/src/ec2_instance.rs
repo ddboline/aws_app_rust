@@ -523,7 +523,7 @@ impl Ec2Instance {
                 .await?
                 .find(|ami| ami.id == inst_id || ami.name == inst_id)
             {
-                if let Some(snapshot_id) = ami.snapshot_ids.get(0) {
+                if let Some(snapshot_id) = ami.snapshot_ids.first() {
                     let tags = hashmap! {"Name".into() => name.into()};
                     self.tag_ec2_instance(snapshot_id, &tags).await?;
                     break;

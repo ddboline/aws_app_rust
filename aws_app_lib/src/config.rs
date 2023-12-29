@@ -9,6 +9,7 @@ use std::{
 };
 
 static CONFIG_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::config_dir().expect("No CONFIG directory"));
+static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().expect("No HOME directory"));
 
 #[derive(Default, Debug, Deserialize, PartialEq)]
 pub struct ConfigInner {
@@ -39,8 +40,18 @@ pub struct ConfigInner {
     pub jwt_secret_path: PathBuf,
     #[serde(default = "Vec::new")]
     pub systemd_services: Vec<StackString>,
+    #[serde(default="default_root_crontab")]
+    pub root_crontab: PathBuf,
+    #[serde(default="default_user_crontab")]
+    pub user_crontab: PathBuf,
 }
 
+fn default_user_crontab() -> PathBuf {
+    HOME_DIR.join("crontab.log")
+}
+fn default_root_crontab() -> PathBuf {
+    Path::new("/tmp").join("crontab_root.log")
+}
 fn default_database_url() -> StackString {
     "postgresql://user:password@host:1234/test_db".into()
 }
