@@ -45,6 +45,7 @@ pub type HttpResult<T> = Result<T, Error>;
 struct AwsIndexResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/index.html")]
+#[openapi(description = "AWS App Main Page")]
 pub async fn sync_frontpage(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -64,6 +65,7 @@ pub struct ResourceRequest {
 struct AwsListResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/list")]
+#[openapi(description = "List AWS Resources")]
 pub async fn list(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -79,6 +81,7 @@ pub async fn list(
 struct DeletedResource(HtmlBase<&'static str, Error>);
 
 #[delete("/aws/terminate")]
+#[openapi(description = "Terminate Ec2 Instance")]
 pub async fn terminate(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -97,6 +100,7 @@ pub async fn terminate(
 struct CreateImageResponse(HtmlBase<String, Error>);
 
 #[post("/aws/create_image")]
+#[openapi(description = "Create EC2 AMI Image")]
 pub async fn create_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -113,6 +117,7 @@ pub async fn create_image(
 }
 
 #[delete("/aws/delete_image")]
+#[openapi(description = "Delete EC2 AMI Image")]
 pub async fn delete_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -127,6 +132,7 @@ pub async fn delete_image(
 }
 
 #[delete("/aws/delete_volume")]
+#[openapi(description = "Delete EC2 Volume")]
 pub async fn delete_volume(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -145,6 +151,7 @@ pub async fn delete_volume(
 struct FinishedResource(HtmlBase<&'static str, Error>);
 
 #[patch("/aws/modify_volume")]
+#[openapi(description = "Modify EC2 Volume")]
 pub async fn modify_volume(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -159,6 +166,7 @@ pub async fn modify_volume(
 }
 
 #[delete("/aws/delete_snapshot")]
+#[openapi(description = "Delete EC2 Snapshot")]
 pub async fn delete_snapshot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -173,6 +181,7 @@ pub async fn delete_snapshot(
 }
 
 #[post("/aws/create_snapshot")]
+#[openapi(description = "Create EC2 Snapshot")]
 pub async fn create_snapshot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -194,6 +203,7 @@ pub async fn create_snapshot(
 }
 
 #[patch("/aws/tag_item")]
+#[openapi(description = "Tag EC2 Resource")]
 pub async fn tag_item(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -214,6 +224,7 @@ pub async fn tag_item(
 }
 
 #[delete("/aws/delete_ecr_image")]
+#[openapi(description = "Delete ECR Image")]
 pub async fn delete_ecr_image(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -229,6 +240,7 @@ pub async fn delete_ecr_image(
 }
 
 #[delete("/aws/cleanup_ecr_images")]
+#[openapi(description = "Cleanup ECR Images")]
 pub async fn cleanup_ecr_images(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -252,6 +264,7 @@ pub struct ScriptFilename {
 struct EditScriptResponse(HtmlBase<StackString, Error>);
 
 #[patch("/aws/edit_script")]
+#[openapi(description = "Edit Script")]
 pub async fn edit_script(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -280,6 +293,7 @@ pub struct ReplaceData {
 }
 
 #[post("/aws/replace_script")]
+#[openapi(description = "Replace Script")]
 pub async fn replace_script(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -295,6 +309,7 @@ pub async fn replace_script(
 }
 
 #[delete("/aws/delete_script")]
+#[openapi(description = "Delete Script")]
 pub async fn delete_script(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -338,6 +353,7 @@ where
 struct BuildSpotResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/build_spot_request")]
+#[openapi(description = "Build Spot Request")]
 pub async fn build_spot_request(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -472,6 +488,7 @@ pub struct CancelSpotRequest {
 struct CancelledResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/cancel_spot")]
+#[openapi(description = "Cancel Spot Request")]
 pub async fn cancel_spot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -497,6 +514,7 @@ pub struct PriceRequest {
 struct PricesResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/prices")]
+#[openapi(description = "Get Ec2 Prices")]
 pub async fn get_prices(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -530,6 +548,7 @@ pub async fn get_prices(
 struct UpdateResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/update")]
+#[openapi(description = "Update Data")]
 pub async fn update(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -549,6 +568,7 @@ pub async fn update(
 struct InstanceStatusResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/instance_status")]
+#[openapi(description = "Get Ec2 Instance Status")]
 pub async fn instance_status(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -574,6 +594,7 @@ pub async fn instance_status(
 struct CommandResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/command")]
+#[openapi(description = "Run command on Ec2 Instance")]
 pub async fn command(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -606,6 +627,7 @@ pub struct InstancesRequest {
 struct InstancesResponse(HtmlBase<String, Error>);
 
 #[get("/aws/instances")]
+#[openapi(description = "List Ec2 Instances")]
 pub async fn get_instances(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -628,6 +650,7 @@ pub async fn get_instances(
 struct NovncStartResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/novnc/start")]
+#[openapi(description = "Start NoVNC Service")]
 pub async fn novnc_launcher(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -658,6 +681,7 @@ pub async fn novnc_launcher(
 struct NovncStopResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/novnc/stop")]
+#[openapi(description = "Stop NoVNC Service")]
 pub async fn novnc_shutdown(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -679,6 +703,7 @@ pub async fn novnc_shutdown(
 struct NovncStatusResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/novnc/status")]
+#[openapi(description = "NoVNC Service Status")]
 pub async fn novnc_status(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -705,6 +730,7 @@ pub async fn novnc_status(
 struct UserResponse(JsonBase<LoggedUser, Error>);
 
 #[get("/aws/user")]
+#[openapi(description = "User Object if logged in")]
 pub async fn user(#[filter = "LoggedUser::filter"] user: LoggedUser) -> WarpResult<UserResponse> {
     Ok(JsonBase::new(user).into())
 }
@@ -720,6 +746,7 @@ pub struct CreateUserRequest {
 struct CreateUserResponse(JsonBase<IamUserWrapper, Error>);
 
 #[post("/aws/create_user")]
+#[openapi(description = "Create IAM User")]
 pub async fn create_user(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -741,6 +768,7 @@ pub async fn create_user(
 struct DeleteUserResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/delete_user")]
+#[openapi(description = "Delete IAM User")]
 pub async fn delete_user(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -767,6 +795,7 @@ pub struct AddUserToGroupRequest {
 struct AddUserGroupResponse(HtmlBase<StackString, Error>);
 
 #[patch("/aws/add_user_to_group")]
+#[openapi(description = "Add IAM User to Group")]
 pub async fn add_user_to_group(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -790,6 +819,7 @@ pub async fn add_user_to_group(
 struct RemoveUserGroupResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/remove_user_from_group")]
+#[openapi(description = "Remove IAM User from Group")]
 pub async fn remove_user_from_group(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -821,6 +851,7 @@ pub struct DeleteAccesssKeyRequest {
 struct CreateKeyResponse(JsonBase<Option<IamAccessKeyWrapper>, Error>);
 
 #[post("/aws/create_access_key")]
+#[openapi(description = "Create Access Key for IAM User")]
 pub async fn create_access_key(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -840,6 +871,7 @@ pub async fn create_access_key(
 struct DeleteKeyResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/delete_access_key")]
+#[openapi(description = "Delete Access Key for IAM User")]
 pub async fn delete_access_key(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -875,6 +907,7 @@ pub struct UpdateDnsNameRequest {
 struct UpdateDnsResponse(HtmlBase<StackString, Error>);
 
 #[patch("/aws/update_dns_name")]
+#[openapi(description = "Update DNS Name")]
 pub async fn update_dns_name(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -937,6 +970,7 @@ struct SystemdAction {
 struct SystemdActionResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/systemd_action")]
+#[openapi(description = "Perform Systemd Action")]
 pub async fn systemd_action(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -961,6 +995,7 @@ pub async fn systemd_action(
 struct SystemdRestartAllResponse(HtmlBase<String, Error>);
 
 #[post("/aws/systemd_restart_all")]
+#[openapi(description = "Restart all Systemd Services")]
 pub async fn systemd_restart_all(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -997,6 +1032,7 @@ pub async fn systemd_restart_all(
 struct SystemdLogResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/systemd_logs/{service}")]
+#[openapi(description = "Get Systemd Logs for Service")]
 pub async fn systemd_logs(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     #[data] data: AppState,
@@ -1020,6 +1056,7 @@ pub async fn systemd_logs(
 struct CrontabLogResponse(HtmlBase<StackString, Error>);
 
 #[get("/aws/crontab_logs/{crontab_type}")]
+#[openapi(description = "Get Crontab Logs")]
 pub async fn crontab_logs(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
     crontab_type: StackString,
