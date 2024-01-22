@@ -44,6 +44,7 @@ pub struct ConfigInner {
     pub root_crontab: PathBuf,
     #[serde(default = "default_user_crontab")]
     pub user_crontab: PathBuf,
+    pub inbound_email_bucket: Option<StackString>,
 }
 
 fn default_user_crontab() -> PathBuf {

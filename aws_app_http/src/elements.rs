@@ -22,7 +22,7 @@ use aws_app_lib::{
     },
     ecr_instance::ImageInfo,
     iam_instance::{AccessKeyMetadata, IamGroup, IamUser},
-    models::{InstanceFamily, InstanceList},
+    models::{InboundEmailDB, InstanceFamily, InstanceList},
     resource_type::ResourceType,
     sysinfo_instance::ProcessInfo,
     systemd_instance::RunStatus,
@@ -260,6 +260,18 @@ pub async fn get_frontpage(
             drop(app.rebuild());
             dioxus_ssr::render(&app)
         }
+        ResourceType::InboundEmail => {
+            let emails = InboundEmailDB::get_all(&aws.pool, None, None)
+                .await?
+                .try_collect::<Vec<_>>()
+                .await?;
+            let mut app = VirtualDom::new_with_props(
+                InboundEmailElement,
+                InboundEmailElementProps { emails },
+            );
+            drop(app.rebuild());
+            dioxus_ssr::render(&app)
+        }
     };
     Ok(body.into())
 }
@@ -287,6 +299,7 @@ fn index_element<'a>(children: LazyNodes<'a, 'a>) -> LazyNodes<'a, 'a> {
             input {"type": "button", name: "list_systemd", value: "SystemD", "onclick": "listResource('systemd');"},
             input {"type": "button", name: "list_price", value: "Price", "onclick": "listAllPrices()"},
             input {"type": "button", name: "novnc", value: "NoVNC", "onclick": "noVncTab('/aws/novnc/status', 'GET')"},
+            input {"type": "button", name: "email", value: "InboundEmail", "onclick": "listResource('inbound-email');"},
             input {"type": "button", name: "update", value: "Update", "onclick": "updateMetadata()"},
             button {name: "garminconnectoutput", id: "garminconnectoutput", dangerous_inner_html: "&nbsp"},
             },
@@ -1342,7 +1355,6 @@ fn EditScriptElement(cx: Scope, fname: StackString, text: StackString) -> Elemen
                 value: "Request",
                 "onclick": "updateScriptAndBuildSpotRequest('{fname}')",
             }
-
         }
     })
 }
@@ -1690,6 +1702,86 @@ fn NovncStartElement(cx: Scope) -> Element {
             name: "novnc",
             value: "Start NoVNC",
             "onclick": "noVncTab('/aws/novnc/start', 'POST')",
+        }
+    })
+}
+
+#[component]
+fn InboundEmailElement(cx: Scope, emails: Vec<InboundEmailDB>) -> Element {
+    cx.render(rsx! {
+        table {
+            "border": "1",
+            class: "dataframe",
+            thead {th {"To"}, th {"From"}, th {"Subject"}, th {"Date"}, th {}},
+            tbody {
+                emails.iter().enumerate().map(|(idx, email)| {
+                    let id = &email.id;
+                    let from = &email.from_address;
+                    let to = &email.to_address;
+                    let subject = &email.subject;
+                    let date = &email.date;
+                    rsx! {
+                        tr {
+                            key: "email-key-{idx}",
+                            td {
+                                input {
+                                    "type": "button",
+                                    name: "date",
+                                    value: "{date}",
+                                    "onclick": "emailDetail('{id}')",
+                                }
+                            }
+                            td {
+                                "{from}"
+                            }
+                            td {
+                                "{to}"
+                            }
+                            td {
+                                "{subject}"
+                            }
+                            td {
+                                input {
+                                    "type": "button",
+                                    name: "delete",
+                                    value: "Delete",
+                                    "onclick": "deleteEmail('{id}')",
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+        }
+    })
+}
+
+pub fn inbound_email_body(text: StackString, html: StackString) -> String {
+    let mut app = VirtualDom::new_with_props(
+        InboundEmailDetailElement,
+        InboundEmailDetailElementProps { text, html },
+    );
+    drop(app.rebuild());
+    dioxus_ssr::render(&app)
+}
+
+#[component]
+fn InboundEmailDetailElement(cx: Scope, text: StackString, html: StackString) -> Element {
+    let rows = text.split('\n').count() + 5;
+    cx.render(rsx! {
+        br {
+            textarea {
+                name: "text-content",
+                id: "text-content-form",
+                rows: "{rows}",
+                cols: "100",
+                "{text}",
+            }
+        }
+        br {
+            div {
+                dangerous_inner_html: "{html}",
+            }
         }
     })
 }

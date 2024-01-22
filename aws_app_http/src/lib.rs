@@ -106,6 +106,8 @@ enum _ResourceTypeWrapper {
     Route53,
     #[serde(rename = "systemd")]
     SystemD,
+    #[serde(rename = "inbound-email")]
+    InboundEmail,
 }
 
 #[cfg(test)]

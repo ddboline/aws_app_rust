@@ -439,3 +439,182 @@ impl AuthorizedUsers {
         query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 }
+
+#[derive(FromSqlRow, Clone, Debug, PartialEq)]
+pub struct InboundEmailDB {
+    pub id: Uuid,
+    pub s3_bucket: StackString,
+    pub s3_key: StackString,
+    pub from_address: StackString,
+    pub to_address: StackString,
+    pub subject: StackString,
+    pub date: OffsetDateTime,
+    pub text_content: StackString,
+    pub html_content: StackString,
+    pub raw_email: StackString,
+}
+
+#[derive(FromSqlRow, Clone, Debug)]
+pub struct InboundEmailBucketKey {
+    pub id: Uuid,
+    pub s3_bucket: StackString,
+    pub s3_key: StackString,
+}
+
+impl InboundEmailDB {
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn get_keys(pool: &PgPool) -> Result<Vec<InboundEmailBucketKey>, Error> {
+        let query = query!(
+            r"
+                SELECT id, s3_bucket, s3_key
+                FROM inbound_email
+            "
+        );
+        let conn = pool.get().await?;
+        query.fetch(&conn).await.map_err(Into::into)
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn get_all(
+        pool: &PgPool,
+        offset: Option<usize>,
+        limit: Option<usize>,
+    ) -> Result<impl Stream<Item = Result<Self, PqError>>, Error> {
+        let mut query = format_sstr!("SELECT * FROM inbound_email ORDER BY date");
+        if let Some(offset) = offset {
+            query.push_str(&format_sstr!(" OFFSET {offset}"));
+        }
+        if let Some(limit) = limit {
+            query.push_str(&format_sstr!(" LMIIT {limit}"));
+        }
+        let query = query_dyn!(&query)?;
+        let conn = pool.get().await?;
+        query.fetch_streaming(&conn).await.map_err(Into::into)
+    }
+
+    async fn _get_by_id<C>(id: Uuid, conn: &C) -> Result<Option<Self>, Error>
+    where
+        C: GenericClient + Sync,
+    {
+        let query = query!("SELECT * FROM inbound_email WHERE id = $id", id = id,);
+        query.fetch_opt(conn).await.map_err(Into::into)
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn get_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Self>, Error> {
+        let conn = pool.get().await?;
+        Self::_get_by_id(id, &conn).await
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn get_by_bucket_key(
+        pool: &PgPool,
+        bucket: &str,
+        key: &str,
+    ) -> Result<Option<Self>, Error> {
+        let query = query!(
+            r"
+                SELECT * FROM inbound_email
+                WHERE bucket = $bucket
+                  AND key = $key
+            ",
+            bucket = bucket,
+            key = key,
+        );
+        let conn = pool.get().await?;
+        query.fetch_opt(&conn).await.map_err(Into::into)
+    }
+
+    async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
+    where
+        C: GenericClient + Sync,
+    {
+        let query = query!(
+            r"
+                INSERT INTO inbound_email (
+                    id, s3_bucket, s3_key, from_address, to_address,
+                    subject, date, text_content, html_content, raw_email
+                ) VALUES (
+                    $id, $s3_bucket, $s3_key, $from_address, $to_address,
+                    $subject, $date, $text_content, $html_content, $raw_email
+                )
+            ",
+            id = self.id,
+            s3_bucket = self.s3_bucket,
+            s3_key = self.s3_key,
+            from_address = self.from_address,
+            to_address = self.to_address,
+            subject = self.subject,
+            date = self.date,
+            text_content = self.text_content,
+            html_content = self.html_content,
+            raw_email = self.raw_email,
+        );
+        query.execute(conn).await?;
+        Ok(())
+    }
+
+    async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
+    where
+        C: GenericClient + Sync,
+    {
+        let query = query!(
+            r"
+                UPDATE inbound_email
+                SET s3_bucket=$s3_bucket,
+                    s3_key=$s3_key,
+                    from_address=$from_address,
+                    to_address=$to_address,
+                    subject=$subject,
+                    date=$date,
+                    text_content=$text_content,
+                    html_content=$html_content,
+                    raw_email=$raw_email
+                WHERE id = $id
+            ",
+            id = self.id,
+            s3_bucket = self.s3_bucket,
+            s3_key = self.s3_key,
+            from_address = self.from_address,
+            to_address = self.to_address,
+            subject = self.subject,
+            date = self.date,
+            text_content = self.text_content,
+            html_content = self.html_content,
+            raw_email = self.raw_email,
+        );
+        query.execute(conn).await?;
+        Ok(())
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn upsert_entry(&self, pool: &PgPool) -> Result<Option<Self>, Error> {
+        let mut conn = pool.get().await?;
+        let tran = conn.transaction().await?;
+        let conn: &PgTransaction = &tran;
+
+        let existing = Self::_get_by_id(self.id, conn).await?;
+
+        if existing.is_some() {
+            self._update_entry(conn).await?;
+        } else {
+            self._insert_entry(conn).await?;
+        }
+        tran.commit().await?;
+        Ok(existing)
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn delete_entry_by_id(id: Uuid, pool: &PgPool) -> Result<(), Error> {
+        let query = query!("DELETE FROM inbound_email WHERE id = $id", id = id);
+        let conn = pool.get().await?;
+        query.execute(&conn).await?;
+        Ok(())
+    }
+}

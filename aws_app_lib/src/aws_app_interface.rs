@@ -27,6 +27,7 @@ use crate::{
     pricing_instance::PricingInstance,
     resource_type::ResourceType,
     route53_instance::Route53Instance,
+    s3_instance::S3Instance,
     scrape_instance_info::scrape_instance_info,
     ssh_instance::SSHInstance,
     sysinfo_instance::SysinfoInstance,
@@ -59,6 +60,7 @@ pub struct AwsAppInterface {
     pub pricing: PricingInstance,
     pub systemd: SystemdInstance,
     pub sysinfo: SysinfoInstance,
+    pub s3: S3Instance,
     pub stdout: StdoutChannel<StackString>,
 }
 
@@ -73,6 +75,7 @@ impl AwsAppInterface {
             pricing: PricingInstance::new(sdk_config),
             systemd: SystemdInstance::new(&config.systemd_services),
             sysinfo: SysinfoInstance::new(&config.systemd_services),
+            s3: S3Instance::new(sdk_config),
             config,
             pool,
             stdout: StdoutChannel::new(),
@@ -399,6 +402,7 @@ impl AwsAppInterface {
                     }
                 }
             }
+            ResourceType::InboundEmail => {}
         };
         Ok(())
     }

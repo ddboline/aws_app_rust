@@ -12,11 +12,13 @@ use tokio::io::{stdin, AsyncReadExt};
 use crate::{
     aws_app_interface::AwsAppInterface,
     config::Config,
+    inbound_email::InboundEmail,
     instance_opt::InstanceOpt,
     models::{InstanceFamily, InstanceList},
     novnc_instance::NoVncInstance,
     pgpool::PgPool,
     resource_type::{ResourceType, ALL_RESOURCES},
+    s3_instance::S3Instance,
     spot_request_opt::{get_tags, SpotRequestOpt},
     sysinfo_instance::SysinfoInstance,
     systemd_instance::SystemdInstance,
@@ -195,6 +197,7 @@ pub enum AwsAppOpts {
         key: Option<PathBuf>,
     },
     RunMigrations,
+    SyncEmail,
 }
 
 impl AwsAppOpts {
@@ -443,6 +446,13 @@ impl AwsAppOpts {
             Self::RunMigrations => {
                 let mut client = app.pool.get().await?;
                 migrations::runner().run_async(&mut **client).await?;
+                Ok(())
+            }
+            Self::SyncEmail => {
+                let sdk_config = aws_config::load_from_env().await;
+                let s3 = S3Instance::new(&sdk_config);
+                let new_keys = InboundEmail::sync_db(&app.config, &s3, &app.pool).await?;
+                app.stdout.send(new_keys.join("\n"));
                 Ok(())
             }
         };

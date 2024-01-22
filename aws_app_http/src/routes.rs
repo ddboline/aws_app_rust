@@ -4,6 +4,7 @@ use maplit::hashmap;
 use rweb::{delete, get, patch, post, Json, Query, Rejection, Schema};
 use rweb_helper::{
     html_response::HtmlResponse as HtmlBase, json_response::JsonResponse as JsonBase, RwebResponse,
+    UuidWrapper,
 };
 use serde::{Deserialize, Serialize};
 use stack_string::{format_sstr, StackString};
@@ -16,15 +17,15 @@ use tokio::{
 
 use aws_app_lib::{
     ec2_instance::{AmiInfo, SpotRequest},
-    models::{InstanceFamily, InstanceList},
+    models::{InboundEmailDB, InstanceFamily, InstanceList},
 };
 
 use super::{
     app::AppState,
     elements::{
-        build_spot_request_body, edit_script_body, get_frontpage, get_index, instance_family_body,
-        instance_status_body, instance_types_body, novnc_start_body, novnc_status_body,
-        prices_body, textarea_body, textarea_fixed_size_body,
+        build_spot_request_body, edit_script_body, get_frontpage, get_index, inbound_email_body,
+        instance_family_body, instance_status_body, instance_types_body, novnc_start_body,
+        novnc_status_body, prices_body, textarea_body, textarea_fixed_size_body,
     },
     errors::ServiceError as Error,
     ipv4addr_wrapper::Ipv4AddrWrapper,
@@ -263,7 +264,7 @@ pub struct ScriptFilename {
 #[response(description = "Edit Script", content = "html")]
 struct EditScriptResponse(HtmlBase<StackString, Error>);
 
-#[patch("/aws/edit_script")]
+#[get("/aws/edit_script")]
 #[openapi(description = "Edit Script")]
 pub async fn edit_script(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
@@ -1078,6 +1079,57 @@ pub async fn crontab_logs(
         .into()
     } else {
         StackString::new()
+    };
+    Ok(HtmlBase::new(body).into())
+}
+
+#[derive(RwebResponse)]
+#[response(description = "Get Inbound Email Detail", content = "html")]
+struct InboundEmailDetailResponse(HtmlBase<String, Error>);
+
+#[get("/aws/inbound-email/{id}")]
+pub async fn inbound_email_detail(
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
+    #[data] data: AppState,
+    id: UuidWrapper,
+) -> WarpResult<InboundEmailDetailResponse> {
+    let body = if let Some(email) = InboundEmailDB::get_by_id(&data.aws.pool, id.into())
+        .await
+        .map_err(Into::<Error>::into)?
+    {
+        inbound_email_body(email.text_content, email.html_content)
+    } else {
+        String::new()
+    };
+    Ok(HtmlBase::new(body).into())
+}
+
+#[derive(RwebResponse)]
+#[response(description = "Delete Inbound Email", content = "html")]
+struct DeleteEmailResponse(HtmlBase<&'static str, Error>);
+
+#[delete("/aws/inbound-email/{id}")]
+pub async fn inbound_email_delete(
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
+    #[data] data: AppState,
+    id: UuidWrapper,
+) -> WarpResult<DeleteEmailResponse> {
+    let id = id.into();
+    let body = if let Some(email) = InboundEmailDB::get_by_id(&data.aws.pool, id)
+        .await
+        .map_err(Into::<Error>::into)?
+    {
+        InboundEmailDB::delete_entry_by_id(id, &data.aws.pool)
+            .await
+            .map_err(Into::<Error>::into)?;
+        data.aws
+            .s3
+            .delete_key(&email.s3_bucket, &email.s3_key)
+            .await
+            .map_err(Into::<Error>::into)?;
+        "Deleted"
+    } else {
+        "Id Not Found"
     };
     Ok(HtmlBase::new(body).into())
 }

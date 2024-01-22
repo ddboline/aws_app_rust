@@ -21,10 +21,11 @@ use super::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
         create_access_key, create_image, create_snapshot, create_user, crontab_logs,
         delete_access_key, delete_ecr_image, delete_image, delete_script, delete_snapshot,
-        delete_user, delete_volume, edit_script, get_instances, get_prices, instance_status, list,
-        modify_volume, novnc_launcher, novnc_shutdown, novnc_status, remove_user_from_group,
-        replace_script, request_spot, sync_frontpage, systemd_action, systemd_logs,
-        systemd_restart_all, tag_item, terminate, update, update_dns_name, user,
+        delete_user, delete_volume, edit_script, get_instances, get_prices, inbound_email_delete,
+        inbound_email_detail, instance_status, list, modify_volume, novnc_launcher, novnc_shutdown,
+        novnc_status, remove_user_from_group, replace_script, request_spot, sync_frontpage,
+        systemd_action, systemd_logs, systemd_restart_all, tag_item, terminate, update,
+        update_dns_name, user,
     },
 };
 
@@ -81,6 +82,8 @@ fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
     let systemd_logs_path = systemd_logs(app.clone()).boxed();
     let systemd_restart_all_path = systemd_restart_all(app.clone()).boxed();
     let crontab_logs_path = crontab_logs(app.clone()).boxed();
+    let inbound_email_detail_path = inbound_email_detail(app.clone()).boxed();
+    let inbound_email_delete_path = inbound_email_delete(app.clone()).boxed();
 
     let novnc_scope = novnc_launcher_path
         .or(novnc_status_path)
@@ -123,6 +126,8 @@ fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
         .or(systemd_logs_path)
         .or(systemd_restart_all_path)
         .or(crontab_logs_path)
+        .or(inbound_email_detail_path)
+        .or(inbound_email_delete_path)
         .boxed()
 }
 

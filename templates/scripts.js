@@ -121,7 +121,7 @@ function editScript( filename ) {
         document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
         document.getElementById("garminconnectoutput").innerHTML = "done";
     }
-    xmlhttp.open("PATCH", url, true);
+    xmlhttp.open("GET", url, true);
     xmlhttp.send(null);
 }
 function submitFormData( filename ) {
@@ -466,4 +466,25 @@ function crontabLogs(crontab_type) {
     xmlhttp.open("GET", url, true);
     xmlhttp.send(null);
     document.getElementById("garminconnectoutput").innerHTML = "running";
+}
+function emailDetail( id ) {
+    let url = `/aws/inbound-email/${id}`;
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.onload = function f() {
+        document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
+        document.getElementById("garminconnectoutput").innerHTML = "done";
+    }
+    xmlhttp.open("GET", url, true);
+    xmlhttp.send(null);
+}
+function deleteEmail( id ) {
+    let url = `/aws/inbound-email/${id}`;
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.onload = function f() {
+        document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
+        document.getElementById("garminconnectoutput").innerHTML = "done";
+        listResource('inbound-email');
+    }
+    xmlhttp.open("DELETE", url, true);
+    xmlhttp.send(null);
 }
