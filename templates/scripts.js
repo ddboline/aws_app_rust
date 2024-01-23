@@ -446,11 +446,12 @@ function systemdLogs(service) {
     document.getElementById("garminconnectoutput").innerHTML = "running";
 }
 function systemdRestartAll() {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
     let url = "/aws/systemd_restart_all";
     let xmlhttp = new XMLHttpRequest();
     xmlhttp.onload = function f() {
         document.getElementById("garminconnectoutput").innerHTML = "done";
-        listResource('systemd');
+        sleep(1000).then(() => listResource('systemd'));
     }
     xmlhttp.open("POST", url, true);
     xmlhttp.send(null);
