@@ -17,7 +17,9 @@ use tokio::{
 
 use aws_app_lib::{
     ec2_instance::{AmiInfo, SpotRequest},
+    inbound_email::InboundEmail,
     models::{InboundEmailDB, InstanceFamily, InstanceList},
+    s3_instance::S3Instance,
 };
 
 use super::{
@@ -97,7 +99,7 @@ pub async fn terminate(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Image ID", content = "html")]
+#[response(description = "Image ID", content = "html", status = "CREATED")]
 struct CreateImageResponse(HtmlBase<String, Error>);
 
 #[post("/aws/create_image")]
@@ -350,7 +352,7 @@ where
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Spot Request", content = "html")]
+#[response(description = "Spot Request", content = "html", status = "CREATED")]
 struct BuildSpotResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/build_spot_request")]
@@ -485,7 +487,11 @@ pub struct CancelSpotRequest {
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Cancelled Spot", content = "html")]
+#[response(
+    description = "Cancelled Spot",
+    content = "html",
+    status = "NO_CONTENT"
+)]
 struct CancelledResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/cancel_spot")]
@@ -545,7 +551,7 @@ pub async fn get_prices(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Update", content = "html")]
+#[response(description = "Update", content = "html", status = "CREATED")]
 struct UpdateResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/update")]
@@ -591,7 +597,11 @@ pub async fn instance_status(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Run Command on Instance", content = "html")]
+#[response(
+    description = "Run Command on Instance",
+    content = "html",
+    status = "CREATED"
+)]
 struct CommandResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/command")]
@@ -647,7 +657,7 @@ pub async fn get_instances(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Start NoVNC", content = "html")]
+#[response(description = "Start NoVNC", content = "html", status = "CREATED")]
 struct NovncStartResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/novnc/start")]
@@ -678,7 +688,7 @@ pub async fn novnc_launcher(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Stop NoVNC", content = "html")]
+#[response(description = "Stop NoVNC", content = "html", status = "CREATED")]
 struct NovncStopResponse(HtmlBase<StackString, Error>);
 
 #[post("/aws/novnc/stop")]
@@ -765,7 +775,11 @@ pub async fn create_user(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Delete Iam User", content = "html")]
+#[response(
+    description = "Delete Iam User",
+    content = "html",
+    status = "NO_CONTENT"
+)]
 struct DeleteUserResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/delete_user")]
@@ -816,7 +830,11 @@ pub async fn add_user_to_group(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Remove User to Group", content = "html")]
+#[response(
+    description = "Remove User to Group",
+    content = "html",
+    status = "NO_CONTENT"
+)]
 struct RemoveUserGroupResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/remove_user_from_group")]
@@ -868,7 +886,11 @@ pub async fn create_access_key(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Delete Access Key", content = "html")]
+#[response(
+    description = "Delete Access Key",
+    content = "html",
+    status = "NO_CONTENT"
+)]
 struct DeleteKeyResponse(HtmlBase<StackString, Error>);
 
 #[delete("/aws/delete_access_key")]
@@ -1105,7 +1127,11 @@ pub async fn inbound_email_detail(
 }
 
 #[derive(RwebResponse)]
-#[response(description = "Delete Inbound Email", content = "html")]
+#[response(
+    description = "Delete Inbound Email",
+    content = "html",
+    status = "NO_CONTENT"
+)]
 struct DeleteEmailResponse(HtmlBase<&'static str, Error>);
 
 #[delete("/aws/inbound-email/{id}")]
@@ -1132,4 +1158,26 @@ pub async fn inbound_email_delete(
         "Id Not Found"
     };
     Ok(HtmlBase::new(body).into())
+}
+
+#[derive(RwebResponse)]
+#[response(
+    description = "Sync Inbound Email",
+    content = "html",
+    status = "CREATED"
+)]
+struct SyncEmailResponse(HtmlBase<StackString, Error>);
+
+#[post("/aws/inbound-email/sync")]
+pub async fn sync_inboud_email(
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
+    #[data] data: AppState,
+) -> WarpResult<SyncEmailResponse> {
+    let sdk_config = aws_config::load_from_env().await;
+    let s3 = S3Instance::new(&sdk_config);
+    let new_keys = InboundEmail::sync_db(&data.aws.config, &s3, &data.aws.pool)
+        .await
+        .map_err(Into::<Error>::into)?;
+    let body = new_keys.join("\n");
+    Ok(HtmlBase::new(body.into()).into())
 }

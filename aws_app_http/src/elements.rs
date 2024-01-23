@@ -1712,7 +1712,17 @@ fn InboundEmailElement(cx: Scope, emails: Vec<InboundEmailDB>) -> Element {
         table {
             "border": "1",
             class: "dataframe",
-            thead {th {"To"}, th {"From"}, th {"Subject"}, th {"Date"}, th {}},
+            thead {
+                th {"To"}, th {"From"}, th {"Subject"}, th {"Date"},
+                th {
+                    input {
+                        "type": "button",
+                        name: "sync",
+                        value: "Sync",
+                        "onclick": "syncEmail()",
+                    }
+                }
+            },
             tbody {
                 emails.iter().enumerate().map(|(idx, email)| {
                     let id = &email.id;

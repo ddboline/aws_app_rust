@@ -488,3 +488,14 @@ function deleteEmail( id ) {
     xmlhttp.open("DELETE", url, true);
     xmlhttp.send(null);
 }
+function syncEmail() {
+    let url = "/aws/inbound-email/sync";
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.onload = function f() {
+        document.getElementById("sub_article").innerHTML = xmlhttp.responseText;
+        document.getElementById("garminconnectoutput").innerHTML = "done";
+        listResource('inbound-email');
+    }
+    xmlhttp.open("POST", url, true);
+    xmlhttp.send(null);
+}

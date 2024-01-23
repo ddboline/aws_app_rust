@@ -1,6 +1,5 @@
 use anyhow::{format_err, Error};
-use mail_parser::{Message, MessageParser};
-use mail_parser::MessagePart;
+use mail_parser::{Message, MessageParser, MessagePart};
 use stack_string::StackString;
 use std::{
     collections::{HashMap, HashSet},
