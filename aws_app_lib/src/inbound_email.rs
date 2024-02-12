@@ -154,7 +154,8 @@ impl InboundEmail {
 mod tests {
     use anyhow::Error;
     use mail_parser::MessageParser;
-    use std::convert::TryInto;
+    use stack_string::{format_sstr, StackString};
+    use std::{convert::TryInto, fmt::Write};
 
     use crate::{
         config::Config, inbound_email::InboundEmail, models::InboundEmailDB, pgpool::PgPool,
@@ -184,6 +185,50 @@ mod tests {
         let message = parser.parse(data.as_bytes()).unwrap();
 
         assert_eq!(message.text_body_count(), 1);
+
+        for header in message.headers() {
+            let header_name = header.name();
+            let mut address_list = Vec::new();
+            let mut groups_list = Vec::new();
+            if let Some(address) = header.value().as_address() {
+                if let Some(list) = address.as_list() {
+                    for l in list {
+                        address_list.push(l.address().unwrap_or(""));
+                    }
+                }
+                if let Some(groups) = address.as_group() {
+                    for g in groups {
+                        let name = g.name.as_ref().map_or("", |s| s.as_ref());
+                        let mut group_addresses = Vec::new();
+                        for a in &g.addresses {
+                            group_addresses.push(a.address().unwrap_or(""));
+                        }
+                        groups_list.push(format_sstr!("{name} {}", group_addresses.join(",")));
+                    }
+                }
+            }
+            let text_list = header.value().as_text_list().unwrap_or_default().join(" ");
+            if let Some(content_type) = header.value().as_content_type() {
+                println!("ctype {}", content_type.ctype());
+            }
+            let mut received_host = StackString::new();
+            if let Some(received) = header.value().as_received() {
+                if let Some(host) = received.from() {
+                    write!(&mut received_host, " from: {host}").unwrap();
+                }
+                if let Some(host) = received.by() {
+                    write!(&mut received_host, " by: {host}").unwrap();
+                }
+                if let Some(f) = received.for_() {
+                    write!(&mut received_host, " for: {f}").unwrap();
+                }
+            }
+            println!(
+                "name {header_name} {} {} {text_list} {received_host}",
+                address_list.join(","),
+                groups_list.join(" ")
+            );
+        }
 
         let email: InboundEmail = message.try_into()?;
 
