@@ -1713,7 +1713,10 @@ fn InboundEmailElement(cx: Scope, emails: Vec<InboundEmailDB>) -> Element {
             "border": "1",
             class: "dataframe",
             thead {
-                th {"To"}, th {"From"}, th {"Subject"}, th {"Date"},
+                th {"Date"},
+                th {"From"},
+                th {"To"},
+                th {"Subject"},
                 th {
                     input {
                         "type": "button",
@@ -1766,18 +1769,24 @@ fn InboundEmailElement(cx: Scope, emails: Vec<InboundEmailDB>) -> Element {
     })
 }
 
-pub fn inbound_email_body(text: StackString, html: StackString) -> String {
+pub fn inbound_email_body(text: StackString, html: StackString, raw: StackString) -> String {
     let mut app = VirtualDom::new_with_props(
         InboundEmailDetailElement,
-        InboundEmailDetailElementProps { text, html },
+        InboundEmailDetailElementProps { text, html, raw },
     );
     drop(app.rebuild());
     dioxus_ssr::render(&app)
 }
 
 #[component]
-fn InboundEmailDetailElement(cx: Scope, text: StackString, html: StackString) -> Element {
+fn InboundEmailDetailElement(
+    cx: Scope,
+    text: StackString,
+    html: StackString,
+    raw: StackString,
+) -> Element {
     let rows = text.split('\n').count() + 5;
+    let raw_rows = raw.split('\n').count() + 5;
     cx.render(rsx! {
         br {
             textarea {
@@ -1791,6 +1800,15 @@ fn InboundEmailDetailElement(cx: Scope, text: StackString, html: StackString) ->
         br {
             div {
                 dangerous_inner_html: "{html}",
+            }
+        }
+        br {
+            textarea {
+                name: "raw-content",
+                id: "raw-content-form",
+                rows: "{raw_rows}",
+                cols: "100",
+                "{raw}",
             }
         }
     })

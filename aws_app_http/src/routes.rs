@@ -1119,7 +1119,7 @@ pub async fn inbound_email_detail(
         .await
         .map_err(Into::<Error>::into)?
     {
-        inbound_email_body(email.text_content, email.html_content)
+        inbound_email_body(email.text_content, email.html_content, email.raw_email)
     } else {
         String::new()
     };
