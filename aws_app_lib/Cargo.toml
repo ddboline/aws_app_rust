@@ -18,7 +18,7 @@ aws-sdk-route53 = "1.1"
 aws-sdk-s3 = "1.1"
 aws-sdk-ses = "1.1"
 aws-sdk-sts = "1.1"
-base64 = "0.21"
+base64 = "0.22"
 bytes = "1.1"
 clap = {version="4.0", features=["derive"]}
 deadpool-postgres = { version = "0.12", features=["serde"] }

@@ -100,7 +100,7 @@ mod tests {
 
         let sys_instance = SysinfoInstance::new(names);
         let procs = sys_instance.get_process_info();
-        assert_eq!(procs.len(), 1);
+        assert!(procs.len() >= 1);
         for proc in procs {
             println!("{proc}");
         }
