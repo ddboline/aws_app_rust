@@ -140,11 +140,10 @@ impl S3Instance {
     /// Return error if db query fails
     pub async fn upload(
         &self,
-        fname: &str,
+        fname: &Path,
         bucket_name: &str,
         key_name: &str,
     ) -> Result<(), Error> {
-        let fname = Path::new(fname);
         if !fname.exists() {
             return Err(format_err!("File doesn't exist {fname:?}"));
         }
@@ -169,9 +168,8 @@ impl S3Instance {
         &self,
         bucket_name: &str,
         key_name: &str,
-        fname: &str,
+        fname: &Path,
     ) -> Result<StackString, Error> {
-        let fname = Path::new(fname);
         exponential_retry(|| async move {
             let resp = self
                 .s3_client

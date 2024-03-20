@@ -1,12 +1,14 @@
 use anyhow::{format_err, Error};
-use mail_parser::{Message, MessageParser, MessagePart};
-use stack_string::StackString;
+use mail_parser::{Message, MessageParser, MessagePart, MimeHeaders, PartType};
+use stack_string::{StackString, format_sstr};
 use std::{
     collections::{HashMap, HashSet},
     convert::{TryFrom, TryInto},
 };
 use time::OffsetDateTime;
 use uuid::Uuid;
+use tempfile::TempDir;
+use tokio::fs;
 
 use crate::{config::Config, models::InboundEmailDB, pgpool::PgPool, s3_instance::S3Instance};
 
@@ -122,7 +124,7 @@ impl InboundEmail {
             .map(|ibk| (ibk.s3_key.clone(), ibk))
             .collect();
         let remote_keys: HashSet<StackString> = s3
-            .get_list_of_keys(bucket, None)
+            .get_list_of_keys(bucket, Some("inbound-email/"))
             .await?
             .into_iter()
             .filter_map(|object| object.key.map(Into::into))
@@ -134,11 +136,22 @@ impl InboundEmail {
                 InboundEmailDB::delete_entry_by_id(entry.id, pool).await?;
             }
         }
+        let tdir = TempDir::new()?;
         for key in &remote_keys {
             let key = key.as_str();
             if !key_dict.contains_key(key) {
                 let raw_email = s3.download_to_string(bucket, key).await?;
                 if let Some(message) = parser.parse(raw_email.as_bytes()) {
+                    for attachment in message.attachments() {
+                        if let PartType::Binary(body) = &attachment.body {
+                            if let Some(filename) = attachment.content_disposition().and_then(|c| c.attribute("filename").or_else(|| c.attribute("name"))) {
+                                let filepath = tdir.path().join(filename);
+                                fs::write(&filepath, &body).await?;
+                                let s3key = format_sstr!("attachments/{filename}");
+                                s3.upload(&filepath, bucket, &s3key).await?;
+                            }
+                        }
+                    }
                     let email: InboundEmail = message.try_into()?;
                     email.into_db(bucket, key).upsert_entry(pool).await?;
                     new_keys.push(key.into());
