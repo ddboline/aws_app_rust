@@ -37,7 +37,7 @@ use crate::{
 pub static INSTANCE_LIST: Lazy<RwLock<Arc<Vec<Ec2InstanceInfo>>>> =
     Lazy::new(|| RwLock::new(Arc::new(Vec::new())));
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AwsInstancePrice {
     pub instance_type: StackString,
     pub ondemand_price: Option<f64>,

@@ -12,7 +12,12 @@ use rweb::{
 };
 use serde::Serialize;
 use stack_string::StackString;
-use std::{borrow::Cow, convert::Infallible, fmt::Debug, string::FromUtf8Error};
+use std::{
+    borrow::Cow,
+    convert::Infallible,
+    fmt::{Debug, Error as FmtError},
+    string::FromUtf8Error,
+};
 use thiserror::Error;
 use time_tz::system::Error as TzSystemError;
 
@@ -34,6 +39,8 @@ pub enum ServiceError {
     TzSystemError(#[from] TzSystemError),
     #[error("PqError {0}")]
     PqError(#[from] PqError),
+    #[error("FmtError {0}")]
+    FmtError(#[from] FmtError),
 }
 
 impl Reject for ServiceError {}

@@ -283,7 +283,7 @@ pub async fn edit_script(
     } else {
         String::new()
     };
-    let body = edit_script_body(fname.clone(), text.into()).into();
+    let body = edit_script_body(fname.clone(), text.into())?.into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -420,7 +420,7 @@ pub async fn build_spot_request(
         files,
         keys,
         data.aws.config.clone(),
-    )
+    )?
     .into();
 
     Ok(HtmlBase::new(body).into())
@@ -535,7 +535,7 @@ pub async fn get_prices(
             .get_ec2_prices(&[search])
             .await
             .map_err(Into::<Error>::into)?;
-        prices_body(prices).into()
+        prices_body(prices)?.into()
     } else {
         let mut inst_fam: Vec<InstanceFamily> = InstanceFamily::get_all(&data.aws.pool, None)
             .await
@@ -544,7 +544,7 @@ pub async fn get_prices(
             .await
             .map_err(Into::<Error>::into)?;
         move_element_to_front(&mut inst_fam, |fam| fam.family_name == "m5");
-        instance_family_body(inst_fam).into()
+        instance_family_body(inst_fam)?.into()
     };
 
     Ok(HtmlBase::new(body).into())
@@ -566,7 +566,7 @@ pub async fn update(
         .await
         .map_err(Into::<Error>::into)?
         .collect();
-    let body = textarea_body(entries, "diary_editor_form".into()).into();
+    let body = textarea_body(entries, "diary_editor_form".into())?.into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -592,7 +592,7 @@ pub async fn instance_status(
         Err(_) => Err(format_err!("Timeout")),
     }
     .map_err(Into::<Error>::into)?;
-    let body = instance_status_body(entries, query.instance).into();
+    let body = instance_status_body(entries, query.instance)?.into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -623,7 +623,7 @@ pub async fn command(
     }
     .map_err(Into::<Error>::into)?;
 
-    let body = instance_status_body(entries, payload.instance).into();
+    let body = instance_status_body(entries, payload.instance)?.into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -652,7 +652,7 @@ pub async fn get_instances(
             .try_collect()
             .await
             .map_err(Into::<Error>::into)?;
-    let body = instance_types_body(instances);
+    let body = instance_types_body(instances)?;
     Ok(HtmlBase::new(body).into())
 }
 
@@ -680,7 +680,7 @@ pub async fn novnc_launcher(
             .get_websock_pids()
             .await
             .map_err(Into::<Error>::into)?;
-        let body = novnc_status_body(number, data.aws.config.domain.clone(), pids).into();
+        let body = novnc_status_body(number, data.aws.config.domain.clone(), pids)?.into();
         Ok(HtmlBase::new(body).into())
     } else {
         Ok(HtmlBase::new("NoVNC not configured".into()).into())
@@ -705,7 +705,7 @@ pub async fn novnc_shutdown(
         .novnc_stop_request()
         .await
         .map_err(Into::<Error>::into)?;
-    let body = textarea_body(output, "novnc-stop".into()).into();
+    let body = textarea_body(output, "novnc-stop".into())?.into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -724,14 +724,14 @@ pub async fn novnc_status(
     }
     let number = data.novnc.get_novnc_status().await;
     let body = if number == 0 {
-        novnc_start_body().into()
+        novnc_start_body()?.into()
     } else {
         let pids = data
             .novnc
             .get_websock_pids()
             .await
             .map_err(Into::<Error>::into)?;
-        novnc_status_body(number, data.aws.config.domain.clone(), pids).into()
+        novnc_status_body(number, data.aws.config.domain.clone(), pids)?.into()
     };
     Ok(HtmlBase::new(body).into())
 }
@@ -1070,7 +1070,7 @@ pub async fn systemd_logs(
         .into_iter()
         .map(|log| log.to_string().into())
         .collect();
-    let body = textarea_body(entries, "systemd-logs".into()).into();
+    let body = textarea_body(entries, "systemd-logs".into())?.into();
     Ok(HtmlBase::new(body).into())
 }
 
@@ -1097,7 +1097,7 @@ pub async fn crontab_logs(
                 .map_err(Into::<Error>::into)?
                 .into(),
             "systemd_logs".into(),
-        )
+        )?
         .into()
     } else {
         StackString::new()
@@ -1119,7 +1119,7 @@ pub async fn inbound_email_detail(
         .await
         .map_err(Into::<Error>::into)?
     {
-        inbound_email_body(email.text_content, email.html_content, email.raw_email)
+        inbound_email_body(email.text_content, email.html_content, email.raw_email)?
     } else {
         String::new()
     };
@@ -1175,9 +1175,12 @@ pub async fn sync_inboud_email(
 ) -> WarpResult<SyncEmailResponse> {
     let sdk_config = aws_config::load_from_env().await;
     let s3 = S3Instance::new(&sdk_config);
-    let new_keys = InboundEmail::sync_db(&data.aws.config, &s3, &data.aws.pool)
+    let (new_keys, new_attachments) = InboundEmail::sync_db(&data.aws.config, &s3, &data.aws.pool)
         .await
-        .map_err(Into::<Error>::into)?;
-    let body = new_keys.join("\n");
+        .map_err(Into::<Error>::into).map(|(k, a)| (k.join("\n"), a.join("\n")))?;
+    let new_records = InboundEmail::parse_dmarc_records(&data.aws.config, &s3, &data.aws.pool).await.map_err(Into::<Error>::into)?.len();
+    let body = format!(
+        "keys {new_keys}\n\nattachments {new_attachments}\n dmarc_records {new_records}"
+    );
     Ok(HtmlBase::new(body.into()).into())
 }

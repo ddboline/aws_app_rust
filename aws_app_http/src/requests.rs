@@ -12,7 +12,7 @@ use aws_app_lib::{aws_app_interface::AwsAppInterface, ec2_instance::AmiInfo};
 use crate::errors::ServiceError as Error;
 
 #[cached(
-    type = "SizedCache<StackString, Option<AmiInfo>>",
+    ty = "SizedCache<StackString, Option<AmiInfo>>",
     create = "{ SizedCache::with_size(10) }",
     convert = r#"{ format_sstr!("{}-{}", ubuntu_release, arch) }"#,
     result = true

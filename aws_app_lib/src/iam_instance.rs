@@ -206,7 +206,7 @@ impl IamInstance {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct IamUser {
     pub arn: StackString,
     pub create_date: DateTimeWrapper,
@@ -237,7 +237,7 @@ impl IamUser {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct IamGroup {
     pub arn: StackString,
     pub create_date: OffsetDateTime,

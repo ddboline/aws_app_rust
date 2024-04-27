@@ -1,12 +1,20 @@
-use anyhow::Error;
+use anyhow::{format_err, Error};
 use futures::Stream;
+use mail_parser::{MessageParser, MimeHeaders, PartType};
 use postgres_query::{client::GenericClient, query, query_dyn, Error as PqError, FromSqlRow};
+use roxmltree::{Document, NodeType};
 use stack_string::{format_sstr, StackString};
-use std::fmt;
+use std::{collections::HashSet, fmt};
+use tempfile::TempDir;
 use time::OffsetDateTime;
+use tokio::fs;
 use uuid::Uuid;
 
-use crate::pgpool::{PgPool, PgTransaction};
+use crate::{
+    config::Config,
+    pgpool::{PgPool, PgTransaction},
+    s3_instance::S3Instance,
+};
 
 #[derive(FromSqlRow, Clone, Debug, PartialEq, Eq)]
 pub struct InstanceFamily {
@@ -615,6 +623,264 @@ impl InboundEmailDB {
         let query = query!("DELETE FROM inbound_email WHERE id = $id", id = id);
         let conn = pool.get().await?;
         query.execute(&conn).await?;
+        Ok(())
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn extract_attachments(
+        &self,
+        config: &Config,
+        s3: &S3Instance,
+    ) -> Result<Vec<StackString>, Error> {
+        let mut extracted_attachments = Vec::new();
+        let parser = MessageParser::default();
+        let bucket = config
+            .inbound_email_bucket
+            .as_ref()
+            .ok_or_else(|| format_err!("No Inbound Email Bucket"))?;
+
+        let attachments: HashSet<StackString> = s3
+            .get_list_of_keys(bucket, Some("attachments/"))
+            .await?
+            .into_iter()
+            .filter_map(|object| object.key.map(Into::into))
+            .collect();
+
+        let tdir = TempDir::new()?;
+        if let Some(message) = parser.parse(self.raw_email.as_bytes()) {
+            for attachment in message.attachments() {
+                if let PartType::Binary(body) = &attachment.body {
+                    if let Some(filename) = attachment
+                        .content_disposition()
+                        .and_then(|c| c.attribute("filename").or_else(|| c.attribute("name")))
+                    {
+                        let s3key = format_sstr!("attachments/{filename}");
+                        if attachments.contains(&s3key) {
+                            continue;
+                        }
+                        let filepath = tdir.path().join(filename);
+                        fs::write(&filepath, &body).await?;
+                        s3.upload(&filepath, bucket, &s3key).await?;
+                        extracted_attachments.push(s3key);
+                        if let Some(content_type) = attachment.content_disposition() {
+                            for a in content_type.attributes().unwrap_or(&[]) {
+                                println!("{a:?}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(extracted_attachments)
+    }
+}
+
+#[derive(FromSqlRow, Clone, Debug, PartialEq)]
+pub struct DmarcRecords {
+    pub id: Uuid,
+    pub s3_key: Option<StackString>,
+    pub org_name: Option<StackString>,
+    pub email: Option<StackString>,
+    pub report_id: Option<StackString>,
+    pub date_range_begin: Option<i32>,
+    pub date_range_end: Option<i32>,
+    pub policy_domain: Option<StackString>,
+    pub source_ip: Option<StackString>,
+    pub count: Option<i32>,
+    pub auth_result_type: Option<StackString>,
+    pub auth_result_domain: Option<StackString>,
+    pub auth_result_result: Option<StackString>,
+    pub created_at: OffsetDateTime,
+}
+
+impl Default for DmarcRecords {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DmarcRecords {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            s3_key: None,
+            org_name: None,
+            email: None,
+            report_id: None,
+            date_range_begin: None,
+            date_range_end: None,
+            policy_domain: None,
+            source_ip: None,
+            count: None,
+            auth_result_type: None,
+            auth_result_domain: None,
+            auth_result_result: None,
+            created_at: OffsetDateTime::now_utc(),
+        }
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn get_parsed_s3_keys(pool: &PgPool) -> Result<Vec<StackString>, Error> {
+        let query = query!("SELECT distinct s3_key FROM dmarc_records WHERE s3_key IS NOT NULL");
+        let conn = pool.get().await?;
+        let result = query.query(&conn).await?;
+        result.into_iter().map(|r| r.try_get(0).map_err(Into::into)).collect()
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn delete_by_s3_key(s3_key: &str, pool: &PgPool) -> Result<u64, Error> {
+        let query = query!("DELETE FROM dmarc_records WHERE s3_key = $s3_key", s3_key=s3_key);
+        let conn = pool.get().await?;
+        query.execute(&conn).await.map_err(Into::into)
+    }
+
+    async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
+    where
+        C: GenericClient + Sync,
+    {
+        let query = query!(
+            r"
+                INSERT INTO dmarc_records (
+                    id, s3_key, org_name, email, report_id, date_range_begin,
+                    date_range_end, policy_domain, source_ip, count,
+                    auth_result_type, auth_result_domain, auth_result_result,
+                    created_at
+                ) VALUES (
+                    $id, $s3_key, $org_name, $email, $report_id, $date_range_begin,
+                    $date_range_end, $policy_domain, $source_ip, $count,
+                    $auth_result_type, $auth_result_domain, $auth_result_result,
+                    $created_at
+                )
+            ",
+            id = self.id,
+            s3_key = self.s3_key,
+            org_name = self.org_name,
+            email = self.email,
+            report_id = self.report_id,
+            date_range_begin = self.date_range_begin,
+            date_range_end = self.date_range_end,
+            policy_domain = self.policy_domain,
+            source_ip = self.source_ip,
+            count = self.count,
+            auth_result_type = self.auth_result_type,
+            auth_result_domain = self.auth_result_domain,
+            auth_result_result = self.auth_result_result,
+            created_at = self.created_at,
+        );
+        query.execute(conn).await?;
+        Ok(())
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn insert_entry(&self, pool: &PgPool) -> Result<(), Error> {
+        let conn = pool.get().await?;
+        self._insert_entry(&conn).await?;
+        Ok(())
+    }
+
+    /// # Errors
+    /// Returns error if XML parsing fails
+    pub fn parse_xml(body: &str, s3_key: Option<&str>) -> Result<Vec<Self>, Error> {
+        let mut records = Vec::new();
+        let mut dmarc_record = DmarcRecords::new();
+        if let Some(s3_key) = s3_key {
+            dmarc_record.s3_key = Some(s3_key.into());
+        }
+        let doc = Document::parse(body)?;
+        for d in doc.root().descendants() {
+            if d.node_type() == NodeType::Element && d.tag_name().name() == "org_name" {
+                dmarc_record.org_name = d.text().map(Into::into);
+            }
+            if d.node_type() == NodeType::Element && d.tag_name().name() == "email" {
+                dmarc_record.email = d.text().map(Into::into);
+            }
+            if d.node_type() == NodeType::Element && d.tag_name().name() == "report_id" {
+                dmarc_record.report_id = d.text().map(Into::into);
+            }
+            if d.node_type() == NodeType::Element && d.tag_name().name() == "date_range" {
+                for d0 in d.descendants() {
+                    if d0.node_type() == NodeType::Element && d0.tag_name().name() == "begin" {
+                        dmarc_record.date_range_begin = d0.text().and_then(|t| t.parse().ok());
+                    }
+                    if d0.node_type() == NodeType::Element && d0.tag_name().name() == "end" {
+                        dmarc_record.date_range_end = d0.text().and_then(|t| t.parse().ok());
+                    }
+                }
+            }
+            if d.node_type() == NodeType::Element && d.tag_name().name() == "policy_published" {
+                for d0 in d.descendants() {
+                    if d0.node_type() == NodeType::Element && d0.tag_name().name() == "domain" {
+                        dmarc_record.policy_domain = d0.text().map(Into::into);
+                    }
+                }
+            }
+            if d.node_type() == NodeType::Element && d.tag_name().name() == "record" {
+                for d0 in d.descendants() {
+                    if d0.node_type() == NodeType::Element && d0.tag_name().name() == "source_ip" {
+                        dmarc_record.source_ip = d0.text().map(Into::into);
+                    }
+                    if d0.node_type() == NodeType::Element && d0.tag_name().name() == "count" {
+                        dmarc_record.count = d0.text().and_then(|t| t.parse().ok());
+                    }
+                    if d0.node_type() == NodeType::Element && d0.tag_name().name() == "auth_results"
+                    {
+                        for d1 in d0.descendants() {
+                            for t in ["dkim", "spf"] {
+                                if d1.node_type() == NodeType::Element && d1.tag_name().name() == t
+                                {
+                                    let mut dmarc_record1 = dmarc_record.clone();
+                                    dmarc_record1.id = Uuid::new_v4();
+                                    dmarc_record1.auth_result_type = Some(t.into());
+                                    for d2 in d1.descendants() {
+                                        if d2.node_type() == NodeType::Element
+                                            && d2.tag_name().name() == "domain"
+                                        {
+                                            dmarc_record1.auth_result_domain =
+                                                d2.text().map(Into::into);
+                                        }
+                                        if d2.node_type() == NodeType::Element
+                                            && d2.tag_name().name() == "result"
+                                        {
+                                            dmarc_record1.auth_result_result =
+                                                d2.text().map(Into::into);
+                                        }
+                                    }
+                                    records.push(dmarc_record1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(records)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Error;
+    use flate2::read::GzDecoder;
+    use std::{fs, io::Read};
+    use tempfile::TempDir;
+
+    use crate::models::DmarcRecords;
+
+    #[tokio::test]
+    async fn test_parse_xml() -> Result<(), Error> {
+        let td = TempDir::new()?;
+        let data = include_bytes!("../../tests/data/temp.xml.gz");
+        let p = td.path().join("temp.xml.gz");
+        fs::write(&p, data)?;
+        let mut body = String::new();
+        GzDecoder::new(fs::File::open(&p)?).read_to_string(&mut body)?;
+        let records = DmarcRecords::parse_xml(&body, Some("test_key"))?;
+        assert_eq!(records.len(), 21);
         Ok(())
     }
 }

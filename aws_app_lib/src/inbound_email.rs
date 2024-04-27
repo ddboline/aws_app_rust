@@ -1,17 +1,18 @@
 use anyhow::{format_err, Error};
-use mail_parser::{Message, MessageParser, MessagePart, MimeHeaders, PartType};
-use stack_string::{StackString, format_sstr};
+use mail_parser::{Message, MessageParser, MessagePart};
+use stack_string::StackString;
 use std::{
     collections::{HashMap, HashSet},
-    convert::{TryFrom, TryInto},
+    convert::{TryFrom, TryInto}, io::Read,
 };
 use time::OffsetDateTime;
 use uuid::Uuid;
-use tempfile::TempDir;
-use tokio::fs;
+use tempfile::NamedTempFile;
+use flate2::read::GzDecoder;
 
-use crate::{config::Config, models::InboundEmailDB, pgpool::PgPool, s3_instance::S3Instance};
+use crate::{config::Config, models::{DmarcRecords, InboundEmailDB}, pgpool::PgPool, s3_instance::S3Instance};
 
+#[derive(Debug)]
 pub struct InboundEmail {
     pub from_address: StackString,
     pub to_address: StackString,
@@ -112,7 +113,7 @@ impl InboundEmail {
         config: &Config,
         s3: &S3Instance,
         pool: &PgPool,
-    ) -> Result<Vec<StackString>, Error> {
+    ) -> Result<(Vec<StackString>, Vec<StackString>), Error> {
         let parser = MessageParser::default();
         let bucket = config
             .inbound_email_bucket
@@ -131,35 +132,68 @@ impl InboundEmail {
             .collect();
 
         let mut new_keys = Vec::new();
+        let mut new_attachments = Vec::new();
         for (key, entry) in &key_dict {
             if !remote_keys.contains(key.as_str()) {
                 InboundEmailDB::delete_entry_by_id(entry.id, pool).await?;
+            } else if let Some(email) = InboundEmailDB::get_by_id(pool, entry.id).await? {
+                new_attachments.extend(email.extract_attachments(config, s3).await?);
             }
         }
-        let tdir = TempDir::new()?;
         for key in &remote_keys {
             let key = key.as_str();
             if !key_dict.contains_key(key) {
                 let raw_email = s3.download_to_string(bucket, key).await?;
                 if let Some(message) = parser.parse(raw_email.as_bytes()) {
-                    for attachment in message.attachments() {
-                        if let PartType::Binary(body) = &attachment.body {
-                            if let Some(filename) = attachment.content_disposition().and_then(|c| c.attribute("filename").or_else(|| c.attribute("name"))) {
-                                let filepath = tdir.path().join(filename);
-                                fs::write(&filepath, &body).await?;
-                                let s3key = format_sstr!("attachments/{filename}");
-                                s3.upload(&filepath, bucket, &s3key).await?;
-                            }
-                        }
-                    }
                     let email: InboundEmail = message.try_into()?;
-                    email.into_db(bucket, key).upsert_entry(pool).await?;
+                    let email = email.into_db(bucket, key);
+                    email.upsert_entry(pool).await?;
+                    email.extract_attachments(config, s3).await?;
                     new_keys.push(key.into());
                 }
             }
         }
 
-        Ok(new_keys)
+        Ok((new_keys, new_attachments))
+    }
+
+    /// # Errors
+    /// Returns error if db query fails
+    pub async fn parse_dmarc_records(config: &Config, s3: &S3Instance, pool: &PgPool) -> Result<Vec<DmarcRecords>, Error> {
+        let mut new_records = Vec::new();
+        let bucket = config
+            .inbound_email_bucket
+            .as_ref()
+            .ok_or_else(|| format_err!("No Inbound Email Bucket"))?;
+
+        let parsed_attachments: HashSet<StackString> = DmarcRecords::get_parsed_s3_keys(pool).await?.into_iter().collect();
+
+        for attachment in s3
+            .get_list_of_keys(bucket, Some("attachments/"))
+            .await? {
+                if let Some(key) = &attachment.key {
+                    if !parsed_attachments.contains(key.as_str()) {
+                        let f = NamedTempFile::new()?;
+                        s3.download(bucket, key, f.path()).await?;
+                        if let Some(t) = infer::get_from_path(f.path())? {
+                            let mut buffer = String::new();
+                            if t.mime_type() == "text/xml" {
+                                buffer = tokio::fs::read_to_string(f.path()).await?;
+                            } else if t.mime_type() == "application/gzip" {
+                                GzDecoder::new(std::fs::File::open(f.path())?).read_to_string(&mut buffer)?;
+                            }
+                            if !buffer.is_empty() {
+                                for record in DmarcRecords::parse_xml(&buffer, Some(key.as_str()))? {
+                                    record.insert_entry(pool).await?;
+                                    new_records.push(record);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        Ok(new_records)
     }
 }
 
@@ -171,7 +205,7 @@ mod tests {
     use std::{convert::TryInto, fmt::Write};
 
     use crate::{
-        config::Config, inbound_email::InboundEmail, models::InboundEmailDB, pgpool::PgPool,
+        config::Config, inbound_email::InboundEmail, models::{DmarcRecords, InboundEmailDB}, pgpool::PgPool,
         s3_instance::S3Instance,
     };
 
@@ -264,15 +298,25 @@ mod tests {
 
         let existing = if let Some(key) = InboundEmailDB::get_keys(&pool).await?.first() {
             InboundEmailDB::delete_entry_by_id(key.id, &pool).await?;
+            println!("found key {}", key.s3_key);
             Some(key.s3_key.clone())
         } else {
             None
         };
 
-        let new_keys = InboundEmail::sync_db(&config, &s3, &pool).await?;
-        assert!(new_keys.len() > 0);
-        if let Some(existing) = existing {
-            assert!(new_keys.contains(&existing));
+        let (new_keys, _) = InboundEmail::sync_db(&config, &s3, &pool).await?;
+        if let Some(existing) = &existing {
+            assert!(new_keys.len() > 0);
+            assert!(new_keys.contains(existing));
+        }
+
+        if let Some(existing) = DmarcRecords::get_parsed_s3_keys(&pool).await?.pop() {
+            DmarcRecords::delete_by_s3_key(&existing, &pool).await?;
+        }
+
+        let new_records = InboundEmail::parse_dmarc_records(&config, &s3, &pool).await?;
+        if existing.is_some() {
+            assert!(new_records.len() > 0);
         }
 
         Ok(())

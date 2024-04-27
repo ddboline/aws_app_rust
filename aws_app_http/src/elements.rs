@@ -1,6 +1,5 @@
 use dioxus::prelude::{
-    component, dioxus_elements, rsx, Element, GlobalAttributes, IntoDynNode, LazyNodes, Props,
-    Scope, VirtualDom,
+    component, dioxus_elements, rsx, Element, GlobalAttributes, IntoDynNode, Props, VirtualDom,
 };
 use futures::{future::try_join_all, stream::FuturesUnordered, try_join, TryStreamExt};
 use stack_string::{format_sstr, StackString};
@@ -41,8 +40,13 @@ pub async fn get_index(app: &AwsAppInterface) -> Result<StackString, Error> {
     let body = {
         let mut app =
             VirtualDom::new_with_props(IndexListElement, IndexListElementProps { instances });
-        drop(app.rebuild());
-        dioxus_ssr::render(&app)
+        app.rebuild_in_place();
+        let mut renderer = dioxus_ssr::Renderer::default();
+        let mut buffer = String::new();
+        renderer
+            .render_to(&mut buffer, &app)
+            .map_err(Into::<Error>::into)?;
+        buffer
     };
     Ok(body.into())
 }
@@ -59,8 +63,11 @@ pub async fn get_frontpage(
             let instances = INSTANCE_LIST.read().await.clone();
             let mut app =
                 VirtualDom::new_with_props(ListInstanceBody, ListInstanceBodyProps { instances });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Reserved => {
             let reserved: Vec<_> = aws.ec2.get_reserved_instances().await?.collect();
@@ -69,8 +76,11 @@ pub async fn get_frontpage(
             }
             let mut app =
                 VirtualDom::new_with_props(ReservedElement, ReservedElementProps { reserved });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Spot => {
             let requests: Vec<_> = aws.ec2.get_spot_instance_requests().await?.collect();
@@ -78,26 +88,38 @@ pub async fn get_frontpage(
                 return Ok(StackString::new());
             }
             let mut app = VirtualDom::new_with_props(SpotElement, SpotElementProps { requests });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Ami => {
             let ami_tags = Box::pin(get_ami_tags(aws)).await?;
             let mut app = VirtualDom::new_with_props(AmiElement, AmiElementProps { ami_tags });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Key => {
             let keys: Vec<_> = aws.ec2.get_all_key_pairs().await?.collect();
             let mut app = VirtualDom::new_with_props(KeyElement, KeyElementProps { keys });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Volume => {
             let volumes: Vec<_> = aws.ec2.get_all_volumes().await?.collect();
             let mut app = VirtualDom::new_with_props(VolumeElement, VolumeElementProps { volumes });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Snapshot => {
             let mut snapshots: Vec<_> = aws.ec2.get_all_snapshots().await?.collect();
@@ -111,8 +133,11 @@ pub async fn get_frontpage(
             });
             let mut app =
                 VirtualDom::new_with_props(SnapshotElement, SnapshotElementProps { snapshots });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Ecr => {
             let futures = aws
@@ -129,8 +154,11 @@ pub async fn get_frontpage(
                 return Ok(StackString::new());
             }
             let mut app = VirtualDom::new_with_props(EcrElement, EcrElementProps { images });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Script => {
             let scripts = aws.get_all_scripts();
@@ -138,8 +166,11 @@ pub async fn get_frontpage(
                 return Ok(StackString::new());
             }
             let mut app = VirtualDom::new_with_props(ScriptElement, ScriptElementProps { scripts });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::User => {
             let user_name: Option<&str> = None;
@@ -179,8 +210,11 @@ pub async fn get_frontpage(
                     key_map,
                 },
             );
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Group => {
             let (users, groups) = try_join!(aws.iam.list_users(), aws.iam.list_groups())?;
@@ -208,8 +242,11 @@ pub async fn get_frontpage(
                     users,
                 },
             );
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::AccessKey => {
             let futures = aws
@@ -222,8 +259,11 @@ pub async fn get_frontpage(
             let keys: Vec<AccessKeyMetadata> = results?.into_iter().flatten().collect();
             let mut app =
                 VirtualDom::new_with_props(AccessKeyElement, AccessKeyElementProps { keys });
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::Route53 => {
             let current_ip = aws.route53.get_ip_address().await?;
@@ -235,8 +275,11 @@ pub async fn get_frontpage(
                     current_ip,
                 },
             );
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::SystemD => {
             let processes: HashMap<StackString, Vec<_>> = aws
@@ -257,8 +300,11 @@ pub async fn get_frontpage(
                     config,
                 },
             );
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
         ResourceType::InboundEmail => {
             let emails = InboundEmailDB::get_all(&aws.pool, None, None)
@@ -269,17 +315,22 @@ pub async fn get_frontpage(
                 InboundEmailElement,
                 InboundEmailElementProps { emails },
             );
-            drop(app.rebuild());
-            dioxus_ssr::render(&app)
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
         }
     };
     Ok(body.into())
 }
 
-fn index_element<'a>(children: LazyNodes<'a, 'a>) -> LazyNodes<'a, 'a> {
+fn index_element(children: Element) -> Element {
     rsx! {
         head {
-            style {include_str!("../../templates/style.css")},
+            style {
+                {include_str!("../../templates/style.css")}
+            },
         },
         body {
             input {"type": "button", name: "list_inst", value: "Instances", "onclick": "listResource('instances')"},
@@ -304,27 +355,27 @@ fn index_element<'a>(children: LazyNodes<'a, 'a>) -> LazyNodes<'a, 'a> {
             button {name: "garminconnectoutput", id: "garminconnectoutput", dangerous_inner_html: "&nbsp"},
             },
         },
-        article {id: "main_article", children},
+        article {id: "main_article", {children}},
         article {id: "sub_article", dangerous_inner_html: "&nbsp"},
         script {"language": "Javascript", "type": "text/javascript", dangerous_inner_html: include_str!("../../templates/scripts.js")},
     }
 }
 
 #[component]
-fn IndexListElement(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
-    cx.render(rsx! {
-        index_element(
-            list_instance_element(instances)
-        )
-    })
+fn IndexListElement(instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
+    rsx! {
+        {index_element(
+            list_instance_element(&instances)
+        )}
+    }
 }
 
 #[component]
-fn ListInstanceBody(cx: Scope, instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
-    cx.render(list_instance_element(instances))
+fn ListInstanceBody(instances: Arc<Vec<Ec2InstanceInfo>>) -> Element {
+    list_instance_element(&instances)
 }
 
-fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
+fn list_instance_element(instances: &[Ec2InstanceInfo]) -> Element {
     let local_tz = DateTimeWrapper::local_tz();
     let empty: StackString = "".into();
     rsx! {
@@ -343,7 +394,7 @@ fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
                 }
             },
             tbody {
-                instances.iter().enumerate().map(|(idx, inst)| {
+                {instances.iter().enumerate().map(|(idx, inst)| {
                     let inst_id = &inst.id;
                     let status_button = if &inst.state == "running" {
                         Some(rsx! {
@@ -390,23 +441,23 @@ fn list_instance_element(instances: &[Ec2InstanceInfo]) -> LazyNodes {
                             td {"{inst_id}"},
                             td {"{dn}"},
                             td {"{st}"},
-                            td {name_button},
+                            td {{name_button}},
                             td {"{it}"},
                             td {"{lt}"},
                             td {"{az}"},
-                            td {status_button},
-                            td {terminate_button},
+                            td {{status_button}},
+                            td {{terminate_button}},
                         }
                     }
-                })
+                })}
             }
         }
     }
 }
 
 #[component]
-fn ReservedElement(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
-    cx.render(rsx! {
+fn ReservedElement(reserved: Vec<ReservedInstanceInfo>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -420,7 +471,7 @@ fn ReservedElement(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
                 }
             },
             tbody {
-                reserved.iter().enumerate().map(|(idx, res)| {
+                {reserved.iter().enumerate().map(|(idx, res)| {
                     let id = &res.id;
                     let price = res.price;
                     let instance_type = &res.instance_type;
@@ -439,15 +490,15 @@ fn ReservedElement(cx: Scope, reserved: Vec<ReservedInstanceInfo>) -> Element {
                             td {"{ad}"},
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
 #[component]
-fn SpotElement(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
-    cx.render(rsx! {
+fn SpotElement(requests: Vec<SpotInstanceRequestInfo>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -462,7 +513,7 @@ fn SpotElement(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
                 }
             }
             tbody {
-                requests.iter().enumerate().map(|(idx, req)| {
+                {requests.iter().enumerate().map(|(idx, req)| {
                     let id = &req.id;
                     let pr = req.price;
                     let im = &req.imageid;
@@ -490,18 +541,18 @@ fn SpotElement(cx: Scope, requests: Vec<SpotInstanceRequestInfo>) -> Element {
                             td {"{it}"},
                             td {"{st}"},
                             td {"{s}"},
-                            td {pf},
+                            td {{pf}},
                         }
                     }
-                })
+                })}
             }
        }
-    })
+    }
 }
 
 #[component]
-fn AmiElement(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
-    cx.render(rsx! {
+fn AmiElement(ami_tags: Vec<AmiInfo>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -516,7 +567,7 @@ fn AmiElement(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
                 },
             },
             tbody {
-                ami_tags.iter().enumerate().map(|(idx, ami)| {
+                {ami_tags.iter().enumerate().map(|(idx, ami)| {
                     let id = &ami.id;
                     let nm = &ami.name;
                     let st = &ami.state;
@@ -547,15 +598,15 @@ fn AmiElement(cx: Scope, ami_tags: Vec<AmiInfo>) -> Element {
                             td {"{sn}"},
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
 #[component]
-fn KeyElement(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
-    cx.render(rsx! {
+fn KeyElement(keys: Vec<(StackString, StackString)>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -566,7 +617,7 @@ fn KeyElement(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
                 }
            },
            tbody {
-            keys.iter().enumerate().map(|(idx, (key, fingerprint))| {
+            {keys.iter().enumerate().map(|(idx, (key, fingerprint))| {
                 rsx! {
                     tr {
                         key: "key-{idx}",
@@ -575,180 +626,180 @@ fn KeyElement(cx: Scope, keys: Vec<(StackString, StackString)>) -> Element {
                         td {"{fingerprint}"},
                     }
                 }
-            })
+            })}
            }
         }
-    })
+    }
 }
 
 #[component]
-fn VolumeElement(cx: Scope, volumes: Vec<VolumeInfo>) -> Element {
+fn VolumeElement(volumes: Vec<VolumeInfo>) -> Element {
     let local_tz = DateTimeWrapper::local_tz();
-    cx.render(
-        rsx! {
-            table {
-                "border": "1",
-                class: "dataframe",
-                thead {
-                    tr {
-                        th {},
-                        th {"Volume ID"},
-                        th {"Availability Zone"},
-                        th {"Size"},
-                        th {"IOPS"},
-                        th {"State"},
-                        th {"Tags"},
-                    }
-                }
-                tbody {
-                    volumes.iter().enumerate().map(|(idx, vol)| {
-                        let vs = get_volumes(vol.size).into_iter().enumerate().map(|(i, s)| {
-                            rsx! {
-                                option {
-                                    key: "vs-key-{i}",
-                                    value: "{s}",
-                                    "{s} GB"
-                                }
-                            }
-                        });
-                        let id = &vol.id;
-                        let az = &vol.availability_zone;
-                        let io = vol.iops;
-                        let st = &vol.state;
-                        let bt = if vol.tags.get("Name").map(StackString::as_str) == Some("ddbolineinthecloud") {
-                            None
-                        } else {
-                            Some(rsx! {
-                                input {
-                                    "type": "button",
-                                    name: "DeleteVolume",
-                                    value: "DeleteVolume",
-                                    "onclick": "deleteVolume('{id}')",
-                                }
-                            })
-                        };
-                        let tg = if vol.tags.is_empty() {
-                            rsx! {
-                                input {
-                                    "type": "text", name: "tag_volume", id: "{id}_tag_volume",
-                                },
-                                input {
-                                    "type": "button", name: "tag_volume", value: "Tag", "onclick": "tagVolume('{id}');",
-                                }
-                            }
-                        } else {
-                            let tags = print_tags(&vol.tags);
-                            rsx! {
-                                "{tags}"
-                            }
-                        };
-                        let sp = if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
-                            let ymd = format_description!("[year][month][day]");
-                            let local = OffsetDateTime::now_utc().to_timezone(local_tz);
-                            let local = local.date().format(ymd).unwrap_or_else(|_| String::new());
-                            let dt = format_sstr!("dileptoninthecloud_backup_{local}");
-                            Some(rsx! {
-                                input {
-                                    "type": "button", name: "CreateSnapshot", value: "CreateSnapshot",
-                                    "onclick": "createSnapshot('{id}', '{dt}')"
-                                }
-                            })
-                        } else {
-                            Some(rsx! {
-                                input {
-                                    "type": "button", name: "ModifyVolume", value: "ModifyVolume",
-                                    "onclick": "modifyVolume('{id}')",
-                                }
-                            })
-                        };
-                        rsx! {
-                            tr {
-                                key: "volumes-key-{idx}",
-                                style: "text-align: center;",
-                                td {bt},
-                                td {"{id}"},
-                                td {"{az}"},
-                                td {
-                                    select {
-                                        id: "{id}_vol_size",
-                                        vs,
-                                    }
-                                },
-                                td {"{io}"},
-                                td {"{st}"},
-                                td {tg},
-                                td {sp},
-                            }
-                        }
-                    })
+    rsx! {
+        table {
+            "border": "1",
+            class: "dataframe",
+            thead {
+                tr {
+                    th {},
+                    th {"Volume ID"},
+                    th {"Availability Zone"},
+                    th {"Size"},
+                    th {"IOPS"},
+                    th {"State"},
+                    th {"Tags"},
                 }
             }
+            tbody {
+                {volumes.iter().enumerate().map(|(idx, vol)| {
+                    let vs = get_volumes(vol.size).into_iter().enumerate().map(|(i, s)| {
+                        rsx! {
+                            option {
+                                key: "vs-key-{i}",
+                                value: "{s}",
+                                "{s} GB"
+                            }
+                        }
+                    });
+                    let id = &vol.id;
+                    let az = &vol.availability_zone;
+                    let io = vol.iops;
+                    let st = &vol.state;
+                    let bt = if vol.tags.get("Name").map(StackString::as_str) == Some("ddbolineinthecloud") {
+                        None
+                    } else {
+                        Some(rsx! {
+                            input {
+                                "type": "button",
+                                name: "DeleteVolume",
+                                value: "DeleteVolume",
+                                "onclick": "deleteVolume('{id}')",
+                            }
+                        })
+                    };
+                    let tg = if vol.tags.is_empty() {
+                        rsx! {
+                            input {
+                                "type": "text", name: "tag_volume", id: "{id}_tag_volume",
+                            },
+                            input {
+                                "type": "button", name: "tag_volume", value: "Tag", "onclick": "tagVolume('{id}');",
+                            }
+                        }
+                    } else {
+                        let tags = print_tags(&vol.tags);
+                        rsx! {
+                            "{tags}"
+                        }
+                    };
+                    let sp = if let Some("ddbolineinthecloud") = vol.tags.get("Name").map(StackString::as_str) {
+                        let ymd = format_description!("[year][month][day]");
+                        let local = OffsetDateTime::now_utc().to_timezone(local_tz);
+                        let local = local.date().format(ymd).unwrap_or_else(|_| String::new());
+                        let dt = format_sstr!("dileptoninthecloud_backup_{local}");
+                        Some(rsx! {
+                            input {
+                                "type": "button", name: "CreateSnapshot", value: "CreateSnapshot",
+                                "onclick": "createSnapshot('{id}', '{dt}')"
+                            }
+                        })
+                    } else {
+                        Some(rsx! {
+                            input {
+                                "type": "button", name: "ModifyVolume", value: "ModifyVolume",
+                                "onclick": "modifyVolume('{id}')",
+                            }
+                        })
+                    };
+                    rsx! {
+                        tr {
+                            key: "volumes-key-{idx}",
+                            style: "text-align: center;",
+                            td {{bt}},
+                            td {"{id}"},
+                            td {"{az}"},
+                            td {
+                                select {
+                                    id: "{id}_vol_size",
+                                    {vs},
+                                }
+                            },
+                            td {"{io}"},
+                            td {"{st}"},
+                            td {{tg}},
+                            td {{sp}},
+                        }
+                    }
+                }
+            )
         }
-    )
+            }
+        }
+    }
 }
 
 #[component]
-fn SnapshotElement(cx: Scope, snapshots: Vec<SnapshotInfo>) -> Element {
-    cx.render(
-        rsx! {
-            table {
-                "border": "1",
-                class: "dataframe",
-                thead {
-                    tr {
-                        th {},
-                        th {"Snapshot ID"},
-                        th {"Size"},
-                        th {"State"},
-                        th {"Progress"},
-                        th {"Tags"},
-                    }
-                },
-                tbody {
-                    snapshots.iter().enumerate().map(|(idx, snap)| {
-                        let id = &snap.id;
-                        let vs = snap.volume_size;
-                        let st = &snap.state;
-                        let pr = &snap.progress;
-                        let tg = if snap.tags.is_empty() {
-                            rsx! {
-                                input {
-                                    "type": "text", name: "tag_snapshot", id: "{id}_tag_snapshot"
-                                }
-                                input {
-                                    "type": "button", name: "tag_snapshot", value: "Tag", "onclick": "tagSnapshot('{id}');",
-                                }
-                            }
-                        } else {
-                            let tags = print_tags(&snap.tags);
-                            rsx! {"{tags}"}
-                        };
+fn SnapshotElement(snapshots: Vec<SnapshotInfo>) -> Element {
+    rsx! {
+        table {
+            "border": "1",
+            class: "dataframe",
+            thead {
+                tr {
+                    th {},
+                    th {"Snapshot ID"},
+                    th {"Size"},
+                    th {"State"},
+                    th {"Progress"},
+                    th {"Tags"},
+                }
+            },
+            tbody {
+                {snapshots.iter().enumerate().map(|(idx, snap)| {
+                    let id = &snap.id;
+                    let vs = snap.volume_size;
+                    let st = &snap.state;
+                    let pr = &snap.progress;
+                    let tg = if snap.tags.is_empty() {
                         rsx! {
-                            tr {
-                                key: "snapshot-key-{idx}",
-                                style: "text-align: center;",
-                                td {
-                                    input {
-                                        "type": "button", name: "DeleteSnapshot", value: "DeleteSnapshot", "onclick": "deleteSnapshot('{id}')",
-                                    }
-                                },
-                                td {"{id}"}
-                                td {"{vs} GB"}
-                                td {"{st}"}
-                                td {"{pr}"}
-                                td {tg},
+                            input {
+                                "type": "text", name: "tag_snapshot", id: "{id}_tag_snapshot"
+                            }
+                            input {
+                                "type": "button", name: "tag_snapshot", value: "Tag", "onclick": "tagSnapshot('{id}');",
                             }
                         }
-                    })
+                    } else {
+                        let tags = print_tags(&snap.tags);
+                        rsx! {"{tags}"}
+                    };
+                    rsx! {
+                        tr {
+                            key: "snapshot-key-{idx}",
+                            style: "text-align: center;",
+                            td {
+                                input {
+                                    "type": "button", name: "DeleteSnapshot", value: "DeleteSnapshot", "onclick": "deleteSnapshot('{id}')",
+                                }
+                            },
+                            td {"{id}"}
+                            td {"{vs} GB"}
+                            td {"{st}"}
+                            td {"{pr}"}
+                            td {{tg}},
+                        }
+                    }
                 }
+            )
+        }
             }
         }
-    )
+    }
 }
 
 #[component]
-fn EcrElement(cx: Scope, images: Vec<ImageInfo>) -> Element {
-    cx.render(rsx! {
+fn EcrElement(images: Vec<ImageInfo>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -757,7 +808,7 @@ fn EcrElement(cx: Scope, images: Vec<ImageInfo>) -> Element {
                     th {
                         input {"type": "button", name: "CleanupEcr", value: "CleanupEcr", "onclick": "cleanupEcrImages()"}
                     },
-                    th {"ECR Repo"}, 
+                    th {"ECR Repo"},
                     th {"Tag"},
                     th {"Digest"},
                     th {"Pushed At"},
@@ -765,7 +816,7 @@ fn EcrElement(cx: Scope, images: Vec<ImageInfo>) -> Element {
                 }
             },
             tbody {
-                images.iter().enumerate().map(|(idx, image)| {
+                {images.iter().enumerate().map(|(idx, image)| {
                     let repo = &image.repo;
                     let digest = &image.digest;
                     let tag = image.tags.first().map_or_else(|| "None", StackString::as_str);
@@ -790,15 +841,15 @@ fn EcrElement(cx: Scope, images: Vec<ImageInfo>) -> Element {
                             td {"{image_size}"},
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
 #[component]
-fn ScriptElement(cx: Scope, scripts: Vec<StackString>) -> Element {
-    cx.render(rsx! {
+fn ScriptElement(scripts: Vec<StackString>) -> Element {
+    rsx! {
         form {
             action: "javascript:createScript()",
             input {"type": "text", name: "script_filename", id: "script_filename"},
@@ -807,7 +858,7 @@ fn ScriptElement(cx: Scope, scripts: Vec<StackString>) -> Element {
         table {
             thead {th {}, th {}},
             tbody {
-                scripts.iter().enumerate().map(|(idx, fname)| {
+                {scripts.iter().enumerate().map(|(idx, fname)| {
                     rsx! {
                         tr {
                             key: "script-key-{idx}",
@@ -825,22 +876,21 @@ fn ScriptElement(cx: Scope, scripts: Vec<StackString>) -> Element {
                             td {" {fname} "},
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
 #[component]
 fn UsersElement(
-    cx: Scope,
     users: Vec<IamUser>,
     current_user: Option<IamUser>,
     group_map: HashMap<StackString, Vec<IamGroup>>,
     key_map: HashMap<StackString, Vec<AccessKeyMetadata>>,
 ) -> Element {
     let empty_vec: Vec<AccessKeyMetadata> = Vec::new();
-    cx.render(rsx! {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -856,13 +906,13 @@ fn UsersElement(
                 }
             },
             tbody {
-                users.iter().enumerate().map(|(idx, u)| {
+                {users.iter().enumerate().map(|(idx, u)| {
                     let user_name = &u.user_name;
                     let group_select = group_map.get(u.user_name.as_str()).map(|x| {
                         rsx! {
                             select {
                                 id: "group_opt",
-                                x.iter().enumerate().map(|(i, group)| {
+                                {x.iter().enumerate().map(|(i, group)| {
                                     let g = &group.group_name;
                                     rsx! {
                                         option {
@@ -871,7 +921,7 @@ fn UsersElement(
                                             "{g}",
                                         }
                                     }
-                                })
+                                })}
                             }
                         }
                     });
@@ -922,27 +972,26 @@ fn UsersElement(
                             td {"{cd}"},
                             td {"{user_name}"},
                             td {"{ar}"},
-                            td {delete_button},
-                            td {group_select},
-                            td {group_remove_button},
-                            td {create_key_button},
+                            td {{delete_button}},
+                            td {{group_select}},
+                            td {{group_remove_button}},
+                            td {{create_key_button}},
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
 #[component]
 fn GroupsElement(
-    cx: Scope,
     groups: Vec<IamGroup>,
     user_map: HashMap<StackString, HashSet<StackString>>,
     users: HashSet<StackString>,
 ) -> Element {
     let empty_set = HashSet::new();
-    cx.render(rsx! {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -954,7 +1003,7 @@ fn GroupsElement(
                     th {"Arn"},
                 }
             }
-            groups.iter().enumerate().map(|(idx, g)| {
+            {groups.iter().enumerate().map(|(idx, g)| {
                 let group_users = user_map.get(g.group_name.as_str()).unwrap_or(&empty_set);
                 let group_name = &g.group_name;
                 let user_opts: Vec<_> = users.iter().enumerate().filter_map(|(i, u)| {
@@ -974,7 +1023,7 @@ fn GroupsElement(
                     Some(rsx! {
                         select {
                             id: "{group_name}_user_opt",
-                            user_opts.into_iter(),
+                            {user_opts.into_iter()},
                         }
                     })
                 };
@@ -1000,18 +1049,20 @@ fn GroupsElement(
                         td {"{cd}"},
                         td {"{gn}"},
                         td {"{ar}"},
-                        td {user_select},
-                        td {user_add_button},
+                        td {{user_select}},
+                        td {{user_add_button}},
                     }
                 }
-            })
+            }
+        )
+    }
         }
-    })
+    }
 }
 
 #[component]
-fn AccessKeyElement(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
-    cx.render(rsx! {
+fn AccessKeyElement(keys: Vec<AccessKeyMetadata>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -1024,7 +1075,7 @@ fn AccessKeyElement(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
                 }
             },
             tbody {
-                keys.iter().enumerate().filter_map(|(idx, key)| {
+                {keys.iter().enumerate().filter_map(|(idx, key)| {
                     let user_name = key.user_name.as_ref()?;
                     let access_key_id = key.access_key_id.as_ref()?;
                     let cd = OffsetDateTime::from_unix_timestamp(key.create_date.as_ref()?.as_secs_f64() as i64).ok()?;
@@ -1047,19 +1098,15 @@ fn AccessKeyElement(cx: Scope, keys: Vec<AccessKeyMetadata>) -> Element {
                             },
                         }
                     })
-                })
+                })}
             }
         }
-    })
+    }
 }
 
 #[component]
-fn DnsRecordElement(
-    cx: Scope,
-    records: Vec<(String, String, String)>,
-    current_ip: Ipv4Addr,
-) -> Element {
-    cx.render(rsx! {
+fn DnsRecordElement(records: Vec<(String, String, String)>, current_ip: Ipv4Addr) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -1071,7 +1118,7 @@ fn DnsRecordElement(
                 }
             },
             tbody {
-                records.iter().enumerate().map(|(idx, (zone, name, ip))| {
+                {records.iter().enumerate().map(|(idx, (zone, name, ip))| {
                     rsx! {
                         tr {
                             key: "record-key-{idx}",
@@ -1089,20 +1136,19 @@ fn DnsRecordElement(
                             },
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
 #[component]
 fn SystemdElement(
-    cx: Scope,
     processes: HashMap<StackString, Vec<ProcessInfo>>,
     services: BTreeMap<StackString, RunStatus>,
     config: Config,
 ) -> Element {
-    cx.render(rsx! {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -1137,7 +1183,7 @@ fn SystemdElement(
                 }
             },
             tbody {
-                config.systemd_services.iter().enumerate().map(|(idx, service)| {
+                {config.systemd_services.iter().enumerate().map(|(idx, service)| {
                     let proc_key = if service.len() > 15 {
                         &service[..15]
                     } else {
@@ -1186,7 +1232,7 @@ fn SystemdElement(
                             style: "text-align; left;",
                             td {"{service}"},
                             td {"{run_status}"},
-                            td {action_button},
+                            td {{action_button}},
                             td {
                                 input {
                                     "type": "button",
@@ -1195,34 +1241,41 @@ fn SystemdElement(
                                     "onclick": "systemdLogs('{service}');",
                                 }
                             },
-                            td {memory_info},
+                            td {{memory_info}},
                         }
                     }
-                })
+                }
+            )
+        }
             }
         }
-    })
+    }
 }
 
-pub fn instance_family_body(inst_fam: Vec<InstanceFamily>) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn instance_family_body(inst_fam: Vec<InstanceFamily>) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(
         InstanceFamilyElement,
         InstanceFamilyElementProps { inst_fam },
     );
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn InstanceFamilyElement(cx: Scope, inst_fam: Vec<InstanceFamily>) -> Element {
-    cx.render(rsx! {
+fn InstanceFamilyElement(inst_fam: Vec<InstanceFamily>) -> Element {
+    rsx! {
         br {
             form {
                 action: "javascript:listPrices()",
                 select {
                     id: "inst_fam",
                     "onchange": "listPrices();",
-                    inst_fam.iter().enumerate().map(|(idx, fam)| {
+                    {inst_fam.iter().enumerate().map(|(idx, fam)| {
                         let n = &fam.family_name;
                         let t = &fam.family_type;
                         rsx! {
@@ -1232,22 +1285,27 @@ fn InstanceFamilyElement(cx: Scope, inst_fam: Vec<InstanceFamily>) -> Element {
                                 "{n} : {t}",
                             }
                         }
-                    })
+                    })}
                 }
             }
         }
-    })
+    }
 }
 
-pub fn prices_body(prices: Vec<AwsInstancePrice>) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn prices_body(prices: Vec<AwsInstancePrice>) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(PriceElement, PriceElementProps { prices });
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn PriceElement(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
-    cx.render(rsx! {
+fn PriceElement(prices: Vec<AwsInstancePrice>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -1263,7 +1321,7 @@ fn PriceElement(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
                 }
             },
             tbody {
-                prices.iter().enumerate().map(|(idx, price)| {
+                {prices.iter().enumerate().map(|(idx, price)| {
                     let instance_type = &price.instance_type;
                     let ncpu = price.ncpu;
                     let memory = price.memory;
@@ -1273,7 +1331,7 @@ fn PriceElement(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
                             key: "price-key-{idx}",
                             style: "text-align: center;",
                             td {
-                                price.data_url.as_ref().map_or_else(
+                                {price.data_url.as_ref().map_or_else(
                                     || {rsx! {"{instance_type}"}},
                                     |data_url| {
                                         rsx! {
@@ -1284,16 +1342,16 @@ fn PriceElement(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
                                             }
                                         }
                                     }
-                                )
+                                )}
                             },
                             td {
-                                price.ondemand_price.map(|p| rsx! {"${p:0.4}/hr"})
+                                {price.ondemand_price.map(|p| rsx! {"${p:0.4}/hr"})}
                             },
                             td {
-                                price.spot_price.map(|p| rsx! {"${p:0.4}/hr"})
+                                {price.spot_price.map(|p| rsx! {"${p:0.4}/hr"})}
                             },
                             td {
-                                price.reserved_price.map(|p| rsx! {"${p:0.4}/hr"})
+                                {price.reserved_price.map(|p| rsx! {"${p:0.4}/hr"})}
                             },
                             td {"{ncpu}"},
                             td {"{memory}"},
@@ -1308,23 +1366,28 @@ fn PriceElement(cx: Scope, prices: Vec<AwsInstancePrice>) -> Element {
                             }
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
-pub fn edit_script_body(fname: StackString, text: StackString) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn edit_script_body(fname: StackString, text: StackString) -> Result<String, Error> {
     let mut app =
         VirtualDom::new_with_props(EditScriptElement, EditScriptElementProps { fname, text });
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn EditScriptElement(cx: Scope, fname: StackString, text: StackString) -> Element {
+fn EditScriptElement(fname: StackString, text: StackString) -> Element {
     let rows = text.split('\n').count() + 5;
-    cx.render(rsx! {
+    rsx! {
         br {
             textarea {
                 name: "message",
@@ -1356,9 +1419,11 @@ fn EditScriptElement(cx: Scope, fname: StackString, text: StackString) -> Elemen
                 "onclick": "updateScriptAndBuildSpotRequest('{fname}')",
             }
         }
-    })
+    }
 }
 
+/// # Errors
+/// Returns error if formatting fails
 pub fn build_spot_request_body(
     amis: Vec<AmiInfo>,
     inst_fams: Vec<InstanceFamily>,
@@ -1366,7 +1431,7 @@ pub fn build_spot_request_body(
     files: Vec<StackString>,
     keys: Vec<(StackString, StackString)>,
     config: Config,
-) -> String {
+) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(
         BuildSpotRequestElement,
         BuildSpotRequestElementProps {
@@ -1378,13 +1443,15 @@ pub fn build_spot_request_body(
             config,
         },
     );
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
 fn BuildSpotRequestElement(
-    cx: Scope,
     amis: Vec<AmiInfo>,
     inst_fams: Vec<InstanceFamily>,
     instances: Vec<InstanceList>,
@@ -1399,7 +1466,7 @@ fn BuildSpotRequestElement(
             .expect("NO DEFAULT_SECURITY_GROUP")
     });
     let price = config.max_spot_price;
-    cx.render(rsx! {
+    rsx! {
         form {
             action: "javascript:createScript()",
             table {
@@ -1409,7 +1476,7 @@ fn BuildSpotRequestElement(
                         td {
                             select {
                                 id: "ami",
-                                amis.iter().enumerate().map(|(idx, ami)| {
+                                {amis.iter().enumerate().map(|(idx, ami)| {
                                     let id = &ami.id;
                                     let name = &ami.name;
                                     rsx! {
@@ -1419,7 +1486,7 @@ fn BuildSpotRequestElement(
                                             "{name}"
                                         }
                                     }
-                                })
+                                })}
                             }
                         }
                     },
@@ -1429,7 +1496,7 @@ fn BuildSpotRequestElement(
                             select {
                                 id: "inst_fam",
                                 "onchange": "instanceOptions()",
-                                inst_fams.iter().enumerate().map(|(idx, fam)| {
+                                {inst_fams.iter().enumerate().map(|(idx, fam)| {
                                     let n = &fam.family_name;
                                     rsx! {
                                         option {
@@ -1438,7 +1505,7 @@ fn BuildSpotRequestElement(
                                             "{n}",
                                         }
                                     }
-                                })
+                                })}
                             }
                         },
                     },
@@ -1447,7 +1514,7 @@ fn BuildSpotRequestElement(
                         td {
                             select {
                                 id: "instance_type",
-                                instances.iter().enumerate().map(|(idx, i)| {
+                                {instances.iter().enumerate().map(|(idx, i)| {
                                     let i = &i.instance_type;
                                     rsx! {
                                         option {
@@ -1456,7 +1523,7 @@ fn BuildSpotRequestElement(
                                             "{i}",
                                         }
                                     }
-                                })
+                                })}
                             }
                         }
                     },
@@ -1476,7 +1543,7 @@ fn BuildSpotRequestElement(
                         td {
                             select {
                                 id: "script",
-                                files.iter().enumerate().map(|(idx, f)| {
+                                {files.iter().enumerate().map(|(idx, f)| {
                                     rsx! {
                                         option {
                                             key: "script-key-{idx}",
@@ -1484,7 +1551,7 @@ fn BuildSpotRequestElement(
                                             "{f}",
                                         }
                                     }
-                                })
+                                })}
                             }
                         }
                     },
@@ -1493,7 +1560,7 @@ fn BuildSpotRequestElement(
                         td {
                             select {
                                 id: "key",
-                                keys.iter().enumerate().map(|(idx, (k, _))| {
+                                {keys.iter().enumerate().map(|(idx, (k, _))| {
                                     rsx! {
                                         option {
                                             key: "key-{idx}",
@@ -1501,7 +1568,7 @@ fn BuildSpotRequestElement(
                                             "{k}",
                                         }
                                     }
-                                })
+                                })}
                             }
                         }
                     },
@@ -1539,20 +1606,25 @@ fn BuildSpotRequestElement(
                 }
             }
         }
-    })
+    }
 }
 
-pub fn textarea_body(entries: Vec<StackString>, id: StackString) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn textarea_body(entries: Vec<StackString>, id: StackString) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(TextAreaElement, TextAreaElementProps { entries, id });
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn TextAreaElement(cx: Scope, entries: Vec<StackString>, id: StackString) -> Element {
+fn TextAreaElement(entries: Vec<StackString>, id: StackString) -> Element {
     let rows = entries.len() + 5;
     let text = entries.join("\n");
-    cx.render(rsx! {
+    rsx! {
         textarea {
             autofocus: "true",
             readonly: "readonly",
@@ -1562,23 +1634,31 @@ fn TextAreaElement(cx: Scope, entries: Vec<StackString>, id: StackString) -> Ele
             cols: "100",
             "{text}",
         }
-    })
+    }
 }
 
-pub fn instance_status_body(entries: Vec<StackString>, instance: StackString) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn instance_status_body(
+    entries: Vec<StackString>,
+    instance: StackString,
+) -> Result<String, Error> {
     let mut app: VirtualDom = VirtualDom::new_with_props(
         InstanceStatusElement,
         InstanceStatusElementProps { entries, instance },
     );
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn InstanceStatusElement(cx: Scope, entries: Vec<StackString>, instance: StackString) -> Element {
+fn InstanceStatusElement(entries: Vec<StackString>, instance: StackString) -> Element {
     let rows = entries.len() + 5;
     let text = entries.join("\n");
-    cx.render(rsx! {
+    rsx! {
         form {
             action: "javascript:runCommand('{instance}')",
             input {
@@ -1602,21 +1682,26 @@ fn InstanceStatusElement(cx: Scope, entries: Vec<StackString>, instance: StackSt
             cols: "100",
             "{text}",
         }
-    })
+    }
 }
 
-pub fn textarea_fixed_size_body(body: StackString, id: StackString) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn textarea_fixed_size_body(body: StackString, id: StackString) -> Result<String, Error> {
     let mut app: VirtualDom = VirtualDom::new_with_props(
         TextareaFixedSizeElement,
         TextareaFixedSizeElementProps { body, id },
     );
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn TextareaFixedSizeElement(cx: Scope, body: StackString, id: StackString) -> Element {
-    cx.render(rsx! {
+fn TextareaFixedSizeElement(body: StackString, id: StackString) -> Element {
+    rsx! {
         textarea {
             autofocus: "true",
             readonly: "readonly",
@@ -1627,22 +1712,27 @@ fn TextareaFixedSizeElement(cx: Scope, body: StackString, id: StackString) -> El
             "{body}",
         }
 
-    })
+    }
 }
 
-pub fn instance_types_body(instances: Vec<InstanceList>) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn instance_types_body(instances: Vec<InstanceList>) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(
         InstanceTypesElement,
         InstanceTypesElementProps { instances },
     );
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn InstanceTypesElement(cx: Scope, instances: Vec<InstanceList>) -> Element {
-    cx.render(rsx! {
-        instances.iter().enumerate().map(|(idx, i)| {
+fn InstanceTypesElement(instances: Vec<InstanceList>) -> Element {
+    rsx! {
+        {instances.iter().enumerate().map(|(idx, i)| {
             let i = &i.instance_type;
             rsx! {
                 option {
@@ -1651,17 +1741,28 @@ fn InstanceTypesElement(cx: Scope, instances: Vec<InstanceList>) -> Element {
                     "{i}",
                 }
             }
-        })
-    })
+        })}
+    }
 }
 
-pub fn novnc_start_body() -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn novnc_start_body() -> Result<String, Error> {
     let mut app = VirtualDom::new(NovncStartElement);
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
-pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn novnc_status_body(
+    number: usize,
+    domain: StackString,
+    pids: Vec<usize>,
+) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(
         NovncStatusElement,
         NovncStatusElementProps {
@@ -1670,13 +1771,16 @@ pub fn novnc_status_body(number: usize, domain: StackString, pids: Vec<usize>) -
             pids,
         },
     );
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn NovncStatusElement(cx: Scope, number: usize, domain: StackString, pids: Vec<usize>) -> Element {
-    cx.render(rsx! {
+fn NovncStatusElement(number: usize, domain: StackString, pids: Vec<usize>) -> Element {
+    rsx! {
         br {
             "{number} processes currently running {pids:?}"
         },
@@ -1691,24 +1795,24 @@ fn NovncStatusElement(cx: Scope, number: usize, domain: StackString, pids: Vec<u
             value: "Stop NoVNC",
             "onclick": "noVncTab('/aws/novnc/stop', 'POST')",
         }
-    })
+    }
 }
 
 #[component]
-fn NovncStartElement(cx: Scope) -> Element {
-    cx.render(rsx! {
+fn NovncStartElement() -> Element {
+    rsx! {
         input {
             "type": "button",
             name: "novnc",
             value: "Start NoVNC",
             "onclick": "noVncTab('/aws/novnc/start', 'POST')",
         }
-    })
+    }
 }
 
 #[component]
-fn InboundEmailElement(cx: Scope, emails: Vec<InboundEmailDB>) -> Element {
-    cx.render(rsx! {
+fn InboundEmailElement(emails: Vec<InboundEmailDB>) -> Element {
+    rsx! {
         table {
             "border": "1",
             class: "dataframe",
@@ -1727,7 +1831,7 @@ fn InboundEmailElement(cx: Scope, emails: Vec<InboundEmailDB>) -> Element {
                 }
             },
             tbody {
-                emails.iter().enumerate().map(|(idx, email)| {
+                {emails.iter().enumerate().map(|(idx, email)| {
                     let id = &email.id;
                     let from = &email.from_address;
                     let to = &email.to_address;
@@ -1763,31 +1867,35 @@ fn InboundEmailElement(cx: Scope, emails: Vec<InboundEmailDB>) -> Element {
                             }
                         }
                     }
-                })
+                })}
             }
         }
-    })
+    }
 }
 
-pub fn inbound_email_body(text: StackString, html: StackString, raw: StackString) -> String {
+/// # Errors
+/// Returns error if formatting fails
+pub fn inbound_email_body(
+    text: StackString,
+    html: StackString,
+    raw: StackString,
+) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(
         InboundEmailDetailElement,
         InboundEmailDetailElementProps { text, html, raw },
     );
-    drop(app.rebuild());
-    dioxus_ssr::render(&app)
+    app.rebuild_in_place();
+    let mut renderer = dioxus_ssr::Renderer::default();
+    let mut buffer = String::new();
+    renderer.render_to(&mut buffer, &app)?;
+    Ok(buffer)
 }
 
 #[component]
-fn InboundEmailDetailElement(
-    cx: Scope,
-    text: StackString,
-    html: StackString,
-    raw: StackString,
-) -> Element {
+fn InboundEmailDetailElement(text: StackString, html: StackString, raw: StackString) -> Element {
     let rows = text.split('\n').count() + 5;
     let raw_rows = raw.split('\n').count() + 5;
-    cx.render(rsx! {
+    rsx! {
         br {
             textarea {
                 name: "text-content",
@@ -1811,5 +1919,5 @@ fn InboundEmailDetailElement(
                 "{raw}",
             }
         }
-    })
+    }
 }
