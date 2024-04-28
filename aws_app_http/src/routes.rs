@@ -1177,10 +1177,13 @@ pub async fn sync_inboud_email(
     let s3 = S3Instance::new(&sdk_config);
     let (new_keys, new_attachments) = InboundEmail::sync_db(&data.aws.config, &s3, &data.aws.pool)
         .await
-        .map_err(Into::<Error>::into).map(|(k, a)| (k.join("\n"), a.join("\n")))?;
-    let new_records = InboundEmail::parse_dmarc_records(&data.aws.config, &s3, &data.aws.pool).await.map_err(Into::<Error>::into)?.len();
-    let body = format!(
-        "keys {new_keys}\n\nattachments {new_attachments}\n dmarc_records {new_records}"
-    );
+        .map_err(Into::<Error>::into)
+        .map(|(k, a)| (k.join("\n"), a.join("\n")))?;
+    let new_records = InboundEmail::parse_dmarc_records(&data.aws.config, &s3, &data.aws.pool)
+        .await
+        .map_err(Into::<Error>::into)?
+        .len();
+    let body =
+        format!("keys {new_keys}\n\nattachments {new_attachments}\n dmarc_records {new_records}");
     Ok(HtmlBase::new(body.into()).into())
 }

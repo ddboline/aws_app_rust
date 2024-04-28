@@ -452,8 +452,12 @@ impl AwsAppOpts {
                 let sdk_config = aws_config::load_from_env().await;
                 let s3 = S3Instance::new(&sdk_config);
                 let (new_keys, new_attachments) =
-                    InboundEmail::sync_db(&app.config, &s3, &app.pool).await.map(|(k, a)| (k.join("\n"), a.join("\n")))?;
-                let new_records = InboundEmail::parse_dmarc_records(&app.config, &s3, &app.pool).await?.len();
+                    InboundEmail::sync_db(&app.config, &s3, &app.pool)
+                        .await
+                        .map(|(k, a)| (k.join("\n"), a.join("\n")))?;
+                let new_records = InboundEmail::parse_dmarc_records(&app.config, &s3, &app.pool)
+                    .await?
+                    .len();
                 app.stdout.send(format_sstr!(
                     "new {new_keys}\n\nattachments {new_attachments}\n{new_records}",
                 ));

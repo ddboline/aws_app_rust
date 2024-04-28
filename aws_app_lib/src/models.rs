@@ -727,13 +727,19 @@ impl DmarcRecords {
         let query = query!("SELECT distinct s3_key FROM dmarc_records WHERE s3_key IS NOT NULL");
         let conn = pool.get().await?;
         let result = query.query(&conn).await?;
-        result.into_iter().map(|r| r.try_get(0).map_err(Into::into)).collect()
+        result
+            .into_iter()
+            .map(|r| r.try_get(0).map_err(Into::into))
+            .collect()
     }
 
     /// # Errors
     /// Returns error if db query fails
     pub async fn delete_by_s3_key(s3_key: &str, pool: &PgPool) -> Result<u64, Error> {
-        let query = query!("DELETE FROM dmarc_records WHERE s3_key = $s3_key", s3_key=s3_key);
+        let query = query!(
+            "DELETE FROM dmarc_records WHERE s3_key = $s3_key",
+            s3_key = s3_key
+        );
         let conn = pool.get().await?;
         query.execute(&conn).await.map_err(Into::into)
     }

@@ -1,16 +1,22 @@
 use anyhow::{format_err, Error};
+use flate2::read::GzDecoder;
 use mail_parser::{Message, MessageParser, MessagePart};
 use stack_string::StackString;
 use std::{
     collections::{HashMap, HashSet},
-    convert::{TryFrom, TryInto}, io::Read,
+    convert::{TryFrom, TryInto},
+    io::Read,
 };
+use tempfile::NamedTempFile;
 use time::OffsetDateTime;
 use uuid::Uuid;
-use tempfile::NamedTempFile;
-use flate2::read::GzDecoder;
 
-use crate::{config::Config, models::{DmarcRecords, InboundEmailDB}, pgpool::PgPool, s3_instance::S3Instance};
+use crate::{
+    config::Config,
+    models::{DmarcRecords, InboundEmailDB},
+    pgpool::PgPool,
+    s3_instance::S3Instance,
+};
 
 #[derive(Debug)]
 pub struct InboundEmail {
@@ -159,39 +165,45 @@ impl InboundEmail {
 
     /// # Errors
     /// Returns error if db query fails
-    pub async fn parse_dmarc_records(config: &Config, s3: &S3Instance, pool: &PgPool) -> Result<Vec<DmarcRecords>, Error> {
+    pub async fn parse_dmarc_records(
+        config: &Config,
+        s3: &S3Instance,
+        pool: &PgPool,
+    ) -> Result<Vec<DmarcRecords>, Error> {
         let mut new_records = Vec::new();
         let bucket = config
             .inbound_email_bucket
             .as_ref()
             .ok_or_else(|| format_err!("No Inbound Email Bucket"))?;
 
-        let parsed_attachments: HashSet<StackString> = DmarcRecords::get_parsed_s3_keys(pool).await?.into_iter().collect();
+        let parsed_attachments: HashSet<StackString> = DmarcRecords::get_parsed_s3_keys(pool)
+            .await?
+            .into_iter()
+            .collect();
 
-        for attachment in s3
-            .get_list_of_keys(bucket, Some("attachments/"))
-            .await? {
-                if let Some(key) = &attachment.key {
-                    if !parsed_attachments.contains(key.as_str()) {
-                        let f = NamedTempFile::new()?;
-                        s3.download(bucket, key, f.path()).await?;
-                        if let Some(t) = infer::get_from_path(f.path())? {
-                            let mut buffer = String::new();
-                            if t.mime_type() == "text/xml" {
-                                buffer = tokio::fs::read_to_string(f.path()).await?;
-                            } else if t.mime_type() == "application/gzip" {
-                                GzDecoder::new(std::fs::File::open(f.path())?).read_to_string(&mut buffer)?;
-                            }
-                            if !buffer.is_empty() {
-                                for record in DmarcRecords::parse_xml(&buffer, Some(key.as_str()))? {
-                                    record.insert_entry(pool).await?;
-                                    new_records.push(record);
-                                }
+        for attachment in s3.get_list_of_keys(bucket, Some("attachments/")).await? {
+            if let Some(key) = &attachment.key {
+                if !parsed_attachments.contains(key.as_str()) {
+                    let f = NamedTempFile::new()?;
+                    s3.download(bucket, key, f.path()).await?;
+                    if let Some(t) = infer::get_from_path(f.path())? {
+                        let mut buffer = String::new();
+                        if t.mime_type() == "text/xml" {
+                            buffer = tokio::fs::read_to_string(f.path()).await?;
+                        } else if t.mime_type() == "application/gzip" {
+                            GzDecoder::new(std::fs::File::open(f.path())?)
+                                .read_to_string(&mut buffer)?;
+                        }
+                        if !buffer.is_empty() {
+                            for record in DmarcRecords::parse_xml(&buffer, Some(key.as_str()))? {
+                                record.insert_entry(pool).await?;
+                                new_records.push(record);
                             }
                         }
                     }
                 }
             }
+        }
 
         Ok(new_records)
     }
@@ -205,7 +217,10 @@ mod tests {
     use std::{convert::TryInto, fmt::Write};
 
     use crate::{
-        config::Config, inbound_email::InboundEmail, models::{DmarcRecords, InboundEmailDB}, pgpool::PgPool,
+        config::Config,
+        inbound_email::InboundEmail,
+        models::{DmarcRecords, InboundEmailDB},
+        pgpool::PgPool,
         s3_instance::S3Instance,
     };
 
