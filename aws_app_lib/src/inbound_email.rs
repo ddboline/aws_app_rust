@@ -5,11 +5,15 @@ use stack_string::StackString;
 use std::{
     collections::{HashMap, HashSet},
     convert::{TryFrom, TryInto},
+    fs::File,
     io::Read,
+    path::{Path, PathBuf},
 };
+use tempdir::TempDir;
 use tempfile::NamedTempFile;
 use time::OffsetDateTime;
 use uuid::Uuid;
+use zip::ZipArchive;
 
 use crate::{
     config::Config,
@@ -187,14 +191,29 @@ impl InboundEmail {
                     let f = NamedTempFile::new()?;
                     s3.download(bucket, key, f.path()).await?;
                     if let Some(t) = infer::get_from_path(f.path())? {
-                        let mut buffer = String::new();
+                        let mut buffers = Vec::new();
                         if t.mime_type() == "text/xml" {
-                            buffer = tokio::fs::read_to_string(f.path()).await?;
+                            buffers.push(tokio::fs::read_to_string(f.path()).await?);
                         } else if t.mime_type() == "application/gzip" {
+                            let mut buf = String::new();
                             GzDecoder::new(std::fs::File::open(f.path())?)
-                                .read_to_string(&mut buffer)?;
+                                .read_to_string(&mut buf)?;
+                            buffers.push(buf);
+                        } else if t.mime_type() == "application/zip" {
+                            let result: Result<Vec<String>, Error> =
+                                tokio::task::spawn_blocking(move || {
+                                    let tempdir = TempDir::new("inbound_email")?;
+                                    let zippath = tempdir.path();
+                                    let mut b = Vec::new();
+                                    for p in extract_zip(f.path(), zippath)? {
+                                        b.push(std::fs::read_to_string(&p)?);
+                                    }
+                                    Ok(b)
+                                })
+                                .await?;
+                            buffers = result?;
                         }
-                        if !buffer.is_empty() {
+                        for buffer in buffers {
                             for record in DmarcRecords::parse_xml(&buffer, Some(key.as_str()))? {
                                 record.insert_entry(pool).await?;
                                 new_records.push(record);
@@ -209,16 +228,35 @@ impl InboundEmail {
     }
 }
 
+fn extract_zip(filename: &Path, ziptmpdir: &Path) -> Result<Vec<PathBuf>, Error> {
+    if !Path::new("/usr/bin/unzip").exists() {
+        return Err(format_err!(
+            "md5sum not installed (or not present at /usr/bin/unzip"
+        ));
+    }
+    let mut zip = ZipArchive::new(File::open(filename)?)?;
+    (0..zip.len())
+        .map(|i| {
+            let mut f = zip.by_index(i)?;
+            let fpath = ziptmpdir.join(f.name());
+            let mut g = File::create(&fpath)?;
+            std::io::copy(&mut f, &mut g)?;
+            Ok(fpath)
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
     use mail_parser::MessageParser;
     use stack_string::{format_sstr, StackString};
-    use std::{convert::TryInto, fmt::Write};
+    use std::{convert::TryInto, fmt::Write, path::Path};
+    use tempdir::TempDir;
 
     use crate::{
         config::Config,
-        inbound_email::InboundEmail,
+        inbound_email::{extract_zip, InboundEmail},
         models::{DmarcRecords, InboundEmailDB},
         pgpool::PgPool,
         s3_instance::S3Instance,
@@ -334,6 +372,18 @@ mod tests {
             assert!(new_records.len() > 0);
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_zip() -> Result<(), Error> {
+        let d = TempDir::new("zip_test")?;
+        let p = d.path();
+
+        let zip_path = Path::new("../tests/data/test.zip");
+        assert!(zip_path.exists());
+        let files = extract_zip(zip_path, p)?;
+        assert!(files.len() == 2);
         Ok(())
     }
 }
