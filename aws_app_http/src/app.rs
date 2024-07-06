@@ -144,7 +144,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
 
     TRIGGER_DB_UPDATE.set();
 
-    let pool = PgPool::new(&config.database_url);
+    let pool = PgPool::new(&config.database_url)?;
     let sdk_config = aws_config::load_from_env().await;
     let app = AppState {
         aws: AwsAppInterface::new(config.clone(), &sdk_config, pool),

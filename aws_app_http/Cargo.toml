@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.10.21"
+version = "0.10.22"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -10,18 +10,18 @@ edition = "2018"
 aws_app_lib = {path = "../aws_app_lib"}
 aws-config = {version="1.0", features=["behavior-version-latest"]}
 anyhow = "1.0"
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.14"}
-cached = {version="0.51", features=["async", "async_tokio_rt_multi_thread"]}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.15"}
+cached = {version="0.52", features=["async", "async_tokio_rt_multi_thread"]}
 derive_more = "0.99.8"
 dirs = "5.0"
 dioxus = "0.5"
 dioxus-core = "0.5"
 dioxus-ssr = "0.5"
 futures = "0.3"
-itertools = "0.12"
+itertools = "0.13"
 log = "0.4"
 maplit = "1.0"
-postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.7", features=["deadpool"]}
+postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.8", features=["deadpool"]}
 rweb = {git = "https://github.com/ddboline/rweb.git", features=["openapi"], default-features=false, tag="0.15.2"}
 rweb-helper = { git = "https://github.com/ddboline/rweb_helper.git", tag="0.5.3" }
 serde = "1.0"
@@ -33,11 +33,11 @@ stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", featur
 thiserror = "1.0"
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
-tokio = "1.37"
+tokio = "1.38"
 uuid = "1.8"
 
 [dev-dependencies]
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.14"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.14"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.15"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.15"}
 env_logger = {version="0.11", features=["color", "humantime", "regex"], default_features = false}
 reqwest = {version = "0.12", features=["cookies", "rustls-tls", "gzip", "json"], default-features=false}

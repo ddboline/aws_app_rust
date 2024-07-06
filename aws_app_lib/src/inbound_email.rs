@@ -345,7 +345,7 @@ mod tests {
     #[tokio::test]
     async fn test_sync_inbound_email() -> Result<(), Error> {
         let config = Config::init_config()?;
-        let pool = PgPool::new(&config.database_url);
+        let pool = PgPool::new(&config.database_url)?;
         let sdk_config = aws_config::load_from_env().await;
         let s3 = S3Instance::new(&sdk_config);
 
