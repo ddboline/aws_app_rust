@@ -119,7 +119,7 @@ impl Ec2Instance {
         let name_filter = Filter::builder()
             .name("name")
             .values(format_sstr!(
-                "ubuntu/images/hvm-ssd/ubuntu-{ubuntu_release}-{arch}-server*"
+                "ubuntu/images/hvm-ssd*/ubuntu-{ubuntu_release}-{arch}-server*"
             ))
             .build();
         let resp = self
