@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.10.23"
+version = "0.10.24"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 
@@ -11,8 +11,8 @@ aws_app_lib = {path = "../aws_app_lib"}
 aws-config = {version="1.0", features=["behavior-version-latest"]}
 anyhow = "1.0"
 authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.15"}
-cached = {version="0.52", features=["async", "async_tokio_rt_multi_thread"]}
-derive_more = "0.99.8"
+cached = {version="0.53", features=["async", "async_tokio_rt_multi_thread"]}
+derive_more = {version="1.0", features=["full"]}
 dirs = "5.0"
 dioxus = "0.5"
 dioxus-core = "0.5"
@@ -39,5 +39,5 @@ uuid = "1.8"
 [dev-dependencies]
 auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.15"}
 auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.11.15"}
-env_logger = {version="0.11", features=["color", "humantime", "regex"], default_features = false}
+env_logger = {version="0.11", features=["color", "humantime", "regex"], default-features = false}
 reqwest = {version = "0.12", features=["cookies", "rustls-tls", "gzip", "json"], default-features=false}
