@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use stack_string::StackString;
-use std::{collections::BTreeSet, fmt, sync::Arc};
-use sysinfo::{Process, System};
+use std::{collections::BTreeSet, ffi::OsStr, fmt, sync::Arc};
+use sysinfo::{Process, ProcessesToUpdate, System};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProcessInfo {
@@ -37,7 +37,7 @@ impl From<&Process> for ProcessInfo {
         let write_disk_bytes = disk_usage.total_written_bytes;
         Self {
             pid: proc.pid().as_u32(),
-            name: proc.name().into(),
+            name: proc.name().to_string_lossy().into(),
             cpu_usage: proc.cpu_usage(),
             memory: proc.memory(),
             read_disk_bytes,
@@ -59,7 +59,7 @@ impl SysinfoInstance {
         let process_names = names.into_iter().map(Into::into).collect();
         let process_names = Arc::new(process_names);
         let mut sys = System::default();
-        sys.refresh_processes();
+        sys.refresh_processes(ProcessesToUpdate::All);
         let system = Arc::new(Mutex::new(sys));
         Self {
             system,
@@ -70,11 +70,11 @@ impl SysinfoInstance {
     #[must_use]
     pub fn get_process_info(&self) -> Vec<ProcessInfo> {
         let mut sys = self.system.lock();
-        sys.refresh_processes();
+        sys.refresh_processes(ProcessesToUpdate::All);
         self.process_names
             .iter()
             .flat_map(|name| {
-                let name = if name.len() > 15 { &name[..15] } else { name };
+                let name = OsStr::new(if name.len() > 15 { &name[..15] } else { name });
                 sys.processes_by_name(name).map(Into::into)
             })
             .collect()
@@ -82,9 +82,9 @@ impl SysinfoInstance {
 
     #[must_use]
     pub fn get_process_info_by_name(&self, name: &str) -> Vec<ProcessInfo> {
-        let name = if name.len() > 15 { &name[..15] } else { name };
+        let name = OsStr::new(if name.len() > 15 { &name[..15] } else { name });
         let mut sys = self.system.lock();
-        sys.refresh_processes();
+        sys.refresh_processes(ProcessesToUpdate::All);
         sys.processes_by_name(name).map(Into::into).collect()
     }
 }
