@@ -192,9 +192,8 @@ struct ServiceLogLine<'a> {
 impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
     type Error = Error;
     fn try_from(line: ServiceLogLine) -> Result<Self, Self::Error> {
-        let timestamp: i64 = line.timestamp.parse().map_err(|e| {
-            println!("{}", line.timestamp);
-            e
+        let timestamp: i64 = line.timestamp.parse().inspect_err(|e| {
+            println!("{e} {}", line.timestamp);
         })?;
         let ts = timestamp / 1_000_000;
         let ns = (timestamp % 1_000_000) * 1000;

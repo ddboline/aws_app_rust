@@ -138,7 +138,7 @@ impl Route53Instance {
                     r.value
                 ));
             }
-            r.value = new_ip.clone();
+            r.value.clone_from(&new_ip);
         } else {
             return Err(format_err!("No resource records"));
         }
