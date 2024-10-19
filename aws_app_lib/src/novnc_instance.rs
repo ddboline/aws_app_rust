@@ -34,6 +34,12 @@ impl NoVncInstance {
         let vncpwd = home_dir.join(".vnc/passwd");
         let websockify = Path::new("/usr/bin/websockify");
 
+	if !x11vnc.exists(){debug!("no x11vnc");}
+	if !websockify.exists() {debug!("no websockify");};
+	if !vncpwd.exists(){debug!("no vncpwd");}
+	if !cert.exists(){debug!("no cert {cert:?}");}
+	if !key.exists(){debug!("no key {key:?}");}
+
         if !x11vnc.exists()
             || !websockify.exists()
             || !vncpwd.exists()
