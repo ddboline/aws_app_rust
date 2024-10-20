@@ -338,7 +338,7 @@ function tagSnapshot(id) {
         document.getElementById("garminconnectoutput").innerHTML = "done";
         listResource('snapshot');
     }
-    xmlhttp.open("GET", url, true);
+    xmlhttp.open("PATCH", url, true);
     xmlhttp.send(null);
     document.getElementById("garminconnectoutput").innerHTML = "running";
 }
