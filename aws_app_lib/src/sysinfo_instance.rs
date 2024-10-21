@@ -59,7 +59,7 @@ impl SysinfoInstance {
         let process_names = names.into_iter().map(Into::into).collect();
         let process_names = Arc::new(process_names);
         let mut sys = System::default();
-        sys.refresh_processes(ProcessesToUpdate::All);
+        sys.refresh_processes(ProcessesToUpdate::All, true);
         let system = Arc::new(Mutex::new(sys));
         Self {
             system,
@@ -70,7 +70,7 @@ impl SysinfoInstance {
     #[must_use]
     pub fn get_process_info(&self) -> Vec<ProcessInfo> {
         let mut sys = self.system.lock();
-        sys.refresh_processes(ProcessesToUpdate::All);
+        sys.refresh_processes(ProcessesToUpdate::All, true);
         self.process_names
             .iter()
             .flat_map(|name| {
@@ -84,7 +84,7 @@ impl SysinfoInstance {
     pub fn get_process_info_by_name(&self, name: &str) -> Vec<ProcessInfo> {
         let name = OsStr::new(if name.len() > 15 { &name[..15] } else { name });
         let mut sys = self.system.lock();
-        sys.refresh_processes(ProcessesToUpdate::All);
+        sys.refresh_processes(ProcessesToUpdate::All, true);
         sys.processes_by_name(name).map(Into::into).collect()
     }
 }

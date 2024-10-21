@@ -24,7 +24,7 @@ clap = {version="4.0", features=["derive"]}
 deadpool-postgres = { version = "0.14", features=["serde"] }
 derive_more = {version="1.0", features = ["full"]}
 dirs = "5.0"
-dotenv = "0.15"
+dotenvy = "0.15"
 envy = "0.4"
 flate2 = "1.0"
 futures = "0.3"
@@ -46,7 +46,7 @@ serde_derive = "1.0"
 serde_json = "1.0"
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", features=["postgres_types"], tag="0.9.3" }
 stdout-channel = "0.6"
-sysinfo = "0.31"
+sysinfo = "0.32"
 tempfile = "3.10"
 tempdir = "0.3"
 thiserror = "1.0"
