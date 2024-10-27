@@ -54,8 +54,8 @@ async fn main() -> Result<(), Error> {
         None
     };
 
-    let freq: i64 = get_first_line_of_file(&FREQFILE).await?.trim().parse()?;
-    let temp: i64 = get_first_line_of_file(&TEMPFILE).await?.trim().parse()?;
+    let freq: i64 = get_first_line_of_file(&FREQFILE).await?.trim().parse().unwrap_or(0);
+    let temp: i64 = get_first_line_of_file(&TEMPFILE).await?.trim().parse().unwrap_or(0);
     let freq = freq / 1000;
     let temp = temp / 1000;
     let uptime: f64 = get_first_line_of_file(&UPTIMEFILE)
