@@ -1,7 +1,7 @@
 #![allow(clippy::semicolon_if_nothing_returned)]
 
 use anyhow::Error;
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 use stack_string::{format_sstr, StackString};
 use std::{path::Path, process::Stdio};
 use time::Duration;
@@ -11,13 +11,13 @@ use tokio::{
     process::Command,
 };
 
-static WEATHER: Lazy<&Path> = Lazy::new(|| Path::new("/usr/bin/weather-util-rust"));
-static CALENDAR: Lazy<&Path> = Lazy::new(|| Path::new("/usr/bin/calendar-app-rust"));
-static FREQFILE: Lazy<&Path> =
-    Lazy::new(|| Path::new("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"));
-static TEMPFILE: Lazy<&Path> =
-    Lazy::new(|| Path::new("/sys/devices/virtual/thermal/thermal_zone0/temp"));
-static UPTIMEFILE: Lazy<&Path> = Lazy::new(|| Path::new("/proc/uptime"));
+static WEATHER: LazyLock<&Path> = LazyLock::new(|| Path::new("/usr/bin/weather-util-rust"));
+static CALENDAR: LazyLock<&Path> = LazyLock::new(|| Path::new("/usr/bin/calendar-app-rust"));
+static FREQFILE: LazyLock<&Path> =
+    LazyLock::new(|| Path::new("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"));
+static TEMPFILE: LazyLock<&Path> =
+    LazyLock::new(|| Path::new("/sys/devices/virtual/thermal/thermal_zone0/temp"));
+static UPTIMEFILE: LazyLock<&Path> = LazyLock::new(|| Path::new("/proc/uptime"));
 
 async fn get_first_line_of_file(fpath: &Path) -> Result<String, Error> {
     let mut buf = String::new();

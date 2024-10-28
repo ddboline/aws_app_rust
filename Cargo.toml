@@ -22,12 +22,10 @@ CLI and Web app frontend for aws"""
 anyhow = "1.0"
 aws_app_lib = {path="aws_app_lib"}
 aws_app_http = {path="aws_app_http"}
-dirs = "5.0"
 env_logger = {version="0.11", features=["color", "humantime", "regex"], default-features = false}
 log = "0.4"
-once_cell = "1.0"
 stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", features=["postgres_types"], tag="0.9.3" }
-tokio = {version="1.38", features=["rt", "macros", "rt-multi-thread"]}
+tokio = {version="1.41", features=["rt", "macros", "rt-multi-thread"]}
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
 
