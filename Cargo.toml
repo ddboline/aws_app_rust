@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_rust"
-version = "0.10.27"
+version = "0.11.0"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -24,7 +24,7 @@ aws_app_lib = {path="aws_app_lib"}
 aws_app_http = {path="aws_app_http"}
 env_logger = {version="0.11", features=["color", "humantime", "regex"], default-features = false}
 log = "0.4"
-stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", features=["postgres_types"], tag="0.9.3" }
+stack-string = { git = "https://github.com/ddboline/stack-string-rs.git", features=["postgres_types"], tag="1.0.2" }
 tokio = {version="1.41", features=["rt", "macros", "rt-multi-thread"]}
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
