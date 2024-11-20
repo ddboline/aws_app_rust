@@ -91,7 +91,14 @@ impl FromStr for LoggedUser {
 /// Returns error if `get_authorized_users` fails
 pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
     if let Ok("true") = var("TESTENV").as_ref().map(String::as_str) {
-        AUTHORIZED_USERS.update_users(hashmap! {"user@test".into() => ExternalUser {email: "user@test".into(), session: Uuid::new_v4(), secret_key: StackString::default(), created_at: Some(OffsetDateTime::now_utc())}});
+        AUTHORIZED_USERS.update_users(hashmap! {
+            "user@test".into() => ExternalUser {
+                email: "user@test".into(),
+                session: Uuid::new_v4(),
+                secret_key: StackString::default(),
+                created_at: Some(OffsetDateTime::now_utc())
+            }
+        });
         return Ok(());
     }
     let (created_at, deleted_at) = AuthorizedUsersDB::get_most_recent(pool).await?;
