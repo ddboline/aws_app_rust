@@ -1,9 +1,8 @@
 #![allow(clippy::semicolon_if_nothing_returned)]
 
 use anyhow::Error;
-use std::sync::LazyLock;
 use stack_string::{format_sstr, StackString};
-use std::{path::Path, process::Stdio};
+use std::{path::Path, process::Stdio, sync::LazyLock};
 use time::Duration;
 use tokio::{
     fs,
@@ -54,8 +53,16 @@ async fn main() -> Result<(), Error> {
         None
     };
 
-    let freq: i64 = get_first_line_of_file(&FREQFILE).await?.trim().parse().unwrap_or(0);
-    let temp: i64 = get_first_line_of_file(&TEMPFILE).await?.trim().parse().unwrap_or(0);
+    let freq: i64 = get_first_line_of_file(&FREQFILE)
+        .await?
+        .trim()
+        .parse()
+        .unwrap_or(0);
+    let temp: i64 = get_first_line_of_file(&TEMPFILE)
+        .await?
+        .trim()
+        .parse()
+        .unwrap_or(0);
     let freq = freq / 1000;
     let temp = temp / 1000;
     let uptime: f64 = get_first_line_of_file(&UPTIMEFILE)
@@ -79,7 +86,9 @@ async fn main() -> Result<(), Error> {
     if days > 0 {
         uptime_str.push(format_sstr!("{days} days"));
     }
-    uptime_str.push(format_sstr!("{hours:02}:{minutes:02}:{seconds:02}{subseconds}"));
+    uptime_str.push(format_sstr!(
+        "{hours:02}:{minutes:02}:{seconds:02}{subseconds}"
+    ));
     let uptime_seconds = uptime.whole_seconds();
     let uptime_str = uptime_str.join(" ");
 
