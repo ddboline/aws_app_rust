@@ -16,7 +16,7 @@ use aws_app_lib::{
 
 use super::{
     errors::error_response,
-    logged_user::{fill_from_db, get_secrets, TRIGGER_DB_UPDATE},
+    logged_user::{fill_from_db, get_secrets},
     routes::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
         create_access_key, create_image, create_snapshot, create_user, crontab_logs,
@@ -141,8 +141,6 @@ async fn run_app(config: &Config) -> Result<(), Error> {
             i.tick().await;
         }
     }
-
-    TRIGGER_DB_UPDATE.set();
 
     let pool = PgPool::new(&config.database_url)?;
     let sdk_config = aws_config::load_from_env().await;
