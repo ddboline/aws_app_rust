@@ -6,7 +6,7 @@ use futures::TryStreamExt;
 use log::debug;
 use maplit::hashmap;
 use rweb::{filters::cookie::cookie, Filter, Rejection, Schema};
-use rweb_helper::UuidWrapper;
+use rweb_helper::{UuidWrapper, DateTimeType};
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{
@@ -29,6 +29,8 @@ pub struct LoggedUser {
     pub email: StackString,
     #[schema(description = "Session Id")]
     pub session: UuidWrapper,
+    #[schema(description = "User Created At")]
+    pub created_at: DateTimeType,
 }
 
 impl LoggedUser {
@@ -60,6 +62,7 @@ impl From<AuthorizedUser> for LoggedUser {
         Self {
             email: user.email,
             session: user.session.into(),
+            created_at: user.created_at.into(),
         }
     }
 }
@@ -96,7 +99,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
                 email: "user@test".into(),
                 session: Uuid::new_v4(),
                 secret_key: StackString::default(),
-                created_at: Some(OffsetDateTime::now_utc())
+                created_at: OffsetDateTime::now_utc()
             }
         });
         return Ok(());
@@ -105,7 +108,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
     let most_recent_user_db = created_at.max(deleted_at);
     let existing_users = AUTHORIZED_USERS.get_users();
     let most_recent_user = existing_users.values().map(|i| i.created_at).max();
-    debug!("most_recent_user_db {most_recent_user_db:?} most_recent_user {most_recent_user:?}");
+    println!("most_recent_user_db {most_recent_user_db:?} most_recent_user {most_recent_user:?}");
     if most_recent_user_db.is_some()
         && most_recent_user.is_some()
         && most_recent_user_db <= most_recent_user
@@ -122,7 +125,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
                     email: u.email,
                     session: Uuid::new_v4(),
                     secret_key: StackString::default(),
-                    created_at: Some(u.created_at),
+                    created_at: u.created_at,
                 },
             )
         })
@@ -130,7 +133,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
         .await;
     let users = result?;
     AUTHORIZED_USERS.update_users(users);
-    debug!("AUTHORIZED_USERS {:?}", *AUTHORIZED_USERS);
+    println!("AUTHORIZED_USERS {:?}", *AUTHORIZED_USERS);
     Ok(())
 }
 
