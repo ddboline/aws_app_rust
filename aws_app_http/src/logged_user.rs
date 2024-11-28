@@ -108,13 +108,13 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
     let most_recent_user_db = created_at.max(deleted_at);
     let existing_users = AUTHORIZED_USERS.get_users();
     let most_recent_user = existing_users.values().map(|i| i.created_at).max();
-    debug!("most_recent_user_db {most_recent_user_db:?} most_recent_user {most_recent_user:?}");
     if most_recent_user_db.is_some()
         && most_recent_user.is_some()
         && most_recent_user_db <= most_recent_user
     {
         return Ok(());
     }
+    debug!("most_recent_user_db {most_recent_user_db:?} most_recent_user {most_recent_user:?}");
 
     let result: Result<HashMap<StackString, _>, _> = AuthorizedUsersDB::get_authorized_users(pool)
         .await?
