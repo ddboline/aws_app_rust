@@ -6,7 +6,7 @@ use futures::TryStreamExt;
 use log::debug;
 use maplit::hashmap;
 use rweb::{filters::cookie::cookie, Filter, Rejection, Schema};
-use rweb_helper::{UuidWrapper, DateTimeType};
+use rweb_helper::{DateTimeType, UuidWrapper};
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{
