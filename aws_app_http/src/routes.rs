@@ -13,6 +13,7 @@ use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
     task::spawn,
+    time::{sleep, Duration},
 };
 
 use aws_app_lib::{
@@ -1039,13 +1040,13 @@ pub async fn systemd_restart_all(
         );
     }
     if data.aws.config.systemd_services.contains(&aws_service) {
-        output.push(
+        spawn(async move {
+            sleep(Duration::from_secs(1)).await;
             data.aws
                 .systemd
                 .service_action("restart", "aws-app-http")
                 .await
-                .map_err(Into::<Error>::into)?,
-        );
+        });
     }
     Ok(HtmlBase::new(output.join("\n")).into())
 }
