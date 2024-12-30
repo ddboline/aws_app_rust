@@ -64,7 +64,7 @@ impl InstanceFamily {
         query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 
-    async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn insert_entry_impl<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -84,7 +84,7 @@ impl InstanceFamily {
         Ok(())
     }
 
-    async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn update_entry<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -113,9 +113,9 @@ impl InstanceFamily {
         let existing = Self::get_by_family_name(&self.family_name, conn).await?;
 
         if existing.is_some() {
-            self._update_entry(conn).await?;
+            self.update_entry(conn).await?;
         } else {
-            self._insert_entry(conn).await?;
+            self.insert_entry_impl(conn).await?;
         }
         tran.commit().await?;
         Ok(existing)
@@ -181,7 +181,7 @@ impl InstanceList {
             .map_err(Into::into)
     }
 
-    async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn insert_entry_impl<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -203,7 +203,7 @@ impl InstanceList {
         Ok(())
     }
 
-    async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn update_entry<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -233,9 +233,9 @@ impl InstanceList {
         let result = Self::_get_by_instance_type(&self.instance_type, conn).await?;
 
         if result.is_some() {
-            self._update_entry(conn).await?;
+            self.update_entry(conn).await?;
         } else {
-            self._insert_entry(conn).await?;
+            self.insert_entry_impl(conn).await?;
         }
         tran.commit().await?;
         Ok(result)
@@ -311,7 +311,7 @@ impl InstancePricing {
         query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 
-    async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn insert_entry_impl<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -332,7 +332,7 @@ impl InstancePricing {
         Ok(())
     }
 
-    async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn update_entry<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -363,9 +363,9 @@ impl InstancePricing {
             Self::_existing_entry(&self.instance_type, &self.price_type, conn).await?;
 
         if existing_entry.is_none() {
-            self._insert_entry(conn).await?;
+            self.insert_entry_impl(conn).await?;
         } else {
-            self._update_entry(conn).await?;
+            self.update_entry(conn).await?;
         }
         tran.commit().await?;
         Ok(existing_entry)
@@ -561,7 +561,7 @@ impl InboundEmailDB {
         query.fetch_opt(&conn).await.map_err(Into::into)
     }
 
-    async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn insert_entry_impl<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -590,7 +590,7 @@ impl InboundEmailDB {
         Ok(())
     }
 
-    async fn _update_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn update_entry<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -633,9 +633,9 @@ impl InboundEmailDB {
         let existing = Self::_get_by_id(self.id, conn).await?;
 
         if existing.is_some() {
-            self._update_entry(conn).await?;
+            self.update_entry(conn).await?;
         } else {
-            self._insert_entry(conn).await?;
+            self.insert_entry_impl(conn).await?;
         }
         tran.commit().await?;
         Ok(existing)
@@ -768,7 +768,7 @@ impl DmarcRecords {
         query.execute(&conn).await.map_err(Into::into)
     }
 
-    async fn _insert_entry<C>(&self, conn: &C) -> Result<(), Error>
+    async fn insert_entry_impl<C>(&self, conn: &C) -> Result<(), Error>
     where
         C: GenericClient + Sync,
     {
@@ -809,7 +809,7 @@ impl DmarcRecords {
     /// Returns error if db query fails
     pub async fn insert_entry(&self, pool: &PgPool) -> Result<(), Error> {
         let conn = pool.get().await?;
-        self._insert_entry(&conn).await?;
+        self.insert_entry_impl(&conn).await?;
         Ok(())
     }
 

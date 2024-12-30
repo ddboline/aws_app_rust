@@ -134,7 +134,7 @@ fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
 }
 
 async fn run_app(config: &Config) -> Result<(), Error> {
-    async fn _update_db(pool: PgPool) {
+    async fn update_db(pool: PgPool) {
         let mut i = interval(Duration::from_secs(60));
         loop {
             fill_from_db(&pool).await.unwrap_or(());
@@ -149,7 +149,7 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         novnc: NoVncInstance::new(),
     };
 
-    let update_handle = spawn(_update_db(app.aws.pool.clone()));
+    let update_handle = spawn(update_db(app.aws.pool.clone()));
 
     let (spec, aws_path) = openapi::spec()
         .info(Info {

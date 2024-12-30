@@ -1,5 +1,6 @@
 use dioxus::prelude::{
-    component, dioxus_elements, rsx, Element, GlobalAttributes, IntoDynNode, Props, VirtualDom,
+    component, dioxus_elements, rsx, Element, GlobalSignal, IntoDynNode, Props, Readable,
+    VirtualDom,
 };
 use futures::{future::try_join_all, stream::FuturesUnordered, try_join, TryStreamExt};
 use stack_string::{format_sstr, StackString};

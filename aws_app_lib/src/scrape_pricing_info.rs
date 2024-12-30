@@ -71,15 +71,15 @@ fn parse_json_url_body(body: impl AsRef<str>) -> Result<Url, Error> {
 
 fn parse_json(js: PricingJson, ptype: PricingType) -> Vec<InstancePricing> {
     fn preserved_filter(p: &PricingEntry) -> bool {
-        fn _cmp(os: Option<&StackString>, s: &str) -> bool {
+        fn cmp(os: Option<&StackString>, s: &str) -> bool {
             os.map(Into::into) == Some(s)
         }
-        _cmp(p.attributes.get("aws:offerTermLeaseLength"), "1yr")
-            && _cmp(
+        cmp(p.attributes.get("aws:offerTermLeaseLength"), "1yr")
+            && cmp(
                 p.attributes.get("aws:offerTermPurchaseOption"),
                 "All Upfront",
             )
-            && _cmp(p.attributes.get("aws:offerTermOfferingClass"), "standard")
+            && cmp(p.attributes.get("aws:offerTermOfferingClass"), "standard")
     }
 
     debug!("prices {}", js.prices.len());
