@@ -451,7 +451,7 @@ function systemdRestartAll() {
     let xmlhttp = new XMLHttpRequest();
     xmlhttp.onload = function f() {
         document.getElementById("garminconnectoutput").innerHTML = "done";
-        sleep(5000).then(() => listResource('systemd'));
+        sleep(2000).then(() => listResource('systemd'));
     }
     xmlhttp.open("POST", url, true);
     xmlhttp.send(null);
