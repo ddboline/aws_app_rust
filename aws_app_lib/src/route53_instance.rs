@@ -19,6 +19,12 @@ impl fmt::Debug for Route53Instance {
     }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
+pub struct DnsRecord {
+    pub dnsname: String,
+    pub ip: String,
+}
+
 impl Route53Instance {
     #[must_use]
     pub fn new(config: &SdkConfig) -> Self {
@@ -65,18 +71,15 @@ impl Route53Instance {
 
     /// # Errors
     /// Returns error if aws api fails
-    pub async fn list_dns_records(
-        &self,
-        id: impl Into<String>,
-    ) -> Result<Vec<(String, String)>, Error> {
+    pub async fn list_dns_records(&self, id: impl Into<String>) -> Result<Vec<DnsRecord>, Error> {
         self.list_record_sets(id).await.map(|result| {
             result
                 .into_iter()
                 .filter_map(|record| {
                     if record.r#type == RrType::A {
                         let dnsname = record.name.trim_end_matches('.').into();
-                        let value = record.resource_records?.pop()?.value().into();
-                        Some((dnsname, value))
+                        let ip = record.resource_records?.pop()?.value().into();
+                        Some(DnsRecord { dnsname, ip })
                     } else {
                         None
                     }
@@ -87,14 +90,14 @@ impl Route53Instance {
 
     /// # Errors
     /// Returns error if aws api fails
-    pub async fn list_all_dns_records(&self) -> Result<Vec<(String, String, String)>, Error> {
+    pub async fn list_all_dns_records(&self) -> Result<Vec<(String, DnsRecord)>, Error> {
         let hosted_zones = self.get_hosted_zones().await?;
         let futures: FuturesUnordered<_> = hosted_zones
             .into_iter()
             .map(|zone| async move {
                 self.list_dns_records(&zone.id).await.map(|v| {
                     v.into_iter()
-                        .map(|(name, ip)| (zone.id.clone(), name, ip))
+                        .map(|record| (zone.id.clone(), record))
                         .collect::<Vec<_>>()
                 })
             })
@@ -179,7 +182,10 @@ mod tests {
     use anyhow::Error;
     use std::collections::HashMap;
 
-    use crate::{config::Config, route53_instance::Route53Instance};
+    use crate::{
+        config::Config,
+        route53_instance::{DnsRecord, Route53Instance},
+    };
 
     #[tokio::test]
     #[ignore]
@@ -224,7 +230,7 @@ mod tests {
             .list_all_dns_records()
             .await?
             .into_iter()
-            .map(|(_, name, ip)| (name, ip))
+            .map(|(_, DnsRecord { dnsname, ip })| (dnsname, ip))
             .collect();
         let config = Config::init_config()?;
         if config.domain == "www.ddboline.net" || config.domain == "cloud.ddboline.net" {

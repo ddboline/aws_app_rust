@@ -26,7 +26,7 @@ use crate::{
     pgpool::PgPool,
     pricing_instance::PricingInstance,
     resource_type::ResourceType,
-    route53_instance::Route53Instance,
+    route53_instance::{DnsRecord, Route53Instance},
     s3_instance::S3Instance,
     scrape_instance_info::scrape_instance_info,
     ssh_instance::SSHInstance,
@@ -388,7 +388,9 @@ impl AwsAppInterface {
                     .list_all_dns_records()
                     .await?
                     .into_iter()
-                    .map(|(zone, name, ip)| format_sstr!("{zone} {name} {ip} {current_ip}"))
+                    .map(|(zone, DnsRecord { dnsname, ip })| {
+                        format_sstr!("{zone} {dnsname} {ip} {current_ip}")
+                    })
                     .join("\n");
                 self.stdout.send(format_sstr!("---\nDNS:\n{dns_records}"));
             }
@@ -637,7 +639,7 @@ impl AwsAppInterface {
         if let Some(a) = ami_map.get(&req.ami) {
             req.ami = a.clone();
         }
-        if let Some(spot_id) = self.ec2.request_spot_instance(req).await?.pop() {
+        if let Some(spot_id) = self.ec2.request_spot_instance(req).await?.next() {
             self.ec2.tag_spot_instance(&spot_id, &req.tags, 20).await?;
         }
         Ok(())

@@ -297,23 +297,23 @@ impl Ec2Instance {
 
     /// # Errors
     /// Returns error if aws api call fails
-    pub async fn get_availability_zones(&self) -> Result<Vec<String>, Error> {
+    pub async fn get_availability_zones(&self) -> Result<impl Iterator<Item = String>, Error> {
         let filter = Filter::builder()
             .name("region-name")
             .values(self.region.as_ref())
             .build();
-        let zones = self
-            .ec2_client
+        self.ec2_client
             .describe_availability_zones()
             .filters(filter)
             .send()
-            .await?
-            .availability_zones
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|zone| zone.zone_name)
-            .collect();
-        Ok(zones)
+            .await
+            .map(|z| {
+                z.availability_zones
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter_map(|zone| zone.zone_name)
+            })
+            .map_err(Into::into)
     }
 
     /// # Errors
@@ -323,7 +323,7 @@ impl Ec2Instance {
         inst_list: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<HashMap<StackString, f32>, Error> {
         let inst_list: Vec<_> = inst_list.into_iter().map(|x| x.as_ref().into()).collect();
-        let zones = self.get_availability_zones().await?;
+        let zones = self.get_availability_zones().await?.collect();
         let filters = vec![
             Filter::builder()
                 .name("product-description")
@@ -479,7 +479,10 @@ impl Ec2Instance {
 
     /// # Errors
     /// Returns error if aws api call fails
-    pub async fn request_spot_instance(&self, spot: &SpotRequest) -> Result<Vec<String>, Error> {
+    pub async fn request_spot_instance(
+        &self,
+        spot: &SpotRequest,
+    ) -> Result<impl Iterator<Item = String>, Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
         let instance_type: InstanceType = spot.instance_type.parse()?;
         let launch_specification = RequestSpotLaunchSpecification::builder()
@@ -497,14 +500,16 @@ impl Ec2Instance {
         if let Some(spot_price) = spot.price {
             builder = builder.spot_price(format_sstr!("{spot_price}"));
         }
-        let req = builder.send().await?;
-        let spot_ids = req
-            .spot_instance_requests
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|result| result.spot_instance_request_id)
-            .collect();
-        Ok(spot_ids)
+        builder
+            .send()
+            .await
+            .map(|req| {
+                req.spot_instance_requests
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter_map(|result| result.spot_instance_request_id)
+            })
+            .map_err(Into::into)
     }
 
     /// # Errors
@@ -973,7 +978,7 @@ mod tests {
 
         assert!(instances.len() > 0);
 
-        let result = ec2.get_availability_zones().await?;
+        let result: Vec<_> = ec2.get_availability_zones().await?.collect();
         assert_eq!(result[0].as_str(), "us-east-1a");
         Ok(())
     }

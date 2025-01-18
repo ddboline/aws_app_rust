@@ -1,5 +1,6 @@
 use anyhow::{format_err, Error};
 use flate2::read::GzDecoder;
+use futures::TryStreamExt;
 use mail_parser::{Message, MessageParser, MessagePart};
 use stack_string::StackString;
 use std::{
@@ -131,9 +132,9 @@ impl InboundEmail {
             .ok_or_else(|| format_err!("No Inbound Email Bucket"))?;
         let key_dict: HashMap<StackString, _> = InboundEmailDB::get_keys(pool)
             .await?
-            .into_iter()
-            .map(|ibk| (ibk.s3_key.clone(), ibk))
-            .collect();
+            .map_ok(|ibk| (ibk.s3_key.clone(), ibk))
+            .try_collect()
+            .await?;
         let remote_keys: HashSet<StackString> = s3
             .get_list_of_keys(bucket, Some("inbound-email/"))
             .await?
@@ -249,6 +250,7 @@ fn extract_zip(filename: &Path, ziptmpdir: &Path) -> Result<Vec<PathBuf>, Error>
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
+    use futures::TryStreamExt;
     use mail_parser::MessageParser;
     use stack_string::{format_sstr, StackString};
     use std::{convert::TryInto, fmt::Write, path::Path};
@@ -349,7 +351,10 @@ mod tests {
         let sdk_config = aws_config::load_from_env().await;
         let s3 = S3Instance::new(&sdk_config);
 
-        let existing = if let Some(key) = InboundEmailDB::get_keys(&pool).await?.first() {
+        let existing = if let Some(key) = Box::pin(InboundEmailDB::get_keys(&pool).await?)
+            .try_next()
+            .await?
+        {
             InboundEmailDB::delete_entry_by_id(key.id, &pool).await?;
             println!("found key {}", key.s3_key);
             Some(key.s3_key.clone())
@@ -363,7 +368,7 @@ mod tests {
             assert!(new_keys.contains(existing));
         }
 
-        if let Some(existing) = DmarcRecords::get_parsed_s3_keys(&pool).await?.pop() {
+        if let Some(existing) = DmarcRecords::get_parsed_s3_keys(&pool).await?.iter().next() {
             DmarcRecords::delete_by_s3_key(&existing, &pool).await?;
         }
 

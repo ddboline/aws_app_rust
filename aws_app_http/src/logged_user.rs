@@ -104,8 +104,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
         });
         return Ok(());
     }
-    let (created_at, deleted_at) = AuthorizedUsersDB::get_most_recent(pool).await?;
-    let most_recent_user_db = created_at.max(deleted_at);
+    let most_recent_user_db = AuthorizedUsersDB::get_most_recent(pool).await?;
     let existing_users = AUTHORIZED_USERS.get_users();
     let most_recent_user = existing_users.values().map(|i| i.created_at).max();
     if most_recent_user_db.is_some()

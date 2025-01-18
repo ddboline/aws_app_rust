@@ -24,6 +24,7 @@ use aws_app_lib::{
     iam_instance::{AccessKeyMetadata, IamGroup, IamUser},
     models::{InboundEmailDB, InstanceFamily, InstanceList},
     resource_type::ResourceType,
+    route53_instance::DnsRecord,
     sysinfo_instance::ProcessInfo,
     systemd_instance::RunStatus,
 };
@@ -1106,7 +1107,7 @@ fn AccessKeyElement(keys: Vec<AccessKeyMetadata>) -> Element {
 }
 
 #[component]
-fn DnsRecordElement(records: Vec<(String, String, String)>, current_ip: Ipv4Addr) -> Element {
+fn DnsRecordElement(records: Vec<(String, DnsRecord)>, current_ip: Ipv4Addr) -> Element {
     rsx! {
         table {
             "border": "1",
@@ -1119,20 +1120,20 @@ fn DnsRecordElement(records: Vec<(String, String, String)>, current_ip: Ipv4Addr
                 }
             },
             tbody {
-                {records.iter().enumerate().map(|(idx, (zone, name, ip))| {
+                {records.iter().enumerate().map(|(idx, (zone, DnsRecord {dnsname, ip}))| {
                     rsx! {
                         tr {
                             key: "record-key-{idx}",
                             style: "text-align; left;",
                             td {"{zone}"},
-                            td {"{name}"},
+                            td {"{dnsname}"},
                             td {"{ip}"},
                             td {
                                 input {
                                     "type": "button",
                                     name: "Update",
                                     value: "{current_ip}",
-                                    "onclick": "updateDnsName('{zone}', '{name}.', '{ip}', '{current_ip}');",
+                                    "onclick": "updateDnsName('{zone}', '{dnsname}.', '{ip}', '{current_ip}');",
                                 }
                             },
                         }

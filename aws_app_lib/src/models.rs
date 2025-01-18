@@ -450,9 +450,7 @@ impl AuthorizedUsers {
 
     /// # Errors
     /// Returns error if db query fails
-    pub async fn get_most_recent(
-        pool: &PgPool,
-    ) -> Result<(Option<OffsetDateTime>, Option<OffsetDateTime>), Error> {
+    pub async fn get_most_recent(pool: &PgPool) -> Result<Option<OffsetDateTime>, Error> {
         #[derive(FromSqlRow)]
         struct CreatedDeleted {
             created_at: Option<OffsetDateTime>,
@@ -466,8 +464,8 @@ impl AuthorizedUsers {
         let conn = pool.get().await?;
         let result: Option<CreatedDeleted> = query.fetch_opt(&conn).await?;
         match result {
-            Some(result) => Ok((result.created_at, result.deleted_at)),
-            None => Ok((None, None)),
+            Some(result) => Ok(result.created_at.max(result.deleted_at)),
+            None => Ok(None),
         }
     }
 }
@@ -496,7 +494,9 @@ pub struct InboundEmailBucketKey {
 impl InboundEmailDB {
     /// # Errors
     /// Returns error if db query fails
-    pub async fn get_keys(pool: &PgPool) -> Result<Vec<InboundEmailBucketKey>, Error> {
+    pub async fn get_keys(
+        pool: &PgPool,
+    ) -> Result<impl Stream<Item = Result<InboundEmailBucketKey, PqError>>, Error> {
         let query = query!(
             r"
                 SELECT id, s3_bucket, s3_key
@@ -504,7 +504,7 @@ impl InboundEmailDB {
             "
         );
         let conn = pool.get().await?;
-        query.fetch(&conn).await.map_err(Into::into)
+        query.fetch_streaming(&conn).await.map_err(Into::into)
     }
 
     /// # Errors
@@ -747,14 +747,16 @@ impl DmarcRecords {
 
     /// # Errors
     /// Returns error if db query fails
-    pub async fn get_parsed_s3_keys(pool: &PgPool) -> Result<Vec<StackString>, Error> {
+    pub async fn get_parsed_s3_keys(pool: &PgPool) -> Result<HashSet<StackString>, Error> {
+        #[derive(FromSqlRow)]
+        struct RecordKeys {
+            s3_key: StackString,
+        }
+
         let query = query!("SELECT distinct s3_key FROM dmarc_records WHERE s3_key IS NOT NULL");
         let conn = pool.get().await?;
-        let result = query.query(&conn).await?;
-        result
-            .into_iter()
-            .map(|r| r.try_get(0).map_err(Into::into))
-            .collect()
+        let result: Vec<RecordKeys> = query.fetch(&conn).await?;
+        Ok(result.into_iter().map(|r| r.s3_key).collect())
     }
 
     /// # Errors
