@@ -1,6 +1,5 @@
 #![allow(clippy::semicolon_if_nothing_returned)]
 
-use anyhow::Error;
 use stack_string::{format_sstr, StackString};
 use std::{path::Path, process::Stdio, sync::LazyLock};
 use time::Duration;
@@ -9,6 +8,8 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
 };
+
+use aws_app_lib::errors::AwslibError as Error;
 
 static WEATHER: LazyLock<&Path> = LazyLock::new(|| Path::new("/usr/bin/weather-util-rust"));
 static CALENDAR: LazyLock<&Path> = LazyLock::new(|| Path::new("/usr/bin/calendar-app-rust"));

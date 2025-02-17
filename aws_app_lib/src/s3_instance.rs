@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use aws_config::SdkConfig;
 use aws_sdk_s3::{
     operation::list_objects::ListObjectsOutput,
@@ -8,15 +7,14 @@ use aws_sdk_s3::{
 };
 use once_cell::sync::Lazy;
 use parking_lot::{Mutex, MutexGuard};
+use stack_string::{format_sstr, StackString};
 use std::{fmt, path::Path};
 use tokio::io::AsyncReadExt;
 use url::Url;
 
+use crate::{errors::AwslibError as Error, exponential_retry};
+
 static S3INSTANCE_TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
-
-use stack_string::StackString;
-
-use crate::exponential_retry;
 
 #[derive(Clone)]
 pub struct S3Instance {
@@ -74,7 +72,7 @@ impl S3Instance {
                 .send()
                 .await?
                 .location
-                .ok_or_else(|| format_err!("Failed to create bucket"))?;
+                .ok_or_else(|| Error::StaticCustomError("Failed to create bucket"))?;
             Ok(location)
         })
         .await
@@ -145,7 +143,9 @@ impl S3Instance {
         key_name: &str,
     ) -> Result<(), Error> {
         if !fname.exists() {
-            return Err(format_err!("File doesn't exist {fname:?}"));
+            return Err(Error::CustomError(format_sstr!(
+                "File doesn't exist {fname:?}"
+            )));
         }
         exponential_retry(|| async move {
             let body = ByteStream::read_from().path(fname).build().await?;
@@ -180,7 +180,7 @@ impl S3Instance {
                 .await?;
             let etag = resp
                 .e_tag
-                .ok_or_else(|| format_err!("No etag"))?
+                .ok_or_else(|| Error::StaticCustomError("No etag"))?
                 .trim_matches('"')
                 .into();
             tokio::io::copy(

@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use aws_sdk_route53::types::RrType;
 use clap::Parser;
 use futures::{future, stream::FuturesUnordered, TryStreamExt};
@@ -12,6 +11,7 @@ use tokio::io::{stdin, AsyncReadExt};
 use crate::{
     aws_app_interface::AwsAppInterface,
     config::Config,
+    errors::AwslibError as Error,
     inbound_email::InboundEmail,
     instance_opt::InstanceOpt,
     models::{InstanceFamily, InstanceList},
@@ -373,7 +373,7 @@ impl AwsAppOpts {
                             None
                         }
                     })
-                    .ok_or_else(|| format_err!("No IP"))?;
+                    .ok_or_else(|| Error::StaticCustomError("No IP"))?;
                 let current_ip = app.route53.get_ip_address().await?;
                 let new_ip = new_ip.unwrap_or(current_ip);
                 app.route53
@@ -430,9 +430,9 @@ impl AwsAppOpts {
                     .config
                     .novnc_path
                     .as_ref()
-                    .ok_or_else(|| format_err!("novnc_path not set"))?;
-                let cert = cert.ok_or_else(|| format_err!("No cert"))?;
-                let key = key.ok_or_else(|| format_err!("No key"))?;
+                    .ok_or_else(|| Error::StaticCustomError("novnc_path not set"))?;
+                let cert = cert.ok_or_else(|| Error::StaticCustomError("No cert"))?;
+                let key = key.ok_or_else(|| Error::StaticCustomError("No key"))?;
                 let novnc = NoVncInstance::new();
                 novnc.novnc_start(novnc_path, &cert, &key).await?;
                 app.stdout.send("Press any key");
@@ -471,9 +471,7 @@ impl AwsAppOpts {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
-
-    use crate::aws_app_opts::get_tags;
+    use crate::{aws_app_opts::get_tags, errors::AwslibError as Error};
 
     #[test]
     fn test_get_tags() -> Result<(), Error> {

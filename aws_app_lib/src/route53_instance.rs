@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use aws_config::SdkConfig;
 use aws_sdk_route53::{
     types::{Change, ChangeAction, ChangeBatch, HostedZone, ResourceRecordSet, RrType},
@@ -6,7 +5,10 @@ use aws_sdk_route53::{
 };
 use aws_types::region::Region;
 use futures::{stream::FuturesUnordered, TryStreamExt};
+use stack_string::format_sstr;
 use std::{fmt, net::Ipv4Addr};
+
+use crate::errors::AwslibError as Error;
 
 #[derive(Clone)]
 pub struct Route53Instance {
@@ -127,23 +129,22 @@ impl Route53Instance {
             .await?
             .into_iter()
             .find(|r| r.r#type == RrType::A && r.name == name)
-            .ok_or_else(|| format_err!("No record found"))?;
+            .ok_or_else(|| Error::StaticCustomError("No record found"))?;
 
         let value = record
             .resource_records
             .as_mut()
-            .ok_or_else(|| format_err!("No resource records"))?;
+            .ok_or_else(|| Error::StaticCustomError("No resource records"))?;
         if let Some(r) = value.get_mut(0) {
             if r.value != old_ip {
-                return Err(format_err!(
-                    "old_ip {} does not match current ip {:?}",
-                    &old_ip,
+                return Err(Error::CustomError(format_sstr!(
+                    "old_ip {old_ip} does not match current ip {:?}",
                     r.value
-                ));
+                )));
             }
             r.value.clone_from(&new_ip);
         } else {
-            return Err(format_err!("No resource records"));
+            return Err(Error::StaticCustomError("No resource records"));
         }
 
         let change_batch = ChangeBatch::builder()
@@ -179,11 +180,11 @@ impl Route53Instance {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use std::collections::HashMap;
 
     use crate::{
         config::Config,
+        errors::AwslibError as Error,
         route53_instance::{DnsRecord, Route53Instance},
     };
 

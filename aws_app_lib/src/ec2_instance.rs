@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use aws_config::SdkConfig;
 use aws_sdk_ec2::{
     primitives::DateTime,
@@ -24,7 +23,7 @@ use std::{
 use time::{Duration, OffsetDateTime, UtcOffset};
 use tokio::{task::spawn, time::sleep};
 
-use crate::{config::Config, date_time_wrapper::DateTimeWrapper};
+use crate::{config::Config, date_time_wrapper::DateTimeWrapper, errors::AwslibError as Error};
 
 static UBUNTU_OWNER: &str = "099720109477";
 
@@ -76,7 +75,7 @@ impl Ec2Instance {
             .my_owner_id
             .as_ref()
             .map(ToString::to_string)
-            .ok_or_else(|| format_err!("No owner id"))?;
+            .ok_or_else(|| Error::StaticCustomError("No owner id"))?;
         let filter = Filter::builder().name("owner-id").values(owner_id).build();
         self.ec2_client
             .describe_images()
@@ -176,14 +175,14 @@ impl Ec2Instance {
         if let Some(latest_ami_name) = &latest_ami_name {
             let latest_ami_id = ami_map
                 .get(latest_ami_name)
-                .ok_or_else(|| format_err!("No latest ami"))?
+                .ok_or_else(|| Error::StaticCustomError("No latest ami"))?
                 .clone();
             ami_map.insert("latest".into(), latest_ami_id);
         }
         if let Some(latest_arm64_name) = &latest_arm64_name {
             let latest_arm64_id = ami_map
                 .get(latest_arm64_name)
-                .ok_or_else(|| format_err!("No latest ami"))?
+                .ok_or_else(|| Error::StaticCustomError("No latest ami"))?
                 .clone();
             ami_map.insert("arm64".into(), latest_arm64_id);
         }
@@ -429,7 +428,7 @@ impl Ec2Instance {
             .my_owner_id
             .as_ref()
             .map(ToString::to_string)
-            .ok_or_else(|| format_err!("No owner id"))?;
+            .ok_or_else(|| Error::StaticCustomError("No owner id"))?;
         let filter = Filter::builder().name("owner-id").values(owner_id).build();
         self.ec2_client
             .describe_snapshots()
@@ -484,7 +483,10 @@ impl Ec2Instance {
         spot: &SpotRequest,
     ) -> Result<impl Iterator<Item = String>, Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &spot.script)?;
-        let instance_type: InstanceType = spot.instance_type.parse()?;
+        let instance_type: InstanceType = spot
+            .instance_type
+            .parse()
+            .map_err(|_| Error::StaticCustomError("Infallible"))?;
         let launch_specification = RequestSpotLaunchSpecification::builder()
             .image_id(&spot.ami)
             .instance_type(instance_type)
@@ -637,7 +639,10 @@ impl Ec2Instance {
     /// Returns error if aws api call fails
     pub async fn run_ec2_instance(&self, request: &InstanceRequest) -> Result<(), Error> {
         let user_data = get_user_data_from_script(&self.script_dir, &request.script)?;
-        let instance_type: InstanceType = request.instance_type.parse()?;
+        let instance_type: InstanceType = request
+            .instance_type
+            .parse()
+            .map_err(|_| Error::StaticCustomError("Infallible"))?;
         let req = self
             .ec2_client
             .run_instances()
@@ -949,13 +954,13 @@ pub fn get_user_data_from_script(
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use log::debug;
     use std::path::Path;
 
     use crate::{
         config::Config,
         ec2_instance::{get_user_data_from_script, Ec2Instance},
+        errors::AwslibError as Error,
     };
 
     #[test]

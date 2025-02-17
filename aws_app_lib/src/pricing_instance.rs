@@ -1,4 +1,3 @@
-use anyhow::Error;
 use aws_config::SdkConfig;
 use aws_sdk_pricing::{
     types::{Filter, FilterType},
@@ -13,6 +12,7 @@ use time::OffsetDateTime;
 
 use crate::{
     date_time_wrapper::DateTimeWrapper,
+    errors::AwslibError as Error,
     models::{InstanceList, InstancePricing, PricingType},
     pgpool::PgPool,
 };
@@ -311,9 +311,7 @@ pub struct AwsService {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
-
-    use crate::pricing_instance::PricingInstance;
+    use crate::{errors::AwslibError as Error, pricing_instance::PricingInstance};
 
     #[tokio::test]
     async fn test_describe_services() -> Result<(), Error> {

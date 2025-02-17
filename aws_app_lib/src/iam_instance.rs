@@ -1,4 +1,3 @@
-use anyhow::Error;
 use aws_config::SdkConfig;
 pub use aws_sdk_iam::types::AccessKeyMetadata;
 use aws_sdk_iam::{
@@ -11,7 +10,7 @@ use stack_string::StackString;
 use std::collections::HashMap;
 use time::OffsetDateTime;
 
-use crate::date_time_wrapper::DateTimeWrapper;
+use crate::{date_time_wrapper::DateTimeWrapper, errors::AwslibError as Error};
 
 #[derive(Clone)]
 pub struct IamInstance {
@@ -284,11 +283,10 @@ impl IamAccessKey {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use aws_sdk_sts::Client as StsClient;
     use std::collections::HashMap;
 
-    use crate::iam_instance::IamInstance;
+    use crate::{errors::AwslibError as Error, iam_instance::IamInstance};
 
     #[tokio::test]
     async fn test_list_users() -> Result<(), Error> {

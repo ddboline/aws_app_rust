@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use flate2::read::GzDecoder;
 use futures::TryStreamExt;
 use mail_parser::{Message, MessageParser, MessagePart};
@@ -18,6 +17,7 @@ use zip::ZipArchive;
 
 use crate::{
     config::Config,
+    errors::AwslibError as Error,
     models::{DmarcRecords, InboundEmailDB},
     pgpool::PgPool,
     s3_instance::S3Instance,
@@ -57,17 +57,17 @@ impl TryFrom<Message<'_>> for InboundEmail {
             .and_then(|a| a.first())
             .and_then(|a| a.address())
             .map(Into::into)
-            .ok_or_else(|| format_err!("No From Address"))?;
+            .ok_or_else(|| Error::StaticCustomError("No From Address"))?;
         let to_address: StackString = message
             .to()
             .and_then(|a| a.first())
             .and_then(|a| a.address())
             .map(Into::into)
-            .ok_or_else(|| format_err!("No To Address"))?;
+            .ok_or_else(|| Error::StaticCustomError("No To Address"))?;
         let subject: StackString = message
             .subject()
             .map(Into::into)
-            .ok_or_else(|| format_err!("No Subject Found"))?;
+            .ok_or_else(|| Error::StaticCustomError("No Subject Found"))?;
         let date = message
             .date()
             .and_then(|d| OffsetDateTime::from_unix_timestamp(d.to_timestamp()).ok())
@@ -129,7 +129,7 @@ impl InboundEmail {
         let bucket = config
             .inbound_email_bucket
             .as_ref()
-            .ok_or_else(|| format_err!("No Inbound Email Bucket"))?;
+            .ok_or_else(|| Error::StaticCustomError("No Inbound Email Bucket"))?;
         let key_dict: HashMap<StackString, _> = InboundEmailDB::get_keys(pool)
             .await?
             .map_ok(|ibk| (ibk.s3_key.clone(), ibk))
@@ -179,7 +179,7 @@ impl InboundEmail {
         let bucket = config
             .inbound_email_bucket
             .as_ref()
-            .ok_or_else(|| format_err!("No Inbound Email Bucket"))?;
+            .ok_or_else(|| Error::StaticCustomError("No Inbound Email Bucket"))?;
 
         let parsed_attachments: HashSet<StackString> = DmarcRecords::get_parsed_s3_keys(pool)
             .await?
@@ -231,8 +231,8 @@ impl InboundEmail {
 
 fn extract_zip(filename: &Path, ziptmpdir: &Path) -> Result<Vec<PathBuf>, Error> {
     if !Path::new("/usr/bin/unzip").exists() {
-        return Err(format_err!(
-            "md5sum not installed (or not present at /usr/bin/unzip"
+        return Err(Error::StaticCustomError(
+            "md5sum not installed (or not present at /usr/bin/unzip)",
         ));
     }
     let mut zip = ZipArchive::new(File::open(filename)?)?;
@@ -249,7 +249,6 @@ fn extract_zip(filename: &Path, ziptmpdir: &Path) -> Result<Vec<PathBuf>, Error>
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use futures::TryStreamExt;
     use mail_parser::MessageParser;
     use stack_string::{format_sstr, StackString};
@@ -258,6 +257,7 @@ mod tests {
 
     use crate::{
         config::Config,
+        errors::AwslibError as Error,
         inbound_email::{extract_zip, InboundEmail},
         models::{DmarcRecords, InboundEmailDB},
         pgpool::PgPool,

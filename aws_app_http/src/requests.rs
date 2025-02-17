@@ -7,7 +7,7 @@ use stack_string::{format_sstr, StackString};
 use std::fmt::Display;
 use tokio::try_join;
 
-use aws_app_lib::{aws_app_interface::AwsAppInterface, ec2_instance::AmiInfo};
+use aws_app_lib::{aws_app_interface::AwsAppInterface, ec2_instance::AmiInfo, errors::AwslibError};
 
 use crate::errors::ServiceError as Error;
 
@@ -21,11 +21,8 @@ async fn get_latest_ubuntu_ami(
     app: &AwsAppInterface,
     ubuntu_release: impl Display,
     arch: impl Display,
-) -> Result<Option<AmiInfo>, Error> {
-    app.ec2
-        .get_latest_ubuntu_ami(ubuntu_release, arch)
-        .await
-        .map_err(Into::into)
+) -> Result<Option<AmiInfo>, AwslibError> {
+    app.ec2.get_latest_ubuntu_ami(ubuntu_release, arch).await
 }
 
 pub fn print_tags(tags: impl IntoIterator<Item = (impl Display, impl Display)>) -> StackString {

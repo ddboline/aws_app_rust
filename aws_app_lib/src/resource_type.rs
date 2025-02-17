@@ -1,7 +1,8 @@
-use anyhow::{format_err, Error};
 use serde::{Deserialize, Serialize};
-use stack_string::StackString;
+use stack_string::{format_sstr, StackString};
 use std::{convert::TryFrom, fmt, str::FromStr};
+
+use crate::errors::AwslibError as Error;
 
 pub static ALL_RESOURCES: [ResourceType; 15] = [
     ResourceType::Instances,
@@ -109,7 +110,10 @@ impl FromStr for ResourceType {
             "systemd" => Ok(Self::SystemD),
             "inbound-email" => Ok(Self::InboundEmail),
             "all" => Ok(Self::All),
-            _ => Err(format_err!("{} is not a ResourceType", s)),
+            _ => Err(Error::CustomError(format_sstr!(
+                "{} is not a ResourceType",
+                s
+            ))),
         }
     }
 }

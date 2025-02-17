@@ -1,4 +1,3 @@
-use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::{
@@ -9,7 +8,7 @@ use std::{
 use time::{Duration, OffsetDateTime, UtcOffset};
 use tokio::process::Command;
 
-use crate::date_time_wrapper::DateTimeWrapper;
+use crate::{date_time_wrapper::DateTimeWrapper, errors::AwslibError as Error};
 
 #[derive(Default, Clone)]
 pub struct SystemdInstance {
@@ -225,9 +224,7 @@ impl fmt::Display for ServiceLogEntry {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
-
-    use crate::systemd_instance::SystemdInstance;
+    use crate::{errors::AwslibError as Error, systemd_instance::SystemdInstance};
 
     #[tokio::test]
     #[ignore]

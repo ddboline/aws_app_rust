@@ -1,4 +1,3 @@
-use anyhow::format_err;
 use futures::TryStreamExt;
 use maplit::hashmap;
 use rweb::{delete, get, patch, post, Json, Query, Rejection, Schema};
@@ -18,6 +17,7 @@ use tokio::{
 
 use aws_app_lib::{
     ec2_instance::{AmiInfo, SpotRequest},
+    errors::AwslibError,
     inbound_email::InboundEmail,
     models::{InboundEmailDB, InstanceFamily, InstanceList},
     s3_instance::S3Instance,
@@ -590,7 +590,7 @@ pub async fn instance_status(
     .await
     {
         Ok(x) => x,
-        Err(_) => Err(format_err!("Timeout")),
+        Err(_) => Err(AwslibError::StaticCustomError("Timeout")),
     }
     .map_err(Into::<Error>::into)?;
     let body = instance_status_body(entries, query.instance)?.into();
@@ -620,7 +620,7 @@ pub async fn command(
     .await
     {
         Ok(x) => x,
-        Err(_) => Err(format_err!("Timeout")),
+        Err(_) => Err(AwslibError::StaticCustomError("Timeout")),
     }
     .map_err(Into::<Error>::into)?;
 

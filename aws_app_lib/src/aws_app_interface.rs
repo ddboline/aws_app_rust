@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use aws_config::SdkConfig;
 use futures::{future::try_join_all, stream::FuturesUnordered, TryStreamExt};
 use itertools::Itertools;
@@ -20,6 +19,7 @@ use crate::{
     date_time_wrapper::DateTimeWrapper,
     ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
     ecr_instance::EcrInstance,
+    errors::AwslibError as Error,
     iam_instance::{IamAccessKey, IamInstance, IamUser},
     instance_family::InstanceFamilies,
     models::{AwsGeneration, InstanceFamily, InstanceList, InstancePricing},
@@ -561,16 +561,15 @@ impl AwsAppInterface {
                     .get(&(inst.clone(), "reserved".into()))
                     .map(|x| x.price);
                 let spot_price = spot_prices.get(inst.as_str());
-                let instance_metadata = instance_list
-                    .get(&inst)
-                    .ok_or_else(|| format_err!("this should be impossible {}", inst))?;
-                let inst_fam = inst
-                    .split('.')
-                    .next()
-                    .ok_or_else(|| format_err!("invalid instance name {}", inst))?;
-                let inst_fam = instance_families
-                    .get(inst_fam)
-                    .ok_or_else(|| format_err!("inst_fam {} does not exist", inst_fam))?;
+                let instance_metadata = instance_list.get(&inst).ok_or_else(|| {
+                    Error::CustomError(format_sstr!("this should be impossible {inst}"))
+                })?;
+                let inst_fam = inst.split('.').next().ok_or_else(|| {
+                    Error::CustomError(format_sstr!("invalid instance name {inst}"))
+                })?;
+                let inst_fam = instance_families.get(inst_fam).ok_or_else(|| {
+                    Error::CustomError(format_sstr!("inst_fam {inst_fam} does not exist"))
+                })?;
                 let instance_family = inst_fam.family_type.parse()?;
 
                 Ok(AwsInstancePrice {
@@ -887,13 +886,13 @@ async fn get_id_host_map() -> Result<HashMap<StackString, StackString>, Error> {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use stack_string::StackString;
     use std::sync::Arc;
 
     use crate::{
         aws_app_interface::{get_id_host_map, get_name_map, INSTANCE_LIST},
         ec2_instance::Ec2InstanceInfo,
+        errors::AwslibError as Error,
     };
 
     #[tokio::test]

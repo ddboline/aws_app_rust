@@ -1,9 +1,11 @@
-use anyhow::{format_err, Error};
 use clap::Parser;
 use stack_string::StackString;
 use std::path::PathBuf;
 
-use crate::{config::Config, ec2_instance::InstanceRequest, spot_request_opt::get_tags};
+use crate::{
+    config::Config, ec2_instance::InstanceRequest, errors::AwslibError as Error,
+    spot_request_opt::get_tags,
+};
 
 #[derive(Parser, Debug, Clone)]
 pub struct InstanceOpt {
@@ -28,11 +30,11 @@ impl InstanceOpt {
         let security_group = self
             .security_group
             .or_else(|| config.default_security_group.clone())
-            .ok_or_else(|| format_err!("NO DEFAULT_SECURITY_GROUP"))?;
+            .ok_or_else(|| Error::StaticCustomError("NO DEFAULT_SECURITY_GROUP"))?;
         let key_name = self
             .key_name
             .or_else(|| config.default_key_name.clone())
-            .ok_or_else(|| format_err!("NO DEFAULT_KEY_NAME"))?;
+            .ok_or_else(|| Error::StaticCustomError("NO DEFAULT_KEY_NAME"))?;
         Ok(InstanceRequest {
             ami: self.ami,
             instance_type: self.instance_type,

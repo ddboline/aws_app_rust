@@ -1,5 +1,6 @@
-use anyhow::{format_err, Error};
 use std::{fmt, str::FromStr};
+
+use crate::errors::AwslibError as Error;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InstanceFamilies {
@@ -38,7 +39,7 @@ impl FromStr for InstanceFamilies {
             "general purpose" => Ok(Self::GeneralPurpose),
             "micro" => Ok(Self::Micro),
             "gpu optimized" => Ok(Self::GpuOptimized),
-            _ => Err(format_err!("Invalid Instance Family")),
+            _ => Err(Error::StaticCustomError("Invalid Instance Family")),
         }
     }
 }

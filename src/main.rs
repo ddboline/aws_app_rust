@@ -1,6 +1,4 @@
-use anyhow::Error;
-
-use aws_app_lib::aws_app_opts::AwsAppOpts;
+use aws_app_lib::{aws_app_opts::AwsAppOpts, errors::AwslibError as Error};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

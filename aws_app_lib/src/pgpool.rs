@@ -1,12 +1,11 @@
-use anyhow::Error;
 use deadpool_postgres::{Client, Config, Pool};
 use derive_more::Deref;
+use stack_string::StackString;
 use std::{fmt, sync::Arc};
+pub use tokio_postgres::Transaction as PgTransaction;
 use tokio_postgres::{Config as PgConfig, NoTls};
 
-pub use tokio_postgres::Transaction as PgTransaction;
-
-use stack_string::StackString;
+use crate::errors::AwslibError as Error;
 
 #[derive(Clone, Deref)]
 pub struct PgPool {

@@ -53,13 +53,12 @@ impl DateTimeWrapper {
 }
 
 mod iso8601 {
-    use anyhow::Error;
     use serde::{de, Deserialize, Deserializer, Serializer};
     use stack_string::StackString;
     use std::borrow::Cow;
     use time::{
-        format_description::well_known::Rfc3339, macros::format_description, OffsetDateTime,
-        UtcOffset,
+        error::Parse as ParseError, format_description::well_known::Rfc3339,
+        macros::format_description, OffsetDateTime, UtcOffset,
     };
 
     #[must_use]
@@ -75,15 +74,13 @@ mod iso8601 {
 
     /// # Errors
     /// Return error if `parse_from_rfc3339` fails
-    pub fn convert_str_to_datetime(s: &str) -> Result<OffsetDateTime, Error> {
+    pub fn convert_str_to_datetime(s: &str) -> Result<OffsetDateTime, ParseError> {
         let s: Cow<str> = if s.contains('Z') {
             s.replace('Z', "+00:00").into()
         } else {
             s.into()
         };
-        OffsetDateTime::parse(&s, &Rfc3339)
-            .map(|x| x.to_offset(UtcOffset::UTC))
-            .map_err(Into::into)
+        OffsetDateTime::parse(&s, &Rfc3339).map(|x| x.to_offset(UtcOffset::UTC))
     }
 
     /// # Errors

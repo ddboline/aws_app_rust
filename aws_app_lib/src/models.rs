@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use futures::Stream;
 use mail_parser::{MessageParser, MimeHeaders, PartType};
 use postgres_query::{client::GenericClient, query, query_dyn, Error as PqError, FromSqlRow};
@@ -12,6 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     config::Config,
+    errors::AwslibError as Error,
     pgpool::{PgPool, PgTransaction},
     s3_instance::S3Instance,
 };
@@ -662,7 +662,7 @@ impl InboundEmailDB {
         let bucket = config
             .inbound_email_bucket
             .as_ref()
-            .ok_or_else(|| format_err!("No Inbound Email Bucket"))?;
+            .ok_or_else(|| Error::StaticCustomError("No Inbound Email Bucket"))?;
 
         let attachments: HashSet<StackString> = s3
             .get_list_of_keys(bucket, Some("attachments/"))
@@ -896,12 +896,11 @@ impl DmarcRecords {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use flate2::read::GzDecoder;
     use std::{fs, io::Read};
     use tempfile::TempDir;
 
-    use crate::models::DmarcRecords;
+    use crate::{errors::AwslibError as Error, models::DmarcRecords};
 
     #[tokio::test]
     async fn test_parse_xml() -> Result<(), Error> {

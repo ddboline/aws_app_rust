@@ -1,4 +1,3 @@
-use anyhow::Error;
 use aws_config::SdkConfig;
 use aws_sdk_ecr::{types::ImageIdentifier, Client as EcrClient};
 use aws_types::region::Region;
@@ -7,7 +6,7 @@ use stack_string::{format_sstr, StackString};
 use std::{fmt, sync::Arc};
 use time::{Duration, OffsetDateTime};
 
-use crate::config::Config;
+use crate::{config::Config, errors::AwslibError as Error};
 
 #[derive(Clone)]
 pub struct EcrInstance {

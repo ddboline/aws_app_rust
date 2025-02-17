@@ -15,6 +15,7 @@ pub mod config;
 pub mod date_time_wrapper;
 pub mod ec2_instance;
 pub mod ecr_instance;
+pub mod errors;
 pub mod iam_instance;
 pub mod inbound_email;
 pub mod instance_family;
@@ -34,14 +35,14 @@ pub mod ssh_instance;
 pub mod sysinfo_instance;
 pub mod systemd_instance;
 
-use anyhow::Error;
 use rand::{
     distr::{Distribution, Uniform},
     rng as thread_rng,
 };
-use std::future::Future;
-use std::convert::TryFrom;
+use std::{convert::TryFrom, future::Future};
 use tokio::time::{sleep, Duration};
+
+use crate::errors::AwslibError as Error;
 
 /// # Errors
 /// Returns error if timeout is reached

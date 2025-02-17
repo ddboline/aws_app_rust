@@ -1,5 +1,4 @@
 use crate::logged_user::LOGIN_HTML;
-use anyhow::Error as AnyhowError;
 use log::error;
 use postgres_query::Error as PqError;
 use rweb::{
@@ -11,6 +10,7 @@ use rweb::{
     Rejection, Reply,
 };
 use serde::Serialize;
+use serde_yml::Error as YamlError;
 use stack_string::StackString;
 use std::{
     borrow::Cow,
@@ -21,26 +21,45 @@ use std::{
 use thiserror::Error;
 use time_tz::system::Error as TzSystemError;
 
+use authorized_users::errors::AuthUsersError;
+use aws_app_lib::errors::AwslibError;
+
 #[derive(Error, Debug)]
 pub enum ServiceError {
+    #[error("YamlError {0}")]
+    YamlError(#[from] YamlError),
     #[error("Internal Server Error")]
     InternalServerError,
     #[error("BadRequest: {}", _0)]
     BadRequest(StackString),
     #[error("Unauthorized")]
     Unauthorized,
-    #[error("Anyhow error {0}")]
-    AnyhowError(#[from] AnyhowError),
+    #[error("AuthUsersError {0}")]
+    AuthUsersError(#[from] AuthUsersError),
     #[error("io Error {0}")]
     IoError(#[from] std::io::Error),
     #[error("FromUtf8Error {0}")]
-    FromUtf8Error(#[from] FromUtf8Error),
+    FromUtf8Error(Box<FromUtf8Error>),
     #[error("TzSystemError {0}")]
     TzSystemError(#[from] TzSystemError),
     #[error("PqError {0}")]
-    PqError(#[from] PqError),
+    PqError(Box<PqError>),
     #[error("FmtError {0}")]
     FmtError(#[from] FmtError),
+    #[error("AwslibError {0}")]
+    AwslibError(#[from] AwslibError),
+}
+
+impl From<PqError> for ServiceError {
+    fn from(value: PqError) -> Self {
+        Self::PqError(Box::new(value))
+    }
+}
+
+impl From<FromUtf8Error> for ServiceError {
+    fn from(value: FromUtf8Error) -> Self {
+        Self::FromUtf8Error(Box::new(value))
+    }
 }
 
 impl Reject for ServiceError {}
@@ -139,20 +158,41 @@ impl ResponseEntity for ServiceError {
 
 #[cfg(test)]
 mod test {
-    use anyhow::Error;
+    use postgres_query::Error as PqError;
     use rweb::Reply;
+    use serde_yml::Error as YamlError;
+    use std::{fmt::Error as FmtError, string::FromUtf8Error};
+    use time_tz::system::Error as TzSystemError;
 
-    use crate::errors::{error_response, ServiceError};
+    use authorized_users::errors::AuthUsersError;
+    use aws_app_lib::errors::AwslibError;
+
+    use crate::errors::{error_response, ServiceError as Error};
 
     #[tokio::test]
     async fn test_service_error() -> Result<(), Error> {
-        let err = ServiceError::BadRequest("TEST ERROR".into()).into();
-        let resp = error_response(err).await?.into_response();
+        let err = Error::BadRequest("TEST ERROR".into()).into();
+        let resp = error_response(err).await.unwrap().into_response();
         assert_eq!(resp.status().as_u16(), 400);
 
-        let err = ServiceError::InternalServerError.into();
-        let resp = error_response(err).await?.into_response();
+        let err = Error::InternalServerError.into();
+        let resp = error_response(err).await.unwrap().into_response();
         assert_eq!(resp.status().as_u16(), 500);
         Ok(())
+    }
+
+    #[test]
+    fn test_error_size() {
+        println!("YamlError {}", std::mem::size_of::<YamlError>());
+        println!("AuthUsersError {}", std::mem::size_of::<AuthUsersError>());
+        println!("std::io::Error {}", std::mem::size_of::<std::io::Error>());
+        println!("FromUtf8Error {}", std::mem::size_of::<FromUtf8Error>());
+        println!("TzSystemError {}", std::mem::size_of::<TzSystemError>());
+        println!("PqError {}", std::mem::size_of::<PqError>());
+        println!("FmtError {}", std::mem::size_of::<FmtError>());
+        println!("AwslibError {}", std::mem::size_of::<AwslibError>());
+
+        println!("Error {}", std::mem::size_of::<Error>());
+        assert_eq!(std::mem::size_of::<Error>(), 32);
     }
 }

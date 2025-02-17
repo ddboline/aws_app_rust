@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use log::debug;
 use once_cell::sync::Lazy;
 use stack_string::{format_sstr, StackString};
@@ -7,6 +6,8 @@ use tokio::{
     process::Command,
     sync::{Mutex, RwLock},
 };
+
+use crate::errors::AwslibError as Error;
 
 static LOCK_CACHE: Lazy<RwLock<HashMap<StackString, Mutex<()>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
@@ -67,7 +68,7 @@ impl SSHInstance {
             let output: Vec<_> = output.split('\n').map(Into::into).collect();
             Ok(output)
         } else {
-            Err(format_err!("Failed to acquire lock"))
+            Err(Error::StaticCustomError("Failed to acquire lock"))
         }
     }
 }

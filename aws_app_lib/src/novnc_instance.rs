@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use log::debug;
 use stack_string::StackString;
 use std::{path::Path, process::Stdio, sync::Arc};
@@ -6,6 +5,8 @@ use tokio::{
     process::{Child, Command},
     sync::RwLock,
 };
+
+use crate::errors::AwslibError as Error;
 
 #[derive(Default, Clone)]
 pub struct NoVncInstance {
@@ -28,7 +29,8 @@ impl NoVncInstance {
         cert: &Path,
         key: &Path,
     ) -> Result<(), Error> {
-        let home_dir = dirs::home_dir().ok_or_else(|| format_err!("No home directory"))?;
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| Error::StaticCustomError("No home directory"))?;
         let x11vnc = Path::new("/usr/bin/x11vnc");
         // let vncserver = Path::new("/usr/bin/vncserver");
         let vncpwd = home_dir.join(".vnc/passwd");
@@ -56,7 +58,7 @@ impl NoVncInstance {
             || !cert.exists()
             || !key.exists()
         {
-            return Err(format_err!("Missing needed file(s)"));
+            return Err(Error::StaticCustomError("Missing needed file(s)"));
         }
 
         let x11vnc_command = Command::new(x11vnc)

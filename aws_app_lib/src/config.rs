@@ -1,4 +1,3 @@
-use anyhow::Error;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use stack_string::StackString;
@@ -7,6 +6,8 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+
+use crate::errors::AwslibError as Error;
 
 static CONFIG_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::config_dir().expect("No CONFIG directory"));
 static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().expect("No HOME directory"));

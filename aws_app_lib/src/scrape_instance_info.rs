@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use futures::{stream::FuturesUnordered, TryStreamExt};
 use log::debug;
 use reqwest::Url;
@@ -11,6 +10,7 @@ use stack_string::{format_sstr, StackString};
 use std::collections::HashMap;
 
 use crate::{
+    errors::AwslibError as Error,
     models::{AwsGeneration, InstanceFamily, InstanceList},
     pgpool::PgPool,
 };
@@ -226,7 +226,7 @@ fn extract_instance_family_object_pv(
         .as_ref()
         .split('.')
         .next()
-        .ok_or_else(|| format_err!("No family type"))?
+        .ok_or_else(|| Error::StaticCustomError("No family type"))?
         .into();
     Ok(InstanceFamily {
         family_name,
@@ -401,9 +401,9 @@ fn extract_instance_type_object_pv(
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
-
-    use crate::{models::AwsGeneration, scrape_instance_info::parse_result};
+    use crate::{
+        errors::AwslibError as Error, models::AwsGeneration, scrape_instance_info::parse_result,
+    };
 
     #[test]
     fn test_parse_result() -> Result<(), Error> {

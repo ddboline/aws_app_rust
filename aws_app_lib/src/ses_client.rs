@@ -1,6 +1,5 @@
 #![allow(clippy::default_trait_access)]
 
-use anyhow::Error;
 use aws_config::SdkConfig;
 use aws_sdk_ses::{
     types::{Body, Content, Destination, Message},
@@ -10,6 +9,8 @@ use serde::Serialize;
 use stack_string::format_sstr;
 use std::fmt;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+
+use crate::errors::AwslibError as Error;
 
 #[derive(Clone)]
 pub struct SesInstance {

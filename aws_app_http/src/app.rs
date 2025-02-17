@@ -1,4 +1,3 @@
-use anyhow::Error;
 use rweb::{
     filters::BoxedFilter,
     http::header::CONTENT_TYPE,
@@ -10,12 +9,12 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
 
 use aws_app_lib::{
-    aws_app_interface::AwsAppInterface, config::Config, novnc_instance::NoVncInstance,
-    pgpool::PgPool,
+    aws_app_interface::AwsAppInterface, config::Config, errors::AwslibError,
+    novnc_instance::NoVncInstance, pgpool::PgPool,
 };
 
 use super::{
-    errors::error_response,
+    errors::{error_response, ServiceError},
     logged_user::{fill_from_db, get_secrets},
     routes::{
         add_user_to_group, build_spot_request, cancel_spot, cleanup_ecr_images, command,
@@ -37,7 +36,7 @@ pub struct AppState {
 
 /// # Errors
 /// Returns error if config fails, `get_secrets` fails, or app fails to run
-pub async fn start_app() -> Result<(), Error> {
+pub async fn start_app() -> Result<(), ServiceError> {
     let config = Config::init_config()?;
     get_secrets(&config.secret_path, &config.jwt_secret_path).await?;
     run_app(&config).await
@@ -133,7 +132,7 @@ fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
         .boxed()
 }
 
-async fn run_app(config: &Config) -> Result<(), Error> {
+async fn run_app(config: &Config) -> Result<(), ServiceError> {
     async fn update_db(pool: PgPool) {
         let mut i = interval(Duration::from_secs(60));
         loop {
@@ -179,14 +178,16 @@ async fn run_app(config: &Config) -> Result<(), Error> {
         .or(spec_json_path)
         .or(spec_yaml_path)
         .recover(error_response);
-    let addr: SocketAddr = format_sstr!("{}:{}", config.host, config.port).parse()?;
+    let addr: SocketAddr = format_sstr!("{}:{}", config.host, config.port)
+        .parse()
+        .map_err(Into::<AwslibError>::into)?;
     rweb::serve(routes).bind(addr).await;
-    update_handle.await.map_err(Into::into)
+    update_handle.await.map_err(Into::<AwslibError>::into)?;
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use maplit::hashmap;
     use stack_string::format_sstr;
     use std::{
@@ -197,7 +198,7 @@ mod tests {
 
     use auth_server_http::app::run_test_app;
 
-    use aws_app_lib::{config::Config, resource_type::ResourceType};
+    use aws_app_lib::{config::Config, errors::AwslibError as Error, resource_type::ResourceType};
 
     use crate::{
         app::run_app,
@@ -215,7 +216,7 @@ mod tests {
         set_var("PORT", auth_port.to_string());
         set_var("DOMAIN", "localhost");
 
-        let config = auth_server_lib::config::Config::init_config()?;
+        let config = auth_server_lib::config::Config::init_config().unwrap();
 
         let mut secret_key = [0u8; KEY_LENGTH];
         secret_key.copy_from_slice(&get_random_key());

@@ -91,8 +91,7 @@ impl SysinfoInstance {
 
 #[cfg(test)]
 mod tests {
-    use crate::sysinfo_instance::SysinfoInstance;
-    use anyhow::Error;
+    use crate::{errors::AwslibError as Error, sysinfo_instance::SysinfoInstance};
 
     #[test]
     fn test_sysinfo_instance() -> Result<(), Error> {

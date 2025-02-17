@@ -1,4 +1,3 @@
-use anyhow::{format_err, Error};
 use futures::{stream::FuturesUnordered, TryStreamExt};
 use log::debug;
 use reqwest::Url;
@@ -8,6 +7,7 @@ use std::collections::HashMap;
 use time::OffsetDateTime;
 
 use crate::{
+    errors::AwslibError as Error,
     models::{InstancePricing, PricingType},
     pgpool::PgPool,
 };
@@ -66,7 +66,7 @@ fn parse_json_url_body(body: impl AsRef<str>) -> Result<Url, Error> {
                 })
             })
         })
-        .ok_or_else(|| format_err!("No url"))
+        .ok_or_else(|| Error::StaticCustomError("No url"))
 }
 
 fn parse_json(js: PricingJson, ptype: PricingType) -> Vec<InstancePricing> {
@@ -109,12 +109,14 @@ fn get_instance_pricing(
             let price: f64 = price_entry
                 .price
                 .get("USD")
-                .ok_or_else(|| format_err!("No USD Price"))?
+                .ok_or_else(|| Error::StaticCustomError("No USD Price"))?
                 .parse()?;
             let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
-                .ok_or_else(|| format_err!("No instance type {:?}", price_entry))?;
+                .ok_or_else(|| {
+                    Error::CustomError(format_sstr!("No instance type {:?}", price_entry))
+                })?;
             let i = InstancePricing::new(
                 instance_type.as_str(),
                 price,
@@ -129,11 +131,11 @@ fn get_instance_pricing(
                 .as_ref()
                 .and_then(|x| x.get("effectiveHourlyRate"))
                 .and_then(|x| x.get("USD"))
-                .ok_or_else(|| format_err!("No price"))?;
+                .ok_or_else(|| Error::StaticCustomError("No price"))?;
             let instance_type = price_entry
                 .attributes
                 .get("aws:ec2:instanceType")
-                .ok_or_else(|| format_err!("No instance type"))?;
+                .ok_or_else(|| Error::StaticCustomError("No instance type"))?;
             let i = InstancePricing::new(
                 instance_type.as_str(),
                 price,
@@ -142,7 +144,7 @@ fn get_instance_pricing(
             );
             Ok(i)
         }
-        PricingType::Spot => Err(format_err!("nothing")),
+        PricingType::Spot => Err(Error::StaticCustomError("nothing")),
     }
 }
 
@@ -161,10 +163,10 @@ struct PricingJson {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use flate2::read::GzDecoder;
 
     use crate::{
+        errors::AwslibError as Error,
         models::PricingType,
         scrape_pricing_info::{parse_json, parse_json_url_body, PricingJson},
     };
