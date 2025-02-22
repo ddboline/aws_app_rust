@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_rust"
-version = "0.11.9"
+version = "0.11.10"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -42,9 +42,4 @@ doc = false
 [[bin]]
 name = "aws-app-http"
 path = "src/aws_app_http.rs"
-doc = false
-
-[[bin]]
-name = "system-stats"
-path = "src/system_stats.rs"
 doc = false
