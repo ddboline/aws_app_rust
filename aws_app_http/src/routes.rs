@@ -406,7 +406,7 @@ pub async fn build_spot_request(
         move_element_to_front(&mut files, |f| f == script);
     }
 
-    let keys: Vec<(StackString, StackString)> = data
+    let keys: Vec<_> = data
         .aws
         .ec2
         .get_all_key_pairs()

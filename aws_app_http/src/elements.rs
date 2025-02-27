@@ -17,8 +17,8 @@ use aws_app_lib::{
     config::Config,
     date_time_wrapper::DateTimeWrapper,
     ec2_instance::{
-        AmiInfo, Ec2InstanceInfo, ReservedInstanceInfo, SnapshotInfo, SpotInstanceRequestInfo,
-        VolumeInfo,
+        AmiInfo, Ec2InstanceInfo, KeyPair, ReservedInstanceInfo, SnapshotInfo,
+        SpotInstanceRequestInfo, VolumeInfo,
     },
     ecr_instance::ImageInfo,
     iam_instance::{AccessKeyMetadata, IamGroup, IamUser},
@@ -607,7 +607,7 @@ fn AmiElement(ami_tags: Vec<AmiInfo>) -> Element {
 }
 
 #[component]
-fn KeyElement(keys: Vec<(StackString, StackString)>) -> Element {
+fn KeyElement(keys: Vec<KeyPair>) -> Element {
     rsx! {
         table {
             "border": "1",
@@ -619,12 +619,14 @@ fn KeyElement(keys: Vec<(StackString, StackString)>) -> Element {
                 }
            },
            tbody {
-            {keys.iter().enumerate().map(|(idx, (key, fingerprint))| {
+            {keys.iter().enumerate().map(|(idx, key)| {
+                let name = &key.name;
+                let fingerprint = &key.fingerprint;
                 rsx! {
                     tr {
                         key: "key-{idx}",
                         style: "text-align: center;",
-                        td {"{key}"},
+                        td {"{name}"},
                         td {"{fingerprint}"},
                     }
                 }
@@ -1431,7 +1433,7 @@ pub fn build_spot_request_body(
     inst_fams: Vec<InstanceFamily>,
     instances: Vec<InstanceList>,
     files: Vec<StackString>,
-    keys: Vec<(StackString, StackString)>,
+    keys: Vec<KeyPair>,
     config: Config,
 ) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(
@@ -1458,7 +1460,7 @@ fn BuildSpotRequestElement(
     inst_fams: Vec<InstanceFamily>,
     instances: Vec<InstanceList>,
     files: Vec<StackString>,
-    keys: Vec<(StackString, StackString)>,
+    keys: Vec<KeyPair>,
     config: Config,
 ) -> Element {
     let sec = config.spot_security_group.as_ref().unwrap_or_else(|| {
@@ -1562,12 +1564,13 @@ fn BuildSpotRequestElement(
                         td {
                             select {
                                 id: "key",
-                                {keys.iter().enumerate().map(|(idx, (k, _))| {
+                                {keys.iter().enumerate().map(|(idx, k)| {
+                                    let name = &k.name;
                                     rsx! {
                                         option {
                                             key: "key-{idx}",
-                                            value: "{k}",
-                                            "{k}",
+                                            value: "{name}",
+                                            "{name}",
                                         }
                                     }
                                 })}

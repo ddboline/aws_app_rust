@@ -17,7 +17,7 @@ use walkdir::WalkDir;
 use crate::{
     config::Config,
     date_time_wrapper::DateTimeWrapper,
-    ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, SpotRequest},
+    ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, KeyPair, SpotRequest},
     ecr_instance::EcrInstance,
     errors::AwslibError as Error,
     iam_instance::{IamAccessKey, IamInstance, IamUser},
@@ -233,7 +233,14 @@ impl AwsAppInterface {
                     .ec2
                     .get_all_key_pairs()
                     .await?
-                    .map(|(key, fingerprint)| format_sstr!("{key} {fingerprint}"))
+                    .map(
+                        |KeyPair {
+                             id,
+                             name,
+                             fingerprint,
+                             ..
+                         }| format_sstr!("{id} {name} {fingerprint}"),
+                    )
                     .join("\n");
                 self.stdout.send(format_sstr!("---\nKeys:\n{keys}"));
             }

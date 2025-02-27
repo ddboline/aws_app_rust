@@ -834,9 +834,7 @@ impl Ec2Instance {
 
     /// # Errors
     /// Returns error if aws api call fails
-    pub async fn get_all_key_pairs(
-        &self,
-    ) -> Result<impl Iterator<Item = (StackString, StackString)>, Error> {
+    pub async fn get_all_key_pairs(&self) -> Result<impl Iterator<Item = KeyPair>, Error> {
         self.ec2_client
             .describe_key_pairs()
             .send()
@@ -846,8 +844,14 @@ impl Ec2Instance {
                     .unwrap_or_default()
                     .into_iter()
                     .filter_map(|key| {
-                        let fingerprint = key.key_fingerprint.unwrap_or_default();
-                        key.key_name.map(|x| (x.into(), fingerprint.into()))
+                        let id = key.key_pair_id?.into();
+                        let name = key.key_name?.into();
+                        let fingerprint = key.key_fingerprint?.into();
+                        Some(KeyPair {
+                            id,
+                            name,
+                            fingerprint,
+                        })
                     })
             })
             .map_err(Into::into)
@@ -932,6 +936,13 @@ pub struct SnapshotInfo {
     pub state: StackString,
     pub progress: StackString,
     pub tags: HashMap<StackString, StackString>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct KeyPair {
+    pub id: StackString,
+    pub name: StackString,
+    pub fingerprint: StackString,
 }
 
 /// # Errors
