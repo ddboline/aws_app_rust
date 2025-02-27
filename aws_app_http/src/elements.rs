@@ -1109,7 +1109,7 @@ fn AccessKeyElement(keys: Vec<AccessKeyMetadata>) -> Element {
 }
 
 #[component]
-fn DnsRecordElement(records: Vec<(String, DnsRecord)>, current_ip: Ipv4Addr) -> Element {
+fn DnsRecordElement(records: BTreeMap<String, Vec<DnsRecord>>, current_ip: Ipv4Addr) -> Element {
     rsx! {
         table {
             "border": "1",
@@ -1122,25 +1122,29 @@ fn DnsRecordElement(records: Vec<(String, DnsRecord)>, current_ip: Ipv4Addr) -> 
                 }
             },
             tbody {
-                {records.iter().enumerate().map(|(idx, (zone, DnsRecord {dnsname, ip}))| {
-                    rsx! {
-                        tr {
-                            key: "record-key-{idx}",
-                            style: "text-align; left;",
-                            td {"{zone}"},
-                            td {"{dnsname}"},
-                            td {"{ip}"},
-                            td {
-                                input {
-                                    "type": "button",
-                                    name: "Update",
-                                    value: "{current_ip}",
-                                    "onclick": "updateDnsName('{zone}', '{dnsname}.', '{ip}', '{current_ip}');",
+                {
+                    records.into_iter().enumerate().flat_map(|(idx, (zone, dns_records))| {
+                        dns_records.into_iter().enumerate().map(move |(idy, DnsRecord {dnsname, ip})| {
+                            rsx! {
+                                tr {
+                                    key: "record-key-{idx}-{idy}",
+                                    style: "text-align; left;",
+                                    td {"{zone}"},
+                                    td {"{dnsname}"},
+                                    td {"{ip}"},
+                                    td {
+                                        input {
+                                            "type": "button",
+                                            name: "Update",
+                                            value: "{current_ip}",
+                                            "onclick": "updateDnsName('{zone}', '{dnsname}.', '{ip}', '{current_ip}');",
+                                        }
+                                    },
                                 }
-                            },
-                        }
-                    }
-                })}
+                            }
+                        })
+                    })
+                }
             }
         }
     }

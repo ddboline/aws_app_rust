@@ -6,7 +6,7 @@ use aws_sdk_route53::{
 use aws_types::region::Region;
 use futures::{stream::FuturesUnordered, TryStreamExt};
 use stack_string::format_sstr;
-use std::{fmt, net::Ipv4Addr};
+use std::{collections::BTreeMap, fmt, net::Ipv4Addr};
 
 use crate::errors::AwslibError as Error;
 
@@ -92,21 +92,19 @@ impl Route53Instance {
 
     /// # Errors
     /// Returns error if aws api fails
-    pub async fn list_all_dns_records(&self) -> Result<Vec<(String, DnsRecord)>, Error> {
+    pub async fn list_all_dns_records(&self) -> Result<BTreeMap<String, Vec<DnsRecord>>, Error> {
         let hosted_zones = self.get_hosted_zones().await?;
         let futures: FuturesUnordered<_> = hosted_zones
             .into_iter()
             .map(|zone| async move {
-                self.list_dns_records(&zone.id).await.map(|v| {
-                    v.into_iter()
-                        .map(|record| (zone.id.clone(), record))
-                        .collect::<Vec<_>>()
+                self.list_dns_records(&zone.id).await.map(|mut v| {
+                    v.sort();
+                    (zone.id, v)
                 })
             })
             .collect();
         let results: Vec<_> = futures.try_collect().await?;
-        let mut dns_records: Vec<_> = results.into_iter().flatten().collect();
-        dns_records.sort();
+        let dns_records = results.into_iter().collect();
         Ok(dns_records)
     }
 
@@ -231,7 +229,11 @@ mod tests {
             .list_all_dns_records()
             .await?
             .into_iter()
-            .map(|(_, DnsRecord { dnsname, ip })| (dnsname, ip))
+            .flat_map(|(_, records)| {
+                records
+                    .into_iter()
+                    .map(|DnsRecord { dnsname, ip }| (dnsname, ip))
+            })
             .collect();
         let config = Config::init_config()?;
         if config.domain == "www.ddboline.net" || config.domain == "cloud.ddboline.net" {

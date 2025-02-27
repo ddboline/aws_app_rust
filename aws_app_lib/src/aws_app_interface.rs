@@ -395,8 +395,10 @@ impl AwsAppInterface {
                     .list_all_dns_records()
                     .await?
                     .into_iter()
-                    .map(|(zone, DnsRecord { dnsname, ip })| {
-                        format_sstr!("{zone} {dnsname} {ip} {current_ip}")
+                    .flat_map(|(zone, records)| {
+                        records.into_iter().map(move |DnsRecord { dnsname, ip }| {
+                            format_sstr!("{zone} {dnsname} {ip} {current_ip}")
+                        })
                     })
                     .join("\n");
                 self.stdout.send(format_sstr!("---\nDNS:\n{dns_records}"));
