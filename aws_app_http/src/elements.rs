@@ -1610,6 +1610,14 @@ fn BuildSpotRequestElement(
                                 value: "Request",
                                 "onclick": "requestSpotInstance();",
                             }
+                        },
+                        td {
+                            input {
+                                "type": "button",
+                                name: "run_instance",
+                                value: "Run Instance",
+                                "onclick": "runEc2Instance();",
+                            }
                         }
                     },
                 }
