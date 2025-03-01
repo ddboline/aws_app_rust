@@ -82,8 +82,14 @@ fn default_secret_path() -> PathBuf {
     CONFIG_DIR.join("aws_app_rust").join("secret.bin")
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub struct Config(Arc<ConfigInner>);
+
+impl Clone for Config {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}
 
 impl Deref for Config {
     type Target = ConfigInner;
