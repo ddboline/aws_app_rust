@@ -22,7 +22,7 @@ use super::{
         delete_access_key, delete_ecr_image, delete_image, delete_script, delete_snapshot,
         delete_user, delete_volume, edit_script, get_instances, get_prices, inbound_email_delete,
         inbound_email_detail, instance_status, list, modify_volume, novnc_launcher, novnc_shutdown,
-        novnc_status, remove_user_from_group, replace_script, request_spot, sync_frontpage,
+        novnc_status, remove_user_from_group, replace_script, request_spot, sync_frontpage, run_instance,
         sync_inboud_email, systemd_action, systemd_logs, systemd_restart_all, tag_item, terminate,
         update, update_dns_name, user,
     },
@@ -66,6 +66,7 @@ fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
     let delete_access_key_path = delete_access_key(app.clone()).boxed();
     let build_spot_request_path = build_spot_request(app.clone()).boxed();
     let request_spot_path = request_spot(app.clone()).boxed();
+    let run_instance_path = run_instance(app.clone()).boxed();
     let cancel_spot_path = cancel_spot(app.clone()).boxed();
     let get_prices_path = get_prices(app.clone()).boxed();
     let update_path = update(app.clone()).boxed();
@@ -113,6 +114,7 @@ fn get_aws_path(app: &AppState) -> BoxedFilter<(impl Reply,)> {
         .or(delete_access_key_path)
         .or(build_spot_request_path)
         .or(request_spot_path)
+        .or(run_instance_path)
         .or(cancel_spot_path)
         .or(get_prices_path)
         .or(update_path)
