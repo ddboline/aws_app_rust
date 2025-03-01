@@ -16,7 +16,7 @@ use tokio::{
 };
 
 use aws_app_lib::{
-    ec2_instance::{AmiInfo, SpotRequest},
+    ec2_instance::{AmiInfo, SpotRequest, InstanceRequest},
     errors::AwslibError,
     inbound_email::InboundEmail,
     models::{InboundEmailDB, InstanceFamily, InstanceList},
@@ -459,6 +459,19 @@ impl From<SpotRequestData> for SpotRequest {
     }
 }
 
+impl From<SpotRequestData> for InstanceRequest {
+    fn from(value: SpotRequestData) -> Self {
+        Self {
+            ami: value.ami,
+            instance_type: value.instance_type,
+            security_group: value.security_group,
+            script: value.script.as_str().into(),
+            key_name: value.key_name,
+            tags: hashmap! { "Name".into() => value.name },
+        }
+    }
+}
+
 #[post("/aws/request_spot")]
 pub async fn request_spot(
     #[filter = "LoggedUser::filter"] _: LoggedUser,
@@ -478,6 +491,17 @@ pub async fn request_spot(
         let tags = tags.clone();
         spawn(async move { ec2.tag_spot_instance(&spot_id, &tags, 1000).await });
     }
+    Ok(HtmlBase::new("Finished").into())
+}
+
+#[post("/aws/run_instance")]
+pub async fn run_instance(
+    #[filter = "LoggedUser::filter"] _: LoggedUser,
+    #[data] data: AppState,
+    req: Json<SpotRequestData>,
+) -> WarpResult<FinishedResource> {
+    let req: InstanceRequest = req.into_inner().into();
+    data.aws.ec2.run_ec2_instance(&req).await.map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new("Finished").into())
 }
 
