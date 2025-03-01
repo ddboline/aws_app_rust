@@ -16,7 +16,7 @@ use tokio::{
 };
 
 use aws_app_lib::{
-    ec2_instance::{AmiInfo, SpotRequest, InstanceRequest},
+    ec2_instance::{AmiInfo, InstanceRequest, SpotRequest},
     errors::AwslibError,
     inbound_email::InboundEmail,
     models::{InboundEmailDB, InstanceFamily, InstanceList},
@@ -501,7 +501,11 @@ pub async fn run_instance(
     req: Json<SpotRequestData>,
 ) -> WarpResult<FinishedResource> {
     let req: InstanceRequest = req.into_inner().into();
-    data.aws.ec2.run_ec2_instance(&req).await.map_err(Into::<Error>::into)?;
+    data.aws
+        .ec2
+        .run_ec2_instance(&req)
+        .await
+        .map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new("Finished").into())
 }
 

@@ -22,9 +22,9 @@ use super::{
         delete_access_key, delete_ecr_image, delete_image, delete_script, delete_snapshot,
         delete_user, delete_volume, edit_script, get_instances, get_prices, inbound_email_delete,
         inbound_email_detail, instance_status, list, modify_volume, novnc_launcher, novnc_shutdown,
-        novnc_status, remove_user_from_group, replace_script, request_spot, sync_frontpage, run_instance,
-        sync_inboud_email, systemd_action, systemd_logs, systemd_restart_all, tag_item, terminate,
-        update, update_dns_name, user,
+        novnc_status, remove_user_from_group, replace_script, request_spot, run_instance,
+        sync_frontpage, sync_inboud_email, systemd_action, systemd_logs, systemd_restart_all,
+        tag_item, terminate, update, update_dns_name, user,
     },
 };
 
