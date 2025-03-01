@@ -7,11 +7,20 @@ use tokio_postgres::{Config as PgConfig, NoTls};
 
 use crate::errors::AwslibError as Error;
 
-#[derive(Clone, Deref)]
+#[derive(Deref)]
 pub struct PgPool {
     pgurl: Arc<StackString>,
     #[deref]
     pool: Pool,
+}
+
+impl Clone for PgPool {
+    fn clone(&self) -> Self {
+        Self {
+            pgurl: Arc::clone(&self.pgurl),
+            pool: self.pool.clone(),
+        }
+    }
 }
 
 impl fmt::Debug for PgPool {
@@ -42,7 +51,6 @@ impl PgPool {
         if let Some(db) = pgconf.get_dbname() {
             config.dbname.replace(db.to_string());
         }
-
         let pool = config.builder(NoTls)?.max_size(4).build()?;
 
         Ok(Self {
