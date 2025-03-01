@@ -216,6 +216,36 @@ function requestSpotInstance() {
     xmlhttp.send(data);
     document.getElementById("garminconnectoutput").innerHTML = "running";
 }
+function runEc2Instance() {
+    let url = "/aws/run_instance";
+
+    let ami = document.getElementById('ami').value;
+    let instance_type = document.getElementById('instance_type').value;
+    let security_group = document.getElementById('security_group').value;
+    let script = document.getElementById('script').value;
+    let key = document.getElementById('key').value;
+    let price = document.getElementById('price').value;
+    let name = document.getElementById('name').value;
+
+    let data = JSON.stringify({
+        'ami': ami,
+        'instance_type': instance_type,
+        'security_group': security_group,
+        'script': script,
+        'key_name': key,
+        'price': price,
+        'name': name,
+    });
+
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.open('POST', url, true);
+    xmlhttp.onload = function see_result() {
+        listResource('instances');
+    }
+    xmlhttp.setRequestHeader('Content-Type', 'application/json');
+    xmlhttp.send(data);
+    document.getElementById("garminconnectoutput").innerHTML = "running";
+}
 function cancelSpotRequest(spot_id) {
     let url = "/aws/cancel_spot?spot_id=" + spot_id;
     let xmlhttp = new XMLHttpRequest();
