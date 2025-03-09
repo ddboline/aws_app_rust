@@ -645,7 +645,8 @@ impl Ec2Instance {
             .await?;
         for inst in req.instances.unwrap_or_default() {
             if let Some(inst) = inst.instance_id {
-                self.tag_ec2_instance_volume(&inst, &request.tags, 20).await?;
+                self.tag_ec2_instance_volume(&inst, &request.tags, 20)
+                    .await?;
             }
         }
         Ok(())
