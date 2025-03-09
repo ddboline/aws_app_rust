@@ -318,7 +318,7 @@ mod tests {
         let config = aws_config::load_from_env().await;
         let pricing = PricingInstance::new(&config);
         let services = pricing.describe_services(None).await?;
-        assert_eq!(services.len(), 236);
+        assert_eq!(services.len(), 237);
         Ok(())
     }
 
