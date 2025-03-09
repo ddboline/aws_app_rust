@@ -341,7 +341,7 @@ impl AwsAppOpts {
                 Ok(())
             }
             Self::DeleteSnapshot { snapid } => app.delete_ebs_snapshot(snapid).await,
-            Self::Tag { id, tags } => app.ec2.tag_ec2_instance(id, &get_tags(&tags)).await,
+            Self::Tag { id, tags } => app.ec2.tag_aws_resource(id, &get_tags(&tags)).await,
             Self::DeleteEcrImages { reponame, imageids } => {
                 app.ecr.delete_ecr_images(reponame, &imageids).await
             }

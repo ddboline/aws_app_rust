@@ -216,7 +216,7 @@ pub async fn tag_item(
     let query = query.into_inner();
     data.aws
         .ec2
-        .tag_ec2_instance(
+        .tag_aws_resource(
             query.id.as_str(),
             &hashmap! {
                 "Name".into() => query.tag,

@@ -532,7 +532,7 @@ impl Ec2Instance {
             {
                 if let Some(snapshot_id) = ami.snapshot_ids.first() {
                     let tags = hashmap! {"Name".into() => name.into()};
-                    self.tag_ec2_instance(snapshot_id, &tags).await?;
+                    self.tag_aws_resource(snapshot_id, &tags).await?;
                     break;
                 }
             }
@@ -566,22 +566,10 @@ impl Ec2Instance {
             if !reqs.contains_key(spot_instance_request_id) && i > 10 {
                 return Ok(());
             }
-            let instances: HashMap<_, _> = self
-                .get_all_instances()
-                .await?
-                .map(|inst| (inst.id.clone(), inst))
-                .collect();
             if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id) {
                 debug!("tag {} with {:?}", instance_id, tags);
-                self.tag_ec2_instance(instance_id, tags).await?;
-                if let Some(inst) = instances.get(instance_id) {
-                    if !inst.volumes.is_empty() {
-                        for vol in &inst.volumes {
-                            self.tag_ec2_instance(vol.as_str(), tags).await?;
-                        }
-                        return Ok(());
-                    }
-                }
+                self.tag_ec2_instance_volume(instance_id, tags, 20).await?;
+                return Ok(());
             }
             let secs = if i < 20 {
                 2
@@ -616,7 +604,7 @@ impl Ec2Instance {
 
     /// # Errors
     /// Returns error if aws api call fails
-    pub async fn tag_ec2_instance(
+    pub async fn tag_aws_resource(
         &self,
         inst_id: impl Into<String>,
         tags: &HashMap<StackString, StackString>,
@@ -657,8 +645,43 @@ impl Ec2Instance {
             .await?;
         for inst in req.instances.unwrap_or_default() {
             if let Some(inst) = inst.instance_id {
-                self.tag_ec2_instance(&inst, &request.tags).await?;
+                self.tag_ec2_instance_volume(&inst, &request.tags, 20).await?;
             }
+        }
+        Ok(())
+    }
+
+    async fn tag_ec2_instance_volume(
+        &self,
+        ec2_instance_id: &str,
+        tags: &HashMap<StackString, StackString>,
+        iterations: usize,
+    ) -> Result<(), Error> {
+        sleep(std::time::Duration::from_secs(2)).await;
+        for i in 0..iterations {
+            let instances: HashMap<_, _> = self
+                .get_all_instances()
+                .await?
+                .map(|inst| (inst.id.clone(), inst))
+                .collect();
+            if let Some(inst) = instances.get(ec2_instance_id) {
+                debug!("tag {} with {:?}", ec2_instance_id, tags);
+                self.tag_aws_resource(ec2_instance_id, tags).await?;
+                if !inst.volumes.is_empty() {
+                    for vol in &inst.volumes {
+                        self.tag_aws_resource(vol.as_str(), tags).await?;
+                    }
+                    return Ok(());
+                }
+            }
+            let secs = if i < 20 {
+                2
+            } else if i < 40 {
+                20
+            } else {
+                40
+            };
+            sleep(std::time::Duration::from_secs(secs)).await;
         }
         Ok(())
     }
@@ -812,7 +835,7 @@ impl Ec2Instance {
                         let ec2 = self.clone();
                         let tags = tags.clone();
                         let snapshot_id = snapshot_id.clone();
-                        spawn(async move { ec2.tag_ec2_instance(&snapshot_id, &tags).await });
+                        spawn(async move { ec2.tag_aws_resource(&snapshot_id, &tags).await });
                     }
                     snapshot_id.into()
                 })
