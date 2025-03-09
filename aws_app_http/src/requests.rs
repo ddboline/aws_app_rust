@@ -122,16 +122,10 @@ pub fn get_volumes(current_vol: i64) -> SmallVec<[i64; 8]> {
 /// # Errors
 /// Returns error if db query fails
 pub async fn get_ami_tags(app: &AwsAppInterface) -> Result<Vec<AmiInfo>, Error> {
-    let ubuntu_ami = async {
-        get_latest_ubuntu_ami(app, &app.config.ubuntu_release, "amd64")
-            .await
-            .map_err(Into::into)
-    };
-    let ubuntu_ami_arm64 = async {
-        get_latest_ubuntu_ami(app, &app.config.ubuntu_release, "arm64")
-            .await
-            .map_err(Into::into)
-    };
+    let ubuntu_ami =
+        async { get_latest_ubuntu_ami(app, &app.config.ubuntu_release, "amd64").await };
+    let ubuntu_ami_arm64 =
+        async { get_latest_ubuntu_ami(app, &app.config.ubuntu_release, "arm64").await };
 
     let ami_tags = app.ec2.get_ami_tags();
     let (ubuntu_ami, ubuntu_ami_arm64, ami_tags) =

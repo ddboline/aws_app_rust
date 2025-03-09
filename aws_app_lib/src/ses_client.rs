@@ -88,8 +88,7 @@ impl SesInstance {
                 rejects: point.rejects,
                 min_timestamp: point
                     .timestamp
-                    .and_then(|t| OffsetDateTime::from_unix_timestamp(t.as_secs_f64() as i64).ok())
-                    .map(Into::into),
+                    .and_then(|t| OffsetDateTime::from_unix_timestamp(t.as_secs_f64() as i64).ok()),
                 ..EmailStats::default()
             })
             .fold(EmailStats::default(), |mut stats, point| {

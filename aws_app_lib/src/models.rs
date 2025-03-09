@@ -176,9 +176,7 @@ impl InstanceList {
         pool: &PgPool,
     ) -> Result<Option<Self>, Error> {
         let conn = pool.get().await?;
-        Self::_get_by_instance_type(instance_type, &conn)
-            .await
-            .map_err(Into::into)
+        Self::_get_by_instance_type(instance_type, &conn).await
     }
 
     async fn insert_entry_impl<C>(&self, conn: &C) -> Result<(), Error>
@@ -296,9 +294,7 @@ impl InstancePricing {
         pool: &PgPool,
     ) -> Result<Option<Self>, Error> {
         let conn = pool.get().await?;
-        Self::_existing_entry(instance_type, price_type, &conn)
-            .await
-            .map_err(Into::into)
+        Self::_existing_entry(instance_type, price_type, &conn).await
     }
 
     /// # Errors
