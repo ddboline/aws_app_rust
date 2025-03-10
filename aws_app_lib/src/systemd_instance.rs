@@ -183,17 +183,19 @@ struct ServiceLogLine<'a> {
     #[serde(alias = "__REALTIME_TIMESTAMP")]
     timestamp: &'a str,
     #[serde(alias = "MESSAGE")]
-    message: &'a str,
+    message: StackString,
     #[serde(alias = "_HOSTNAME")]
     hostname: &'a str,
 }
 
-impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
+impl<'a> TryFrom<ServiceLogLine<'a>> for ServiceLogEntry {
     type Error = Error;
-    fn try_from(line: ServiceLogLine) -> Result<Self, Self::Error> {
+    fn try_from(line: ServiceLogLine<'a>) -> Result<Self, Self::Error> {
         let timestamp: i64 = line.timestamp.parse().inspect_err(|e| {
             println!("{e} {}", line.timestamp);
         })?;
+        let message = line.message;
+        let hostname = line.hostname.into();
         let ts = timestamp / 1_000_000;
         let ns = (timestamp % 1_000_000) * 1000;
         let timestamp = (OffsetDateTime::from_unix_timestamp(ts)
@@ -203,8 +205,8 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
         .into();
         Ok(Self {
             timestamp,
-            message: line.message.into(),
-            hostname: line.hostname.into(),
+            message,
+            hostname,
         })
     }
 }
