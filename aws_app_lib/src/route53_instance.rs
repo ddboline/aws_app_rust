@@ -5,7 +5,7 @@ use aws_sdk_route53::{
 };
 use aws_types::region::Region;
 use futures::{stream::FuturesUnordered, TryStreamExt};
-use stack_string::format_sstr;
+use stack_string::{format_sstr, StackString};
 use std::{collections::BTreeMap, fmt, net::Ipv4Addr};
 
 use crate::errors::AwslibError as Error;
@@ -23,8 +23,8 @@ impl fmt::Debug for Route53Instance {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
 pub struct DnsRecord {
-    pub dnsname: String,
-    pub ip: String,
+    pub dnsname: StackString,
+    pub ip: StackString,
 }
 
 impl Route53Instance {
@@ -238,7 +238,7 @@ mod tests {
         let config = Config::init_config()?;
         if config.domain == "www.ddboline.net" || config.domain == "cloud.ddboline.net" {
             if let Some(home_ip) = name_map.get(config.domain.as_str()) {
-                assert_eq!(&ip.to_string(), home_ip);
+                assert_eq!(ip.to_string().as_str(), home_ip.as_str());
             }
         }
         Ok(())

@@ -183,9 +183,9 @@ struct ServiceLogLine<'a> {
     #[serde(alias = "__REALTIME_TIMESTAMP")]
     timestamp: &'a str,
     #[serde(alias = "MESSAGE")]
-    message: StackString,
+    message: &'a str,
     #[serde(alias = "_HOSTNAME")]
-    hostname: StackString,
+    hostname: &'a str,
 }
 
 impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
@@ -203,8 +203,8 @@ impl TryFrom<ServiceLogLine<'_>> for ServiceLogEntry {
         .into();
         Ok(Self {
             timestamp,
-            message: line.message,
-            hostname: line.hostname,
+            message: line.message.into(),
+            hostname: line.hostname.into(),
         })
     }
 }
