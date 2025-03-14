@@ -10,7 +10,7 @@ edition = "2018"
 aws_app_lib = {path = "../aws_app_lib"}
 aws-config = {version="1.5", features=["behavior-version-latest"]}
 authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.12.5"}
-cached = {version="0.54", features=["async", "async_tokio_rt_multi_thread"]}
+cached = {version="0.55", features=["async", "async_tokio_rt_multi_thread"]}
 derive_more = {version="2.0", features=["full"]}
 dirs = "6.0"
 dioxus = "0.6"
