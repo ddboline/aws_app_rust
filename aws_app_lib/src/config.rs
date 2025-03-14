@@ -35,6 +35,8 @@ pub struct ConfigInner {
     #[serde(default = "default_domain")]
     pub domain: StackString,
     pub novnc_path: Option<PathBuf>,
+    pub novnc_cert_path: Option<PathBuf>,
+    pub novnc_key_path: Option<PathBuf>,
     #[serde(default = "default_secret_path")]
     pub secret_path: PathBuf,
     #[serde(default = "default_secret_path")]

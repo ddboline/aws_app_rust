@@ -7,7 +7,7 @@ use rweb_helper::{
 };
 use serde::{Deserialize, Serialize};
 use stack_string::{format_sstr, StackString};
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 use tokio::{
     fs::{read_to_string, remove_file, File},
     io::AsyncWriteExt,
@@ -769,11 +769,15 @@ pub async fn novnc_launcher(
     #[data] data: AppState,
 ) -> WarpResult<NovncStartResponse> {
     if let Some(novnc_path) = &data.aws.config.novnc_path {
-        let certdir = Path::new("/etc/letsencrypt/live/").join(&data.aws.config.domain);
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| Error::BadRequest("No home directory".into()))?;
+        let certdir = home_dir.join(".vnc");
         let cert = certdir.join("fullchain.pem");
         let key = certdir.join("privkey.pem");
+        let cert = data.aws.config.novnc_cert_path.as_ref().unwrap_or(&cert);
+        let key = data.aws.config.novnc_key_path.as_ref().unwrap_or(&key);
         data.novnc
-            .novnc_start(novnc_path, &cert, &key)
+            .novnc_start(novnc_path, cert, key)
             .await
             .map_err(Into::<Error>::into)?;
         let number = data.novnc.get_novnc_status().await;
