@@ -36,11 +36,13 @@ pub mod sysinfo_instance;
 pub mod systemd_instance;
 
 use rand::{
-    distr::{Distribution, Uniform},
+    distr::{Distribution, Uniform, Alphanumeric, SampleString},
     rng as thread_rng,
 };
 use std::{convert::TryFrom, future::Future};
 use tokio::time::{Duration, sleep};
+use stack_string::{StackString, MAX_INLINE};
+use smallvec::SmallVec;
 
 use crate::errors::AwslibError as Error;
 
@@ -64,5 +66,16 @@ where
                 }
             }
         }
+    }
+}
+
+#[must_use]
+pub fn get_random_string(n: usize) -> StackString {
+    let mut rng = thread_rng();
+    if n > MAX_INLINE {
+        Alphanumeric.sample_string(&mut rng, n).into()
+    } else {
+        let buf: SmallVec<[u8; MAX_INLINE]> = Alphanumeric.sample_iter(&mut rng).take(n).collect();
+        StackString::from_utf8_lossy(&buf[0..n])
     }
 }
