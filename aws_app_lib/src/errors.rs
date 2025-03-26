@@ -52,7 +52,7 @@ use aws_smithy_types::{
 };
 use deadpool_postgres::{BuildError as DeadpoolBuildError, ConfigError as DeadpoolConfigError};
 use envy::Error as EnvyError;
-use postgres_query::{extract::Error as PqExtractError, Error as PqError};
+use postgres_query::{Error as PqError, extract::Error as PqExtractError};
 use rand::distr::uniform::Error as RandUniformError;
 use refinery::Error as RefineryError;
 use reqwest::Error as ReqwestError;
@@ -691,7 +691,7 @@ mod tests {
     };
     use deadpool_postgres::{BuildError as DeadpoolBuildError, ConfigError as DeadpoolConfigError};
     use envy::Error as EnvyError;
-    use postgres_query::{extract::Error as PqExtractError, Error as PqError};
+    use postgres_query::{Error as PqError, extract::Error as PqExtractError};
     use rand::distr::uniform::Error as RandUniformError;
     use refinery::Error as RefineryError;
     use reqwest::Error as ReqwestError;

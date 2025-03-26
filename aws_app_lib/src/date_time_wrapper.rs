@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use time_tz::{timezones::db::UTC, Tz};
+use time_tz::{Tz, timezones::db::UTC};
 
 static LOCAL_TZ: Lazy<&'static Tz> = Lazy::new(|| time_tz::system::get_timezone().unwrap_or(UTC));
 
@@ -53,12 +53,12 @@ impl DateTimeWrapper {
 }
 
 mod iso8601 {
-    use serde::{de, Deserialize, Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer, de};
     use stack_string::StackString;
     use std::borrow::Cow;
     use time::{
-        error::Parse as ParseError, format_description::well_known::Rfc3339,
-        macros::format_description, OffsetDateTime, UtcOffset,
+        OffsetDateTime, UtcOffset, error::Parse as ParseError,
+        format_description::well_known::Rfc3339, macros::format_description,
     };
 
     #[must_use]

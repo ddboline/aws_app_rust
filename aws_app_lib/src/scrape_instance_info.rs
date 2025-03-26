@@ -1,4 +1,4 @@
-use futures::{stream::FuturesUnordered, TryStreamExt};
+use futures::{TryStreamExt, stream::FuturesUnordered};
 use log::debug;
 use reqwest::Url;
 use select::{
@@ -6,7 +6,7 @@ use select::{
     node::Node,
     predicate::{Class, Name},
 };
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::collections::HashMap;
 
 use crate::{
@@ -185,11 +185,7 @@ fn extract_instance_types_pv(
                     return None;
                 }
 
-                if row.is_empty() {
-                    None
-                } else {
-                    Some(row)
-                }
+                if row.is_empty() { None } else { Some(row) }
             }
         })
         .collect();
@@ -280,11 +276,7 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
                     return None;
                 }
 
-                if row.is_empty() {
-                    None
-                } else {
-                    Some(row)
-                }
+                if row.is_empty() { None } else { Some(row) }
             }
         })
         .collect();

@@ -1,8 +1,8 @@
 use aws_config::SdkConfig;
-use aws_sdk_ecr::{types::ImageIdentifier, Client as EcrClient};
+use aws_sdk_ecr::{Client as EcrClient, types::ImageIdentifier};
 use aws_types::region::Region;
-use futures::{stream::FuturesUnordered, TryStreamExt};
-use stack_string::{format_sstr, StackString};
+use futures::{TryStreamExt, stream::FuturesUnordered};
+use stack_string::{StackString, format_sstr};
 use std::{fmt, sync::Arc};
 use time::{Duration, OffsetDateTime};
 

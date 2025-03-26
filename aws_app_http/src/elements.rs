@@ -1,15 +1,15 @@
 use dioxus::prelude::{
-    component, dioxus_elements, rsx, Element, GlobalSignal, IntoDynNode, Props, Readable,
-    VirtualDom,
+    Element, GlobalSignal, IntoDynNode, Props, Readable, VirtualDom, component, dioxus_elements,
+    rsx,
 };
-use futures::{future::try_join_all, stream::FuturesUnordered, try_join, TryStreamExt};
-use stack_string::{format_sstr, StackString};
+use futures::{TryStreamExt, future::try_join_all, stream::FuturesUnordered, try_join};
+use stack_string::{StackString, format_sstr};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     net::Ipv4Addr,
     sync::Arc,
 };
-use time::{macros::format_description, OffsetDateTime};
+use time::{OffsetDateTime, macros::format_description};
 use time_tz::OffsetDateTimeExt;
 
 use aws_app_lib::{

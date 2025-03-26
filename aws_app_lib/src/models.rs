@@ -1,8 +1,8 @@
 use futures::Stream;
 use mail_parser::{MessageParser, MimeHeaders, PartType};
-use postgres_query::{client::GenericClient, query, query_dyn, Error as PqError, FromSqlRow};
+use postgres_query::{Error as PqError, FromSqlRow, client::GenericClient, query, query_dyn};
 use roxmltree::{Document, NodeType};
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{collections::HashSet, fmt};
 use tempfile::TempDir;
 use time::OffsetDateTime;

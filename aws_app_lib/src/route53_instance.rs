@@ -1,11 +1,11 @@
 use aws_config::SdkConfig;
 use aws_sdk_route53::{
-    types::{Change, ChangeAction, ChangeBatch, HostedZone, ResourceRecordSet, RrType},
     Client as Route53Client,
+    types::{Change, ChangeAction, ChangeBatch, HostedZone, ResourceRecordSet, RrType},
 };
 use aws_types::region::Region;
-use futures::{stream::FuturesUnordered, TryStreamExt};
-use stack_string::{format_sstr, StackString};
+use futures::{TryStreamExt, stream::FuturesUnordered};
+use stack_string::{StackString, format_sstr};
 use std::{collections::BTreeMap, fmt, net::Ipv4Addr};
 
 use crate::errors::AwslibError as Error;

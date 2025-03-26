@@ -1,8 +1,8 @@
 use aws_config::SdkConfig;
 pub use aws_sdk_iam::types::AccessKeyMetadata;
 use aws_sdk_iam::{
-    types::{AccessKey, Group, User},
     Client as IamClient,
+    types::{AccessKey, Group, User},
 };
 use aws_types::region::Region;
 use serde::{Deserialize, Serialize};

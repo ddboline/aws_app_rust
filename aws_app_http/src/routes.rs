@@ -1,19 +1,23 @@
+use axum::extract::{Json, Path, Query, State};
+use derive_more::{From, Into};
 use futures::TryStreamExt;
 use maplit::hashmap;
-use rweb::{delete, get, patch, post, Json, Query, Rejection, Schema};
-use rweb_helper::{
-    html_response::HtmlResponse as HtmlBase, json_response::JsonResponse as JsonBase, RwebResponse,
-    UuidWrapper,
-};
 use serde::{Deserialize, Serialize};
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
-    fs::{read_to_string, remove_file, File},
+    fs::{File, read_to_string, remove_file},
     io::AsyncWriteExt,
     task::spawn,
-    time::{sleep, Duration},
+    time::{Duration, sleep},
 };
+use utoipa::{OpenApi, PartialSchema, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
+use utoipa_helper::{
+    UtoipaResponse, html_response::HtmlResponse as HtmlBase,
+    json_response::JsonResponse as JsonBase,
+};
+use uuid::Uuid;
 
 use aws_app_lib::{
     ec2_instance::{AmiInfo, InstanceRequest, SpotRequest},
@@ -24,6 +28,7 @@ use aws_app_lib::{
 };
 
 use super::{
+    IamAccessKeyWrapper, IamUserWrapper, ResourceTypeWrapper,
     app::AppState,
     elements::{
         build_spot_request_body, edit_script_body, get_frontpage, get_index, inbound_email_body,
@@ -33,66 +38,64 @@ use super::{
     errors::ServiceError as Error,
     ipv4addr_wrapper::Ipv4AddrWrapper,
     logged_user::LoggedUser,
-    IamAccessKeyWrapper, IamUserWrapper, ResourceTypeWrapper,
 };
 
-pub type WarpResult<T> = Result<T, Rejection>;
-pub type HttpResult<T> = Result<T, Error>;
+type WarpResult<T> = Result<T, Error>;
 
-#[derive(RwebResponse)]
-#[response(description = "Main Page", content = "html")]
-struct AwsIndexResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Main Page", content = "text/html")]
+#[rustfmt::skip]
+struct AwsIndexResponse(HtmlBase::<StackString>);
 
-#[get("/aws/index.html")]
-#[openapi(description = "AWS App Main Page")]
-pub async fn sync_frontpage(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
-) -> WarpResult<AwsIndexResponse> {
+#[utoipa::path(get, path = "/aws/index.html", responses(AwsIndexResponse, Error))]
+// AWS App Main Page")]
+async fn sync_frontpage(_: LoggedUser, data: State<Arc<AppState>>) -> WarpResult<AwsIndexResponse> {
     let body = get_index(&data.aws).await?;
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct ResourceRequest {
-    #[schema(description = "Resource Type")]
+#[derive(Serialize, Deserialize, ToSchema)]
+struct ResourceRequest {
+    // Resource Type")]
     resource: ResourceTypeWrapper,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "List Resources", content = "html")]
-struct AwsListResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "List Resources", content = "text/html")]
+#[rustfmt::skip]
+struct AwsListResponse(HtmlBase::<StackString>);
 
-#[get("/aws/list")]
-#[openapi(description = "List AWS Resources")]
-pub async fn list(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(get, path = "/aws/list", responses(AwsListResponse, Error))]
+// List AWS Resources")]
+async fn list(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<ResourceRequest>,
 ) -> WarpResult<AwsListResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let body = get_frontpage(query.resource.into(), &data.aws).await?;
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct TerminateRequest {
-    #[schema(description = "Instance ID or Name Tag")]
-    pub instance: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct TerminateRequest {
+    // Instance ID or Name Tag")]
+    instance: StackString,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Deleted", content = "html", status = "NO_CONTENT")]
-struct DeletedResource(HtmlBase<&'static str, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Deleted", content = "text/html", status = "NO_CONTENT")]
+#[rustfmt::skip]
+struct DeletedResource(HtmlBase::<&'static str>);
 
-#[delete("/aws/terminate")]
-#[openapi(description = "Terminate Ec2 Instance")]
-pub async fn terminate(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(delete, path = "/aws/terminate", responses(DeletedResource, Error))]
+// Terminate Ec2 Instance")]
+async fn terminate(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<TerminateRequest>,
 ) -> WarpResult<DeletedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .terminate(&[query.instance])
         .await
@@ -100,26 +103,31 @@ pub async fn terminate(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct CreateImageRequest {
-    #[schema(description = "Instance ID or Name Tag")]
-    pub inst_id: StackString,
-    #[schema(description = "Ami Name")]
-    pub name: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct CreateImageRequest {
+    // Instance ID or Name Tag")]
+    inst_id: StackString,
+    // Ami Name")]
+    name: StackString,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Image ID", content = "html", status = "CREATED")]
-struct CreateImageResponse(HtmlBase<String, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Image ID", content = "text/html", status = "CREATED")]
+#[rustfmt::skip]
+struct CreateImageResponse(HtmlBase::<String>);
 
-#[post("/aws/create_image")]
-#[openapi(description = "Create EC2 AMI Image")]
-pub async fn create_image(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    post,
+    path = "/aws/create_image",
+    responses(CreateImageResponse, Error)
+)]
+// Create EC2 AMI Image")]
+async fn create_image(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<CreateImageRequest>,
 ) -> WarpResult<CreateImageResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let body: String = data
         .aws
         .create_image(query.inst_id, query.name)
@@ -129,20 +137,20 @@ pub async fn create_image(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct DeleteImageRequest {
-    #[schema(description = "Ami ID")]
-    pub ami: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct DeleteImageRequest {
+    // Ami ID")]
+    ami: StackString,
 }
 
-#[delete("/aws/delete_image")]
-#[openapi(description = "Delete EC2 AMI Image")]
-pub async fn delete_image(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(delete, path = "/aws/delete_image", responses(DeletedResource, Error))]
+// Delete EC2 AMI Image")]
+async fn delete_image(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<DeleteImageRequest>,
 ) -> WarpResult<DeletedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .delete_image(&query.ami)
         .await
@@ -150,20 +158,20 @@ pub async fn delete_image(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct DeleteVolumeRequest {
-    #[schema(description = "Volume ID")]
-    pub volid: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct DeleteVolumeRequest {
+    // Volume ID")]
+    volid: StackString,
 }
 
-#[delete("/aws/delete_volume")]
-#[openapi(description = "Delete EC2 Volume")]
-pub async fn delete_volume(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(delete, path = "/aws/delete_volume", responses(DeletedResource, Error))]
+// Delete EC2 Volume")]
+async fn delete_volume(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<DeleteVolumeRequest>,
 ) -> WarpResult<DeletedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .delete_ebs_volume(&query.volid)
         .await
@@ -171,26 +179,27 @@ pub async fn delete_volume(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct ModifyVolumeRequest {
-    #[schema(description = "Volume ID")]
-    pub volid: StackString,
-    #[schema(description = "Volume Size GiB")]
-    pub size: i32,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct ModifyVolumeRequest {
+    // Volume ID")]
+    volid: StackString,
+    // Volume Size GiB")]
+    size: i32,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Finished", content = "html", status = "CREATED")]
-struct FinishedResource(HtmlBase<&'static str, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Finished", content = "text/html", status = "CREATED")]
+#[rustfmt::skip]
+struct FinishedResource(HtmlBase::<&'static str>);
 
-#[patch("/aws/modify_volume")]
-#[openapi(description = "Modify EC2 Volume")]
-pub async fn modify_volume(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(patch, path = "/aws/modify_volume", responses(FinishedResource, Error))]
+// Modify EC2 Volume")]
+async fn modify_volume(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<ModifyVolumeRequest>,
 ) -> WarpResult<FinishedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .modify_ebs_volume(&query.volid, query.size)
         .await
@@ -198,20 +207,24 @@ pub async fn modify_volume(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct DeleteSnapshotRequest {
-    #[schema(description = "Snapshot ID")]
-    pub snapid: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct DeleteSnapshotRequest {
+    // Snapshot ID")]
+    snapid: StackString,
 }
 
-#[delete("/aws/delete_snapshot")]
-#[openapi(description = "Delete EC2 Snapshot")]
-pub async fn delete_snapshot(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_snapshot",
+    responses(DeletedResource, Error)
+)]
+// Delete EC2 Snapshot")]
+async fn delete_snapshot(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<DeleteSnapshotRequest>,
 ) -> WarpResult<DeletedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .delete_ebs_snapshot(&query.snapid)
         .await
@@ -219,22 +232,26 @@ pub async fn delete_snapshot(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct CreateSnapshotRequest {
-    #[schema(description = "Volume ID")]
-    pub volid: StackString,
-    #[schema(description = "Snapshot Name")]
-    pub name: Option<StackString>,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct CreateSnapshotRequest {
+    // Volume ID")]
+    volid: StackString,
+    // Snapshot Name")]
+    name: Option<StackString>,
 }
 
-#[post("/aws/create_snapshot")]
-#[openapi(description = "Create EC2 Snapshot")]
-pub async fn create_snapshot(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    post,
+    path = "/aws/create_snapshot",
+    responses(FinishedResource, Error)
+)]
+// Create EC2 Snapshot")]
+async fn create_snapshot(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<CreateSnapshotRequest>,
 ) -> WarpResult<FinishedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
 
     let tags = if let Some(name) = &query.name {
         hashmap! {"Name".into() => name.clone()}
@@ -249,22 +266,22 @@ pub async fn create_snapshot(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct TagItemRequest {
-    #[schema(description = "Resource ID")]
-    pub id: StackString,
-    #[schema(description = "Tag")]
-    pub tag: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct TagItemRequest {
+    // Resource ID")]
+    id: StackString,
+    // Tag")]
+    tag: StackString,
 }
 
-#[patch("/aws/tag_item")]
-#[openapi(description = "Tag EC2 Resource")]
-pub async fn tag_item(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(patch, path = "/aws/tag_item", responses(FinishedResource, Error))]
+// Tag EC2 Resource")]
+async fn tag_item(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<TagItemRequest>,
 ) -> WarpResult<FinishedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .ec2
         .tag_aws_resource(
@@ -278,22 +295,26 @@ pub async fn tag_item(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct DeleteEcrImageRequest {
-    #[schema(description = "ECR Repository Name")]
-    pub reponame: StackString,
-    #[schema(description = "Container Image ID")]
-    pub imageid: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct DeleteEcrImageRequest {
+    // ECR Repository Name")]
+    reponame: StackString,
+    // Container Image ID")]
+    imageid: StackString,
 }
 
-#[delete("/aws/delete_ecr_image")]
-#[openapi(description = "Delete ECR Image")]
-pub async fn delete_ecr_image(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_ecr_image",
+    responses(DeletedResource, Error)
+)]
+// Delete ECR Image")]
+async fn delete_ecr_image(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<DeleteEcrImageRequest>,
 ) -> WarpResult<DeletedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .ecr
         .delete_ecr_images(&query.reponame, &[query.imageid])
@@ -302,11 +323,15 @@ pub async fn delete_ecr_image(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[delete("/aws/cleanup_ecr_images")]
-#[openapi(description = "Cleanup ECR Images")]
-pub async fn cleanup_ecr_images(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    delete,
+    path = "/aws/cleanup_ecr_images",
+    responses(DeletedResource, Error)
+)]
+// Cleanup ECR Images")]
+async fn cleanup_ecr_images(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
 ) -> WarpResult<DeletedResource> {
     data.aws
         .ecr
@@ -316,24 +341,25 @@ pub async fn cleanup_ecr_images(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct ScriptFilename {
-    #[schema(description = "Script Filename")]
-    pub filename: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct ScriptFilename {
+    // Script Filename")]
+    filename: StackString,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Edit Script", content = "html")]
-struct EditScriptResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Edit Script", content = "text/html")]
+#[rustfmt::skip]
+struct EditScriptResponse(HtmlBase::<StackString>);
 
-#[get("/aws/edit_script")]
-#[openapi(description = "Edit Script")]
-pub async fn edit_script(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(get, path = "/aws/edit_script", responses(EditScriptResponse, Error))]
+// Edit Script")]
+async fn edit_script(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<ScriptFilename>,
 ) -> WarpResult<EditScriptResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let fname = &query.filename;
     let filename = data.aws.config.script_directory.join(fname);
     let text = if filename.exists() {
@@ -347,22 +373,22 @@ pub async fn edit_script(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct ReplaceData {
-    #[schema(description = "Script Filename")]
-    pub filename: StackString,
-    #[schema(description = "Script Text")]
-    pub text: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct ReplaceData {
+    // Script Filename")]
+    filename: StackString,
+    // Script Text")]
+    text: StackString,
 }
 
-#[post("/aws/replace_script")]
-#[openapi(description = "Replace Script")]
-pub async fn replace_script(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(post, path = "/aws/replace_script", responses(FinishedResource, Error))]
+// Replace Script")]
+async fn replace_script(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     req: Json<ReplaceData>,
 ) -> WarpResult<FinishedResource> {
-    let req = req.into_inner();
+    let Json(req) = req;
     let filename = data.aws.config.script_directory.join(&req.filename);
     let mut f = File::create(&filename).await.map_err(Into::<Error>::into)?;
     f.write_all(req.text.as_bytes())
@@ -371,14 +397,14 @@ pub async fn replace_script(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[delete("/aws/delete_script")]
-#[openapi(description = "Delete Script")]
-pub async fn delete_script(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(delete, path = "/aws/delete_script", responses(DeletedResource, Error))]
+// Delete Script")]
+async fn delete_script(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<ScriptFilename>,
 ) -> WarpResult<DeletedResource> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let filename = data.aws.config.script_directory.join(&query.filename);
     if filename.exists() {
         remove_file(&filename).await.map_err(Into::<Error>::into)?;
@@ -386,14 +412,14 @@ pub async fn delete_script(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, Debug, Schema)]
-pub struct SpotBuilder {
-    #[schema(description = "AMI ID")]
-    pub ami: Option<StackString>,
-    #[schema(description = "Instance Type")]
-    pub inst: Option<StackString>,
-    #[schema(description = "Script")]
-    pub script: Option<StackString>,
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+struct SpotBuilder {
+    // AMI ID")]
+    ami: Option<StackString>,
+    // Instance Type")]
+    inst: Option<StackString>,
+    // Script")]
+    script: Option<StackString>,
 }
 
 fn move_element_to_front<T, F>(arr: &mut [T], filt: F)
@@ -411,18 +437,23 @@ where
     }
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Spot Request", content = "html", status = "CREATED")]
-struct BuildSpotResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Spot Request", content = "text/html", status = "CREATED")]
+#[rustfmt::skip]
+struct BuildSpotResponse(HtmlBase::<StackString>);
 
-#[post("/aws/build_spot_request")]
-#[openapi(description = "Build Spot Request")]
-pub async fn build_spot_request(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    post,
+    path = "/aws/build_spot_request",
+    responses(BuildSpotResponse, Error)
+)]
+// Build Spot Request")]
+async fn build_spot_request(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<SpotBuilder>,
 ) -> WarpResult<BuildSpotResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let mut amis: Vec<AmiInfo> = Box::pin(data.aws.get_all_ami_tags())
         .await
         .map_err(Into::<Error>::into)?
@@ -486,22 +517,22 @@ pub async fn build_spot_request(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, Schema)]
-pub struct SpotRequestData {
-    #[schema(description = "Ami ID")]
-    pub ami: StackString,
-    #[schema(description = "Instance Type")]
-    pub instance_type: StackString,
-    #[schema(description = "Security Group")]
-    pub security_group: StackString,
-    #[schema(description = "Script Filename")]
-    pub script: StackString,
-    #[schema(description = "SSH Key Name")]
-    pub key_name: StackString,
-    #[schema(description = "Spot Price")]
-    pub price: StackString,
-    #[schema(description = "Spot Request Name Tag")]
-    pub name: StackString,
+#[derive(Debug, Default, Serialize, Deserialize, Clone, ToSchema)]
+struct SpotRequestData {
+    // Ami ID")]
+    ami: StackString,
+    // Instance Type")]
+    instance_type: StackString,
+    // Security Group")]
+    security_group: StackString,
+    // Script Filename")]
+    script: StackString,
+    // SSH Key Name")]
+    key_name: StackString,
+    // Spot Price")]
+    price: StackString,
+    // Spot Request Name Tag")]
+    name: StackString,
 }
 
 impl From<SpotRequestData> for SpotRequest {
@@ -531,13 +562,14 @@ impl From<SpotRequestData> for InstanceRequest {
     }
 }
 
-#[post("/aws/request_spot")]
-pub async fn request_spot(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(post, path = "/aws/request_spot", responses(FinishedResource, Error))]
+async fn request_spot(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     req: Json<SpotRequestData>,
 ) -> WarpResult<FinishedResource> {
-    let req: SpotRequest = req.into_inner().into();
+    let Json(req) = req;
+    let req: SpotRequest = req.into();
     let tags = Arc::new(req.tags.clone());
     for spot_id in data
         .aws
@@ -553,13 +585,14 @@ pub async fn request_spot(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[post("/aws/run_instance")]
-pub async fn run_instance(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(post, path = "/aws/run_instance", responses(FinishedResource, Error))]
+async fn run_instance(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     req: Json<SpotRequestData>,
 ) -> WarpResult<FinishedResource> {
-    let req: InstanceRequest = req.into_inner().into();
+    let Json(req) = req;
+    let req: InstanceRequest = req.into();
     data.aws
         .ec2
         .run_ec2_instance(&req)
@@ -568,28 +601,29 @@ pub async fn run_instance(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct CancelSpotRequest {
-    #[schema(description = "Spot Request ID")]
-    pub spot_id: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct CancelSpotRequest {
+    // Spot Request ID")]
+    spot_id: StackString,
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Cancelled Spot",
-    content = "html",
+    content = "text/html",
     status = "NO_CONTENT"
 )]
-struct CancelledResponse(HtmlBase<StackString, Error>);
+#[rustfmt::skip]
+struct CancelledResponse(HtmlBase::<StackString>);
 
-#[delete("/aws/cancel_spot")]
-#[openapi(description = "Cancel Spot Request")]
-pub async fn cancel_spot(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(delete, path = "/aws/cancel_spot", responses(CancelledResponse, Error))]
+// Cancel Spot Request")]
+async fn cancel_spot(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<CancelSpotRequest>,
 ) -> WarpResult<CancelledResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .ec2
         .cancel_spot_instance_request(&[query.spot_id.clone()])
@@ -598,24 +632,25 @@ pub async fn cancel_spot(
     Ok(HtmlBase::new(format_sstr!("cancelled {}", query.spot_id)).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct PriceRequest {
-    #[schema(description = "Search String")]
-    pub search: Option<StackString>,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct PriceRequest {
+    // Search String")]
+    search: Option<StackString>,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Prices", content = "html")]
-struct PricesResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Prices", content = "text/html")]
+#[rustfmt::skip]
+struct PricesResponse(HtmlBase::<StackString>);
 
-#[get("/aws/prices")]
-#[openapi(description = "Get Ec2 Prices")]
-pub async fn get_prices(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(get, path = "/aws/prices", responses(PricesResponse, Error))]
+// Get Ec2 Prices")]
+async fn get_prices(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<PriceRequest>,
 ) -> WarpResult<PricesResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
 
     let body = if let Some(search) = query.search {
         let prices = data
@@ -638,16 +673,14 @@ pub async fn get_prices(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Update", content = "html", status = "CREATED")]
-struct UpdateResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Update", content = "text/html", status = "CREATED")]
+#[rustfmt::skip]
+struct UpdateResponse(HtmlBase::<StackString>);
 
-#[post("/aws/update")]
-#[openapi(description = "Update Data")]
-pub async fn update(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
-) -> WarpResult<UpdateResponse> {
+#[utoipa::path(post, path = "/aws/update", responses(UpdateResponse, Error))]
+// Update Data")]
+async fn update(_: LoggedUser, data: State<Arc<AppState>>) -> WarpResult<UpdateResponse> {
     let entries: Vec<StackString> = data
         .aws
         .update()
@@ -658,24 +691,29 @@ pub async fn update(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct StatusRequest {
-    #[schema(description = "Instance ID or Name Tag")]
-    pub instance: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct StatusRequest {
+    // Instance ID or Name Tag")]
+    instance: StackString,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Instance Status", content = "html")]
-struct InstanceStatusResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Instance Status", content = "text/html")]
+#[rustfmt::skip]
+struct InstanceStatusResponse(HtmlBase::<StackString>);
 
-#[get("/aws/instance_status")]
-#[openapi(description = "Get Ec2 Instance Status")]
-pub async fn instance_status(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    get,
+    path = "/aws/instance_status",
+    responses(InstanceStatusResponse, Error)
+)]
+// Get Ec2 Instance Status")]
+async fn instance_status(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<StatusRequest>,
 ) -> WarpResult<InstanceStatusResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
         data.aws.get_status(&query.instance),
@@ -690,30 +728,31 @@ pub async fn instance_status(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Run Command on Instance",
-    content = "html",
+    content = "text/html",
     status = "CREATED"
 )]
-struct CommandResponse(HtmlBase<StackString, Error>);
+#[rustfmt::skip]
+struct CommandResponse(HtmlBase::<StackString>);
 
-#[derive(Serialize, Deserialize, Debug, Schema)]
-pub struct CommandRequest {
-    #[schema(description = "Instance ID or Name Tag")]
-    pub instance: StackString,
-    #[schema(description = "Command String")]
-    pub command: StackString,
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+struct CommandRequest {
+    // Instance ID or Name Tag")]
+    instance: StackString,
+    // Command String")]
+    command: StackString,
 }
 
-#[post("/aws/command")]
-#[openapi(description = "Run command on Ec2 Instance")]
-pub async fn command(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(post, path = "/aws/command", responses(CommandResponse, Error))]
+// Run command on Ec2 Instance")]
+async fn command(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     payload: Json<CommandRequest>,
 ) -> WarpResult<CommandResponse> {
-    let payload = payload.into_inner();
+    let Json(payload) = payload;
     let entries = match tokio::time::timeout(
         tokio::time::Duration::from_secs(60),
         data.aws.run_command(&payload.instance, &payload.command),
@@ -729,24 +768,25 @@ pub async fn command(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct InstancesRequest {
-    #[schema(description = "Instance ID or Name Tag")]
-    pub inst: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct InstancesRequest {
+    // Instance ID or Name Tag")]
+    inst: StackString,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Describe Instances", content = "html")]
-struct InstancesResponse(HtmlBase<String, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Describe Instances", content = "text/html")]
+#[rustfmt::skip]
+struct InstancesResponse(HtmlBase::<String>);
 
-#[get("/aws/instances")]
-#[openapi(description = "List Ec2 Instances")]
-pub async fn get_instances(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(get, path = "/aws/instances", responses(InstancesResponse, Error))]
+// List Ec2 Instances")]
+async fn get_instances(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<InstancesRequest>,
 ) -> WarpResult<InstancesResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let instances: Vec<InstanceList> =
         InstanceList::get_by_instance_family(&query.inst, &data.aws.pool)
             .await
@@ -758,15 +798,16 @@ pub async fn get_instances(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Start NoVNC", content = "html", status = "CREATED")]
-struct NovncStartResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Start NoVNC", content = "text/html", status = "CREATED")]
+#[rustfmt::skip]
+struct NovncStartResponse(HtmlBase::<StackString>);
 
-#[post("/aws/novnc/start")]
-#[openapi(description = "Start NoVNC Service")]
-pub async fn novnc_launcher(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(post, path = "/aws/novnc/start", responses(NovncStartResponse, Error))]
+// Start NoVNC Service")]
+async fn novnc_launcher(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
 ) -> WarpResult<NovncStartResponse> {
     if let Some(novnc_path) = &data.aws.config.novnc_path {
         let home_dir =
@@ -793,15 +834,16 @@ pub async fn novnc_launcher(
     }
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Stop NoVNC", content = "html", status = "CREATED")]
-struct NovncStopResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Stop NoVNC", content = "text/html", status = "CREATED")]
+#[rustfmt::skip]
+struct NovncStopResponse(HtmlBase::<StackString>);
 
-#[post("/aws/novnc/stop")]
-#[openapi(description = "Stop NoVNC Service")]
-pub async fn novnc_shutdown(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(post, path = "/aws/novnc/stop", responses(NovncStopResponse, Error))]
+// Stop NoVNC Service")]
+async fn novnc_shutdown(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
 ) -> WarpResult<NovncStopResponse> {
     if data.aws.config.novnc_path.is_none() {
         return Ok(HtmlBase::new("NoVNC not configured".into()).into());
@@ -815,15 +857,16 @@ pub async fn novnc_shutdown(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
-#[response(description = "NoVNC Status", content = "html")]
-struct NovncStatusResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "NoVNC Status", content = "text/html")]
+#[rustfmt::skip]
+struct NovncStatusResponse(HtmlBase::<StackString>);
 
-#[get("/aws/novnc/status")]
-#[openapi(description = "NoVNC Service Status")]
-pub async fn novnc_status(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(get, path = "/aws/novnc/status", responses(NovncStatusResponse, Error))]
+// NoVNC Service Status")]
+async fn novnc_status(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
 ) -> WarpResult<NovncStatusResponse> {
     if data.aws.config.novnc_path.is_none() {
         return Ok(HtmlBase::new("NoVNC not configured".into()).into());
@@ -842,34 +885,36 @@ pub async fn novnc_status(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(description = "Logged in User")]
-struct UserResponse(JsonBase<LoggedUser, Error>);
+#[rustfmt::skip]
+struct UserResponse(JsonBase::<LoggedUser>);
 
-#[get("/aws/user")]
-#[openapi(description = "User Object if logged in")]
-pub async fn user(#[filter = "LoggedUser::filter"] user: LoggedUser) -> WarpResult<UserResponse> {
+#[utoipa::path(get, path = "/aws/user", responses(UserResponse, Error))]
+// User Object if logged in")]
+async fn user(user: LoggedUser) -> WarpResult<UserResponse> {
     Ok(JsonBase::new(user).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct CreateUserRequest {
-    #[schema(description = "User Name")]
-    pub user_name: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct CreateUserRequest {
+    // User Name")]
+    user_name: StackString,
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(description = "Created Iam User", status = "CREATED")]
-struct CreateUserResponse(JsonBase<IamUserWrapper, Error>);
+#[rustfmt::skip]
+struct CreateUserResponse(JsonBase::<IamUserWrapper>);
 
-#[post("/aws/create_user")]
-#[openapi(description = "Create IAM User")]
-pub async fn create_user(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(post, path = "/aws/create_user", responses(CreateUserResponse, Error))]
+// Create IAM User")]
+async fn create_user(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<CreateUserRequest>,
 ) -> WarpResult<CreateUserResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let user = data
         .aws
         .create_user(query.user_name.as_str())
@@ -880,22 +925,27 @@ pub async fn create_user(
     Ok(resp.into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Delete Iam User",
-    content = "html",
+    content = "text/html",
     status = "NO_CONTENT"
 )]
-struct DeleteUserResponse(HtmlBase<StackString, Error>);
+#[rustfmt::skip]
+struct DeleteUserResponse(HtmlBase::<StackString>);
 
-#[delete("/aws/delete_user")]
-#[openapi(description = "Delete IAM User")]
-pub async fn delete_user(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_user",
+    responses(DeleteUserResponse, Error)
+)]
+// Delete IAM User")]
+async fn delete_user(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<CreateUserRequest>,
 ) -> WarpResult<DeleteUserResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .delete_user(query.user_name.as_str())
         .await
@@ -903,26 +953,31 @@ pub async fn delete_user(
     Ok(HtmlBase::new(format_sstr!("{} deleted", query.user_name)).into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct AddUserToGroupRequest {
-    #[schema(description = "User Name")]
-    pub user_name: StackString,
-    #[schema(description = "Group Name")]
-    pub group_name: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct AddUserToGroupRequest {
+    // User Name")]
+    user_name: StackString,
+    // Group Name")]
+    group_name: StackString,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Add User to Group", content = "html")]
-struct AddUserGroupResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Add User to Group", content = "text/html")]
+#[rustfmt::skip]
+struct AddUserGroupResponse(HtmlBase::<StackString>);
 
-#[patch("/aws/add_user_to_group")]
-#[openapi(description = "Add IAM User to Group")]
-pub async fn add_user_to_group(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    patch,
+    path = "/aws/add_user_to_group",
+    responses(AddUserGroupResponse, Error)
+)]
+// Add IAM User to Group")]
+async fn add_user_to_group(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<AddUserToGroupRequest>,
 ) -> WarpResult<AddUserGroupResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .add_user_to_group(query.user_name.as_str(), query.group_name.as_str())
         .await
@@ -935,22 +990,27 @@ pub async fn add_user_to_group(
     .into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Remove User to Group",
-    content = "html",
+    content = "text/html",
     status = "NO_CONTENT"
 )]
-struct RemoveUserGroupResponse(HtmlBase<StackString, Error>);
+#[rustfmt::skip]
+struct RemoveUserGroupResponse(HtmlBase::<StackString>);
 
-#[delete("/aws/remove_user_from_group")]
-#[openapi(description = "Remove IAM User from Group")]
-pub async fn remove_user_from_group(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    delete,
+    path = "/aws/remove_user_from_group",
+    responses(RemoveUserGroupResponse, Error)
+)]
+// Remove IAM User from Group")]
+async fn remove_user_from_group(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<AddUserToGroupRequest>,
 ) -> WarpResult<RemoveUserGroupResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .remove_user_from_group(query.user_name.as_str(), query.group_name.as_str())
         .await
@@ -963,50 +1023,59 @@ pub async fn remove_user_from_group(
     .into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct DeleteAccesssKeyRequest {
-    #[schema(description = "User Name")]
-    pub user_name: StackString,
-    #[schema(description = "Access Key ID")]
-    pub access_key_id: StackString,
+#[derive(Serialize, Deserialize, ToSchema)]
+struct DeleteAccesssKeyRequest {
+    // User Name")]
+    user_name: StackString,
+    // Access Key ID")]
+    access_key_id: StackString,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Create Access Key", status = "CREATED")]
-struct CreateKeyResponse(JsonBase<Option<IamAccessKeyWrapper>, Error>);
+#[derive(ToSchema, Serialize, Into, From)]
+struct CreateKeyInner(Option<IamAccessKeyWrapper>);
 
-#[post("/aws/create_access_key")]
-#[openapi(description = "Create Access Key for IAM User")]
-pub async fn create_access_key(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[derive(UtoipaResponse)]
+#[response(description = "Create Access Key", status = "CREATED")]
+#[rustfmt::skip]
+struct CreateKeyResponse(JsonBase::<CreateKeyInner>);
+
+#[utoipa::path(
+    post,
+    path = "/aws/create_access_key",
+    responses(CreateKeyResponse, Error)
+)]
+// Create Access Key for IAM User")]
+async fn create_access_key(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<CreateUserRequest>,
 ) -> WarpResult<CreateKeyResponse> {
-    let query = query.into_inner();
-    let access_key = data
-        .aws
-        .create_access_key(query.user_name.as_str())
-        .await
-        .map_err(Into::<Error>::into)?;
-    Ok(JsonBase::new(access_key.map(Into::into)).into())
+    let Query(query) = query;
+    let access_key = data.aws.create_access_key(query.user_name.as_str()).await?;
+    Ok(JsonBase::new(access_key.map(Into::into).into()).into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Delete Access Key",
-    content = "html",
+    content = "text/html",
     status = "NO_CONTENT"
 )]
-struct DeleteKeyResponse(HtmlBase<StackString, Error>);
+#[rustfmt::skip]
+struct DeleteKeyResponse(HtmlBase::<StackString>);
 
-#[delete("/aws/delete_access_key")]
-#[openapi(description = "Delete Access Key for IAM User")]
-pub async fn delete_access_key(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_access_key",
+    responses(DeleteKeyResponse, Error)
+)]
+// Delete Access Key for IAM User")]
+async fn delete_access_key(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<DeleteAccesssKeyRequest>,
 ) -> WarpResult<DeleteKeyResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .delete_access_key(query.user_name.as_str(), query.access_key_id.as_str())
         .await
@@ -1019,30 +1088,35 @@ pub async fn delete_access_key(
     .into())
 }
 
-#[derive(Serialize, Deserialize, Schema)]
-pub struct UpdateDnsNameRequest {
-    #[schema(description = "Route53 Zone")]
+#[derive(Serialize, Deserialize, ToSchema)]
+struct UpdateDnsNameRequest {
+    // Route53 Zone")]
     zone: StackString,
-    #[schema(description = "DNS Name")]
+    // DNS Name")]
     dns_name: StackString,
-    #[schema(description = "Old IPv4 Address")]
+    // Old IPv4 Address")]
     old_ip: Ipv4AddrWrapper,
-    #[schema(description = "New IPv4 Address")]
+    // New IPv4 Address")]
     new_ip: Ipv4AddrWrapper,
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Update Dns", status = "CREATED", content = "html")]
-struct UpdateDnsResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Update Dns", status = "CREATED", content = "text/html")]
+#[rustfmt::skip]
+struct UpdateDnsResponse(HtmlBase::<StackString>);
 
-#[patch("/aws/update_dns_name")]
-#[openapi(description = "Update DNS Name")]
-pub async fn update_dns_name(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    patch,
+    path = "/aws/update_dns_name",
+    responses(UpdateDnsResponse, Error)
+)]
+// Update DNS Name")]
+async fn update_dns_name(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<UpdateDnsNameRequest>,
 ) -> WarpResult<UpdateDnsResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     data.aws
         .route53
         .update_dns_record(
@@ -1062,7 +1136,7 @@ pub async fn update_dns_name(
     .into())
 }
 
-#[derive(Serialize, Deserialize, Schema, Clone, Copy)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Copy)]
 enum SystemdActions {
     #[serde(rename = "start")]
     Start,
@@ -1082,30 +1156,35 @@ impl SystemdActions {
     }
 }
 
-#[derive(Serialize, Deserialize, Schema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 struct SystemdAction {
-    #[schema(description = "SystemD Action")]
+    // SystemD Action")]
     action: SystemdActions,
-    #[schema(description = "SystemD Service")]
+    // SystemD Service")]
     service: StackString,
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Systemd Action Output",
     status = "CREATED",
-    content = "html"
+    content = "text/html"
 )]
-struct SystemdActionResponse(HtmlBase<StackString, Error>);
+#[rustfmt::skip]
+struct SystemdActionResponse(HtmlBase::<StackString>);
 
-#[post("/aws/systemd_action")]
-#[openapi(description = "Perform Systemd Action")]
-pub async fn systemd_action(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    post,
+    path = "/aws/systemd_action",
+    responses(SystemdActionResponse, Error)
+)]
+// Perform Systemd Action")]
+async fn systemd_action(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
     query: Query<SystemdAction>,
 ) -> WarpResult<SystemdActionResponse> {
-    let query = query.into_inner();
+    let Query(query) = query;
     let output = data
         .aws
         .systemd
@@ -1115,19 +1194,24 @@ pub async fn systemd_action(
     Ok(HtmlBase::new(output).into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Restart All Systemd Services",
     status = "CREATED",
-    content = "html"
+    content = "text/html"
 )]
-struct SystemdRestartAllResponse(HtmlBase<String, Error>);
+#[rustfmt::skip]
+struct SystemdRestartAllResponse(HtmlBase::<String>);
 
-#[post("/aws/systemd_restart_all")]
-#[openapi(description = "Restart all Systemd Services")]
-pub async fn systemd_restart_all(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    post,
+    path = "/aws/systemd_restart_all",
+    responses(SystemdRestartAllResponse, Error)
+)]
+// Restart all Systemd Services")]
+async fn systemd_restart_all(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
 ) -> WarpResult<SystemdRestartAllResponse> {
     let mut output = Vec::new();
     let blacklist_service = &["nginx"];
@@ -1156,23 +1240,28 @@ pub async fn systemd_restart_all(
     Ok(HtmlBase::new(output.join("\n")).into())
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Get Systemd Logs", content = "html")]
-struct SystemdLogResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Get Systemd Logs", content = "text/html")]
+#[rustfmt::skip]
+struct SystemdLogResponse(HtmlBase::<StackString>);
 
-#[get("/aws/systemd_logs/{service}")]
-#[openapi(description = "Get Systemd Logs for Service")]
-pub async fn systemd_logs(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
-    service: StackString,
+#[utoipa::path(
+    get,
+    path = "/aws/systemd_logs/{service}",
+    responses(SystemdLogResponse, Error)
+)]
+// Get Systemd Logs for Service")]
+async fn systemd_logs(
+    data: State<Arc<AppState>>,
+    _: LoggedUser,
+    service: Path<StackString>,
 ) -> WarpResult<SystemdLogResponse> {
+    let Path(service) = service;
     let entries: Vec<StackString> = data
         .aws
         .systemd
         .get_service_logs(&service)
-        .await
-        .map_err(Into::<Error>::into)?
+        .await?
         .into_iter()
         .map(|log| log.to_string().into())
         .collect();
@@ -1180,17 +1269,23 @@ pub async fn systemd_logs(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Get Crontab Logs", content = "html")]
-struct CrontabLogResponse(HtmlBase<StackString, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Get Crontab Logs", content = "text/html")]
+#[rustfmt::skip]
+struct CrontabLogResponse(HtmlBase::<StackString>);
 
-#[get("/aws/crontab_logs/{crontab_type}")]
-#[openapi(description = "Get Crontab Logs")]
-pub async fn crontab_logs(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    crontab_type: StackString,
-    #[data] data: AppState,
+#[utoipa::path(
+    get,
+    path = "/aws/crontab_logs/{crontab_type}",
+    responses(CrontabLogResponse, Error)
+)]
+// Get Crontab Logs")]
+async fn crontab_logs(
+    data: State<Arc<AppState>>,
+    _: LoggedUser,
+    crontab_type: Path<StackString>,
 ) -> WarpResult<CrontabLogResponse> {
+    let Path(crontab_type) = crontab_type;
     let crontab_path = if crontab_type == "user" {
         &data.aws.config.user_crontab
     } else {
@@ -1211,17 +1306,23 @@ pub async fn crontab_logs(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
-#[response(description = "Get Inbound Email Detail", content = "html")]
-struct InboundEmailDetailResponse(HtmlBase<String, Error>);
+#[derive(UtoipaResponse)]
+#[response(description = "Get Inbound Email Detail", content = "text/html")]
+#[rustfmt::skip]
+struct InboundEmailDetailResponse(HtmlBase::<String>);
 
-#[get("/aws/inbound-email/{id}")]
-pub async fn inbound_email_detail(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
-    id: UuidWrapper,
+#[utoipa::path(
+    get,
+    path = "/aws/inbound-email/{id}",
+    responses(InboundEmailDetailResponse, Error)
+)]
+async fn inbound_email_detail(
+    data: State<Arc<AppState>>,
+    _: LoggedUser,
+    id: Path<Uuid>,
 ) -> WarpResult<InboundEmailDetailResponse> {
-    let body = if let Some(email) = InboundEmailDB::get_by_id(&data.aws.pool, id.into())
+    let Path(id) = id;
+    let body = if let Some(email) = InboundEmailDB::get_by_id(&data.aws.pool, id)
         .await
         .map_err(Into::<Error>::into)?
     {
@@ -1232,21 +1333,26 @@ pub async fn inbound_email_detail(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Delete Inbound Email",
-    content = "html",
+    content = "text/html",
     status = "NO_CONTENT"
 )]
-struct DeleteEmailResponse(HtmlBase<&'static str, Error>);
+#[rustfmt::skip]
+struct DeleteEmailResponse(HtmlBase::<&'static str>);
 
-#[delete("/aws/inbound-email/{id}")]
-pub async fn inbound_email_delete(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
-    id: UuidWrapper,
+#[utoipa::path(
+    delete,
+    path = "/aws/inbound-email/{id}",
+    responses(DeleteEmailResponse, Error)
+)]
+async fn inbound_email_delete(
+    data: State<Arc<AppState>>,
+    _: LoggedUser,
+    id: Path<Uuid>,
 ) -> WarpResult<DeleteEmailResponse> {
-    let id = id.into();
+    let Path(id) = id;
     let body = if let Some(email) = InboundEmailDB::get_by_id(&data.aws.pool, id)
         .await
         .map_err(Into::<Error>::into)?
@@ -1266,18 +1372,23 @@ pub async fn inbound_email_delete(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(RwebResponse)]
+#[derive(UtoipaResponse)]
 #[response(
     description = "Sync Inbound Email",
-    content = "html",
+    content = "text/html",
     status = "CREATED"
 )]
-struct SyncEmailResponse(HtmlBase<StackString, Error>);
+#[rustfmt::skip]
+struct SyncEmailResponse(HtmlBase::<StackString>);
 
-#[post("/aws/inbound-email/sync")]
-pub async fn sync_inboud_email(
-    #[filter = "LoggedUser::filter"] _: LoggedUser,
-    #[data] data: AppState,
+#[utoipa::path(
+    post,
+    path = "/aws/inbound-email/sync",
+    responses(SyncEmailResponse, Error)
+)]
+async fn sync_inboud_email(
+    _: LoggedUser,
+    data: State<Arc<AppState>>,
 ) -> WarpResult<SyncEmailResponse> {
     let sdk_config = aws_config::load_from_env().await;
     let s3 = S3Instance::new(&sdk_config);
@@ -1293,3 +1404,62 @@ pub async fn sync_inboud_email(
         format!("keys {new_keys}\n\nattachments {new_attachments}\n dmarc_records {new_records}");
     Ok(HtmlBase::new(body.into()).into())
 }
+
+pub fn get_aws_path(app: &AppState) -> OpenApiRouter {
+    let app = Arc::new(app.clone());
+
+    OpenApiRouter::new()
+        .routes(routes!(sync_frontpage))
+        .routes(routes!(list))
+        .routes(routes!(terminate))
+        .routes(routes!(create_image))
+        .routes(routes!(delete_image))
+        .routes(routes!(delete_volume))
+        .routes(routes!(modify_volume))
+        .routes(routes!(delete_snapshot))
+        .routes(routes!(create_snapshot))
+        .routes(routes!(tag_item))
+        .routes(routes!(delete_ecr_image))
+        .routes(routes!(cleanup_ecr_images))
+        .routes(routes!(edit_script))
+        .routes(routes!(replace_script))
+        .routes(routes!(delete_script))
+        .routes(routes!(create_user))
+        .routes(routes!(delete_user))
+        .routes(routes!(add_user_to_group))
+        .routes(routes!(remove_user_from_group))
+        .routes(routes!(create_access_key))
+        .routes(routes!(delete_access_key))
+        .routes(routes!(build_spot_request))
+        .routes(routes!(request_spot))
+        .routes(routes!(run_instance))
+        .routes(routes!(cancel_spot))
+        .routes(routes!(get_prices))
+        .routes(routes!(update))
+        .routes(routes!(instance_status))
+        .routes(routes!(command))
+        .routes(routes!(get_instances))
+        .routes(routes!(user))
+        .routes(routes!(novnc_launcher))
+        .routes(routes!(novnc_status))
+        .routes(routes!(novnc_shutdown))
+        .routes(routes!(update_dns_name))
+        .routes(routes!(systemd_action))
+        .routes(routes!(systemd_logs))
+        .routes(routes!(systemd_restart_all))
+        .routes(routes!(crontab_logs))
+        .routes(routes!(inbound_email_detail))
+        .routes(routes!(inbound_email_delete))
+        .routes(routes!(sync_inboud_email))
+        .with_state(app)
+}
+
+#[derive(OpenApi)]
+#[openapi(
+    info(
+        title = "Frontend for AWS",
+        description = "Web Frontend for AWS Services",
+    ),
+    components(schemas(IamAccessKeyWrapper,))
+)]
+pub struct ApiDoc;

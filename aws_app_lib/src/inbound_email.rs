@@ -251,14 +251,14 @@ fn extract_zip(filename: &Path, ziptmpdir: &Path) -> Result<Vec<PathBuf>, Error>
 mod tests {
     use futures::TryStreamExt;
     use mail_parser::MessageParser;
-    use stack_string::{format_sstr, StackString};
+    use stack_string::{StackString, format_sstr};
     use std::{convert::TryInto, fmt::Write, path::Path};
     use tempdir::TempDir;
 
     use crate::{
         config::Config,
         errors::AwslibError as Error,
-        inbound_email::{extract_zip, InboundEmail},
+        inbound_email::{InboundEmail, extract_zip},
         models::{DmarcRecords, InboundEmailDB},
         pgpool::PgPool,
         s3_instance::S3Instance,
@@ -279,9 +279,11 @@ mod tests {
         assert_eq!(email.from_address, "no-reply-aws@amazon.com");
         assert_eq!(email.to_address, "recipient@example.com");
 
-        assert!(email
-            .text_content
-            .contains("Thank you for using Amazon SES!"));
+        assert!(
+            email
+                .text_content
+                .contains("Thank you for using Amazon SES!")
+        );
 
         let data = include_str!("../../tests/data/example_html_email");
         let message = parser.parse(data.as_bytes()).unwrap();
@@ -337,9 +339,11 @@ mod tests {
         assert_eq!(email.subject, "Test");
         assert_eq!(email.from_address, "daniel.boline@agilischemicals.com");
         assert_eq!(email.to_address, "ddboline@ddboline.net");
-        assert!(email
-            .html_content
-            .contains("Digital Commerce Platform Purpose Built For Chemical Industry"));
+        assert!(
+            email
+                .html_content
+                .contains("Digital Commerce Platform Purpose Built For Chemical Industry")
+        );
 
         Ok(())
     }

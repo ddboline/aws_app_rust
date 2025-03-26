@@ -1,7 +1,10 @@
 use derive_more::{Deref, Display, From, FromStr, Into};
-use rweb::openapi::{ComponentDescriptor, ComponentOrInlineSchema, Entity, Schema, Type};
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
+use utoipa::{
+    PartialSchema, ToSchema,
+    openapi::schema::{ObjectBuilder, Type},
+};
 
 #[derive(
     Serialize,
@@ -21,17 +24,20 @@ use std::net::Ipv4Addr;
 )]
 pub struct Ipv4AddrWrapper(Ipv4Addr);
 
-impl Entity for Ipv4AddrWrapper {
-    #[inline]
-    fn type_name() -> std::borrow::Cow<'static, str> {
-        "ipv4_address".into()
+impl PartialSchema for Ipv4AddrWrapper {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        ObjectBuilder::new()
+            .format(Some(utoipa::openapi::SchemaFormat::Custom(
+                "ipv4_address".into(),
+            )))
+            .schema_type(Type::String)
+            .build()
+            .into()
     }
-    #[inline]
-    fn describe(_: &mut ComponentDescriptor) -> ComponentOrInlineSchema {
-        ComponentOrInlineSchema::Inline(Schema {
-            schema_type: Some(Type::String),
-            format: "ipv4_address".into(),
-            ..Schema::default()
-        })
+}
+
+impl ToSchema for Ipv4AddrWrapper {
+    fn name() -> std::borrow::Cow<'static, str> {
+        "ipv4_address".into()
     }
 }

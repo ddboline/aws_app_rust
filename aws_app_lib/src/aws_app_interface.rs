@@ -1,8 +1,8 @@
 use aws_config::SdkConfig;
-use futures::{future::try_join_all, stream::FuturesUnordered, TryStreamExt};
+use futures::{TryStreamExt, future::try_join_all, stream::FuturesUnordered};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
@@ -899,7 +899,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
-        aws_app_interface::{get_id_host_map, get_name_map, INSTANCE_LIST},
+        aws_app_interface::{INSTANCE_LIST, get_id_host_map, get_name_map},
         ec2_instance::Ec2InstanceInfo,
         errors::AwslibError as Error,
     };

@@ -40,7 +40,7 @@ use rand::{
     rng as thread_rng,
 };
 use std::{convert::TryFrom, future::Future};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 use crate::errors::AwslibError as Error;
 

@@ -2,13 +2,13 @@
 
 use aws_config::SdkConfig;
 use aws_sdk_ses::{
-    types::{Body, Content, Destination, Message},
     Client as SesClient,
+    types::{Body, Content, Destination, Message},
 };
 use serde::Serialize;
 use stack_string::format_sstr;
 use std::fmt;
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::errors::AwslibError as Error;
 

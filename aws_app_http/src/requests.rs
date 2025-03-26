@@ -1,7 +1,7 @@
-use cached::{proc_macro::cached, SizedCache};
+use cached::{SizedCache, proc_macro::cached};
 use itertools::Itertools;
 use smallvec::SmallVec;
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::fmt::Display;
 use tokio::try_join;
 

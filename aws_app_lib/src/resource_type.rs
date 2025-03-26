@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{convert::TryFrom, fmt, str::FromStr};
 
 use crate::errors::AwslibError as Error;

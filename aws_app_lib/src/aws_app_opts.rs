@@ -1,12 +1,12 @@
 use aws_sdk_route53::types::RrType;
 use clap::Parser;
-use futures::{future, stream::FuturesUnordered, TryStreamExt};
+use futures::{TryStreamExt, future, stream::FuturesUnordered};
 use itertools::Itertools;
 use log::debug;
 use refinery::embed_migrations;
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{net::Ipv4Addr, path::PathBuf, sync::Arc};
-use tokio::io::{stdin, AsyncReadExt};
+use tokio::io::{AsyncReadExt, stdin};
 
 use crate::{
     aws_app_interface::AwsAppInterface,
@@ -17,9 +17,9 @@ use crate::{
     models::{InstanceFamily, InstanceList},
     novnc_instance::NoVncInstance,
     pgpool::PgPool,
-    resource_type::{ResourceType, ALL_RESOURCES},
+    resource_type::{ALL_RESOURCES, ResourceType},
     s3_instance::S3Instance,
-    spot_request_opt::{get_tags, SpotRequestOpt},
+    spot_request_opt::{SpotRequestOpt, get_tags},
     sysinfo_instance::SysinfoInstance,
     systemd_instance::SystemdInstance,
 };

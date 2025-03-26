@@ -1,7 +1,7 @@
 use aws_config::SdkConfig;
 use aws_sdk_pricing::{
-    types::{Filter, FilterType},
     Client as PricingClient,
+    types::{Filter, FilterType},
 };
 use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};

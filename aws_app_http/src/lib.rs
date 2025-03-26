@@ -5,6 +5,7 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::unused_async)]
 #![allow(clippy::ignored_unit_patterns)]
+#![allow(clippy::similar_names)]
 #![recursion_limit = "256"]
 
 pub mod app;
@@ -16,11 +17,12 @@ pub mod requests;
 pub mod routes;
 
 use derive_more::{From, Into};
-use rweb::Schema;
-use rweb_helper::{derive_rweb_schema, DateTimeType};
 use serde::{Deserialize, Serialize};
 use stack_string::StackString;
 use std::collections::HashMap;
+use time::OffsetDateTime;
+use utoipa::ToSchema;
+use utoipa_helper::derive_utoipa_schema;
 
 use aws_app_lib::{
     iam_instance::{IamAccessKey, IamUser},
@@ -30,53 +32,54 @@ use aws_app_lib::{
 #[derive(Debug, Serialize, Deserialize, Into, From)]
 pub struct IamUserWrapper(IamUser);
 
-derive_rweb_schema!(IamUserWrapper, _IamUserWrapper);
+derive_utoipa_schema!(IamUserWrapper, _IamUserWrapper);
 
 #[allow(dead_code)]
-#[derive(Schema)]
-#[schema(component = "IamUser")]
+#[derive(ToSchema)]
+// IamUser
 struct _IamUserWrapper {
-    #[schema(description = "Iam Arn")]
+    // Iam Arn
     arn: StackString,
-    #[schema(description = "Created DateTime")]
-    create_date: DateTimeType,
-    #[schema(description = "User ID")]
+    // Created DateTime
+    create_date: OffsetDateTime,
+    // User ID
     user_id: StackString,
-    #[schema(description = "User Name")]
+    // User Name
     user_name: StackString,
-    #[schema(description = "Tags")]
+    // Tags
     tags: HashMap<String, StackString>,
 }
 
 #[derive(Serialize, Deserialize, Into, From)]
 pub struct IamAccessKeyWrapper(IamAccessKey);
 
-derive_rweb_schema!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
+derive_utoipa_schema!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
 
 #[allow(dead_code)]
-#[derive(Schema)]
-#[schema(component = "IamAccessKey")]
+#[derive(ToSchema)]
+// IamAccessKey
+#[schema(as = IamAccessKey)]
 struct _IamAccessKeyWrapper {
-    #[schema(description = "Access Key ID")]
+    // Access Key ID
     access_key_id: StackString,
-    #[schema(description = "Created DateTime")]
-    create_date: DateTimeType,
-    #[schema(description = "Access Secret Key")]
+    // Created DateTime
+    create_date: OffsetDateTime,
+    // Access Secret Key
     access_key_secret: StackString,
-    #[schema(description = "Status")]
+    // Status
     status: StackString,
-    #[schema(description = "User Name")]
+    // User Name
     user_name: StackString,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, Into, From)]
 pub struct ResourceTypeWrapper(ResourceType);
 
-derive_rweb_schema!(ResourceTypeWrapper, _ResourceTypeWrapper);
+derive_utoipa_schema!(ResourceTypeWrapper, _ResourceTypeWrapper);
 
 #[allow(dead_code)]
-#[derive(Schema, Serialize)]
-#[schema(component = "ResourceType")]
+#[derive(ToSchema, Serialize)]
+// ResourceType
 enum _ResourceTypeWrapper {
     #[serde(rename = "instances")]
     Instances,
@@ -113,15 +116,15 @@ enum _ResourceTypeWrapper {
 #[cfg(test)]
 mod test {
     use crate::{
-        IamAccessKeyWrapper, IamUserWrapper, ResourceTypeWrapper, _IamAccessKeyWrapper,
-        _IamUserWrapper, _ResourceTypeWrapper,
+        _IamAccessKeyWrapper, _IamUserWrapper, _ResourceTypeWrapper, IamAccessKeyWrapper,
+        IamUserWrapper, ResourceTypeWrapper,
     };
-    use rweb_helper::derive_rweb_test;
+    use utoipa_helper::derive_utoipa_test;
 
     #[test]
     fn test_types() {
-        derive_rweb_test!(IamUserWrapper, _IamUserWrapper);
-        derive_rweb_test!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
-        derive_rweb_test!(ResourceTypeWrapper, _ResourceTypeWrapper);
+        derive_utoipa_test!(IamUserWrapper, _IamUserWrapper);
+        derive_utoipa_test!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
+        derive_utoipa_test!(ResourceTypeWrapper, _ResourceTypeWrapper);
     }
 }

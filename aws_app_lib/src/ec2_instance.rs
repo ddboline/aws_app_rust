@@ -1,19 +1,19 @@
 use aws_config::SdkConfig;
 use aws_sdk_ec2::{
+    Client as Ec2Client,
     primitives::DateTime,
     types::{
         Filter, InstanceType, RequestSpotLaunchSpecification, ResourceType, Tag, TagSpecification,
         VolumeType,
     },
-    Client as Ec2Client,
 };
 use aws_types::region::Region;
-use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD_NO_PAD};
 use itertools::Itertools;
 use log::debug;
 use maplit::hashmap;
 use serde::{Deserialize, Serialize};
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{
     collections::HashMap,
     fmt,
@@ -994,7 +994,7 @@ mod tests {
 
     use crate::{
         config::Config,
-        ec2_instance::{get_user_data_from_script, Ec2Instance},
+        ec2_instance::{Ec2Instance, get_user_data_from_script},
         errors::AwslibError as Error,
     };
 

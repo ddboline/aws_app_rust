@@ -1,407 +1,17 @@
-openapi: 3.0.1
+openapi: '3.1.0'
 info:
   title: Frontend for AWS
   description: Web Frontend for AWS Services
-  version: 0.10.14
+  contact:
+    name: Daniel Boline
+    email: ddboline@gmail.com
+  license:
+    name: ''
+  version: '0.11.14'
 paths:
-  /aws/index.html:
-    get:
-      description: AWS App Main Page
-      responses:
-        '200':
-          description: Main Page
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/list:
-    get:
-      description: List AWS Resources
-      parameters:
-      - name: resource
-        in: query
-        required: true
-        schema:
-          $ref: '#/components/schemas/ResourceType'
-      responses:
-        '200':
-          description: List Resources
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/terminate:
-    delete:
-      description: Terminate Ec2 Instance
-      parameters:
-      - name: instance
-        in: query
-        required: true
-        schema:
-          description: Instance ID or Name Tag
-          type: string
-      responses:
-        '204':
-          description: Deleted
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/create_image:
-    post:
-      description: Create EC2 AMI Image
-      parameters:
-      - name: inst_id
-        in: query
-        required: true
-        schema:
-          description: Instance ID or Name Tag
-          type: string
-      - name: name
-        in: query
-        required: true
-        schema:
-          description: Ami Name
-          type: string
-      responses:
-        '200':
-          description: Image ID
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/delete_image:
-    delete:
-      description: Delete EC2 AMI Image
-      parameters:
-      - name: ami
-        in: query
-        required: true
-        schema:
-          description: Ami ID
-          type: string
-      responses:
-        '204':
-          description: Deleted
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/delete_volume:
-    delete:
-      description: Delete EC2 Volume
-      parameters:
-      - name: volid
-        in: query
-        required: true
-        schema:
-          description: Volume ID
-          type: string
-      responses:
-        '204':
-          description: Deleted
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/modify_volume:
-    patch:
-      description: Modify EC2 Volume
-      parameters:
-      - name: volid
-        in: query
-        required: true
-        schema:
-          description: Volume ID
-          type: string
-      - name: size
-        in: query
-        required: true
-        schema:
-          description: Volume Size GiB
-          type: integer
-      responses:
-        '201':
-          description: Finished
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/delete_snapshot:
-    delete:
-      description: Delete EC2 Snapshot
-      parameters:
-      - name: snapid
-        in: query
-        required: true
-        schema:
-          description: Snapshot ID
-          type: string
-      responses:
-        '204':
-          description: Deleted
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/create_snapshot:
-    post:
-      description: Create EC2 Snapshot
-      parameters:
-      - name: volid
-        in: query
-        required: true
-        schema:
-          description: Volume ID
-          type: string
-      - name: name
-        in: query
-        required: false
-        schema:
-          description: Snapshot Name
-          nullable: true
-          type: string
-      responses:
-        '201':
-          description: Finished
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/tag_item:
-    patch:
-      description: Tag EC2 Resource
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          description: Resource ID
-          type: string
-      - name: tag
-        in: query
-        required: true
-        schema:
-          description: Tag
-          type: string
-      responses:
-        '201':
-          description: Finished
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/delete_ecr_image:
-    delete:
-      description: Delete ECR Image
-      parameters:
-      - name: reponame
-        in: query
-        required: true
-        schema:
-          description: ECR Repository Name
-          type: string
-      - name: imageid
-        in: query
-        required: true
-        schema:
-          description: Container Image ID
-          type: string
-      responses:
-        '204':
-          description: Deleted
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/cleanup_ecr_images:
-    delete:
-      description: Cleanup ECR Images
-      responses:
-        '204':
-          description: Deleted
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/edit_script:
-    patch:
-      description: Edit Script
-      parameters:
-      - name: filename
-        in: query
-        required: true
-        schema:
-          description: Script Filename
-          type: string
-      responses:
-        '200':
-          description: Edit Script
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/replace_script:
-    post:
-      description: Replace Script
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                filename:
-                  description: Script Filename
-                  type: string
-                text:
-                  description: Script Text
-                  type: string
-              type: object
-              required:
-              - filename
-              - text
-        required: true
-      responses:
-        '201':
-          description: Finished
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/delete_script:
-    delete:
-      description: Delete Script
-      parameters:
-      - name: filename
-        in: query
-        required: true
-        schema:
-          description: Script Filename
-          type: string
-      responses:
-        '204':
-          description: Deleted
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/create_user:
-    post:
-      description: Create IAM User
-      parameters:
-      - name: user_name
-        in: query
-        required: true
-        schema:
-          description: User Name
-          type: string
-      responses:
-        '201':
-          description: Created Iam User
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IamUser'
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/delete_user:
-    delete:
-      description: Delete IAM User
-      parameters:
-      - name: user_name
-        in: query
-        required: true
-        schema:
-          description: User Name
-          type: string
-      responses:
-        '200':
-          description: Delete Iam User
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
   /aws/add_user_to_group:
     patch:
-      description: Add IAM User to Group
-      parameters:
-      - name: user_name
-        in: query
-        required: true
-        schema:
-          description: User Name
-          type: string
-      - name: group_name
-        in: query
-        required: true
-        schema:
-          description: Group Name
-          type: string
+      operationId: add_user_to_group
       responses:
         '200':
           description: Add User to Group
@@ -411,110 +21,37 @@ paths:
                 type: string
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/remove_user_from_group:
-    delete:
-      description: Remove IAM User from Group
-      parameters:
-      - name: user_name
-        in: query
-        required: true
-        schema:
-          description: User Name
-          type: string
-      - name: group_name
-        in: query
-        required: true
-        schema:
-          description: Group Name
-          type: string
-      responses:
-        '200':
-          description: Remove User to Group
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/create_access_key:
-    post:
-      description: Create Access Key for IAM User
-      parameters:
-      - name: user_name
-        in: query
-        required: true
-        schema:
-          description: User Name
-          type: string
-      responses:
-        '201':
-          description: Create Access Key
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IamAccessKey_Opt'
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/delete_access_key:
-    delete:
-      description: Delete Access Key for IAM User
-      parameters:
-      - name: user_name
-        in: query
-        required: true
-        schema:
-          description: User Name
-          type: string
-      - name: access_key_id
-        in: query
-        required: true
-        schema:
-          description: Access Key ID
-          type: string
-      responses:
-        '200':
-          description: Delete Access Key
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
           content:
             text/html:
               schema:
                 type: string
-        '400':
-          description: Bad Request
         '500':
           description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
   /aws/build_spot_request:
     post:
-      description: Build Spot Request
-      parameters:
-      - name: ami
-        in: query
-        required: false
-        schema:
-          description: AMI ID
-          nullable: true
-          type: string
-      - name: inst
-        in: query
-        required: false
-        schema:
-          description: Instance Type
-          nullable: true
-          type: string
-      - name: script
-        in: query
-        required: false
-        schema:
-          description: Script
-          nullable: true
-          type: string
+      operationId: build_spot_request
       responses:
-        '200':
+        '201':
           description: Spot Request
           content:
             text/html:
@@ -522,45 +59,1185 @@ paths:
                 type: string
         '400':
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
-  /aws/request_spot:
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/cancel_spot:
+    delete:
+      operationId: cancel_spot
+      responses:
+        '204':
+          description: Cancelled Spot
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/cleanup_ecr_images:
+    delete:
+      operationId: cleanup_ecr_images
+      responses:
+        '204':
+          description: Deleted
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/command:
     post:
+      operationId: command
       requestBody:
         content:
           application/json:
             schema:
-              properties:
-                ami:
-                  description: Ami ID
-                  type: string
-                instance_type:
-                  description: Instance Type
-                  type: string
-                security_group:
-                  description: Security Group
-                  type: string
-                script:
-                  description: Script Filename
-                  type: string
-                key_name:
-                  description: SSH Key Name
-                  type: string
-                price:
-                  description: Spot Price
-                  type: string
-                name:
-                  description: Spot Request Name Tag
-                  type: string
-              type: object
-              required:
-              - ami
-              - instance_type
-              - security_group
-              - script
-              - key_name
-              - price
-              - name
+              $ref: '#/components/schemas/CommandRequest'
+        required: true
+      responses:
+        '201':
+          description: Run Command on Instance
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/create_access_key:
+    post:
+      operationId: create_access_key
+      responses:
+        '201':
+          description: Create Access Key
+          content:
+            text/html:
+              schema:
+                oneOf:
+                - type: 'null'
+                - $ref: '#/components/schemas/IamAccessKey'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/create_image:
+    post:
+      operationId: create_image
+      responses:
+        '201':
+          description: Image ID
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/create_snapshot:
+    post:
+      operationId: create_snapshot
+      responses:
+        '201':
+          description: Finished
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/create_user:
+    post:
+      operationId: create_user
+      responses:
+        '201':
+          description: Created Iam User
+          content:
+            text/html:
+              schema:
+                type: object
+                required:
+                - arn
+                - create_date
+                - user_id
+                - user_name
+                - tags
+                properties:
+                  arn:
+                    $ref: '#/components/schemas/str'
+                  create_date:
+                    type: string
+                    format: date-time
+                  tags:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/str'
+                    propertyNames:
+                      type: string
+                  user_id:
+                    $ref: '#/components/schemas/str'
+                  user_name:
+                    $ref: '#/components/schemas/str'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/crontab_logs/{crontab_type}:
+    get:
+      operationId: crontab_logs
+      responses:
+        '200':
+          description: Get Crontab Logs
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/delete_access_key:
+    delete:
+      operationId: delete_access_key
+      responses:
+        '204':
+          description: Delete Access Key
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/delete_ecr_image:
+    delete:
+      operationId: delete_ecr_image
+      responses:
+        '204':
+          description: Deleted
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/delete_image:
+    delete:
+      operationId: delete_image
+      responses:
+        '204':
+          description: Deleted
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/delete_script:
+    delete:
+      operationId: delete_script
+      responses:
+        '204':
+          description: Deleted
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/delete_snapshot:
+    delete:
+      operationId: delete_snapshot
+      responses:
+        '204':
+          description: Deleted
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/delete_user:
+    delete:
+      operationId: delete_user
+      responses:
+        '204':
+          description: Delete Iam User
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/delete_volume:
+    delete:
+      operationId: delete_volume
+      responses:
+        '204':
+          description: Deleted
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/edit_script:
+    get:
+      operationId: edit_script
+      responses:
+        '200':
+          description: Edit Script
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/inbound-email/sync:
+    post:
+      operationId: sync_inboud_email
+      responses:
+        '201':
+          description: Sync Inbound Email
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/inbound-email/{id}:
+    get:
+      operationId: inbound_email_detail
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Get Inbound Email Detail
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+    delete:
+      operationId: inbound_email_delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Delete Inbound Email
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/index.html:
+    get:
+      operationId: sync_frontpage
+      responses:
+        '200':
+          description: Main Page
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/instance_status:
+    get:
+      operationId: instance_status
+      responses:
+        '200':
+          description: Instance Status
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/instances:
+    get:
+      operationId: get_instances
+      responses:
+        '200':
+          description: Describe Instances
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/list:
+    get:
+      operationId: list
+      responses:
+        '200':
+          description: List Resources
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/modify_volume:
+    patch:
+      operationId: modify_volume
+      responses:
+        '201':
+          description: Finished
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/novnc/start:
+    post:
+      operationId: novnc_launcher
+      responses:
+        '201':
+          description: Start NoVNC
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/novnc/status:
+    get:
+      operationId: novnc_status
+      responses:
+        '200':
+          description: NoVNC Status
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/novnc/stop:
+    post:
+      operationId: novnc_shutdown
+      responses:
+        '201':
+          description: Stop NoVNC
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/prices:
+    get:
+      operationId: get_prices
+      responses:
+        '200':
+          description: Prices
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/remove_user_from_group:
+    delete:
+      operationId: remove_user_from_group
+      responses:
+        '204':
+          description: Remove User to Group
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/replace_script:
+    post:
+      operationId: replace_script
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceData'
         required: true
       responses:
         '201':
@@ -571,254 +1248,123 @@ paths:
                 type: string
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/cancel_spot:
-    delete:
-      description: Cancel Spot Request
-      parameters:
-      - name: spot_id
-        in: query
-        required: true
-        schema:
-          description: Spot Request ID
-          type: string
-      responses:
-        '200':
-          description: Cancelled Spot
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
           content:
             text/html:
               schema:
                 type: string
-        '400':
-          description: Bad Request
         '500':
           description: Internal Server Error
-  /aws/prices:
-    get:
-      description: Get Ec2 Prices
-      parameters:
-      - name: search
-        in: query
-        required: false
-        schema:
-          description: Search String
-          nullable: true
-          type: string
-      responses:
-        '200':
-          description: Prices
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/update:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/request_spot:
     post:
-      description: Update Data
-      responses:
-        '200':
-          description: Update
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/instance_status:
-    get:
-      description: Get Ec2 Instance Status
-      parameters:
-      - name: instance
-        in: query
-        required: true
-        schema:
-          description: Instance ID or Name Tag
-          type: string
-      responses:
-        '200':
-          description: Instance Status
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/command:
-    post:
-      description: Run command on Ec2 Instance
+      operationId: request_spot
       requestBody:
         content:
           application/json:
             schema:
-              properties:
-                instance:
-                  description: Instance ID or Name Tag
-                  type: string
-                command:
-                  description: Command String
-                  type: string
-              type: object
-              required:
-              - instance
-              - command
+              $ref: '#/components/schemas/SpotRequestData'
         required: true
       responses:
-        '200':
-          description: Run Command on Instance
+        '201':
+          description: Finished
           content:
             text/html:
               schema:
                 type: string
         '400':
           description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/instances:
-    get:
-      description: List Ec2 Instances
-      parameters:
-      - name: inst
-        in: query
-        required: true
-        schema:
-          description: Instance ID or Name Tag
-          type: string
-      responses:
-        '200':
-          description: Describe Instances
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/user:
-    get:
-      description: User Object if logged in
-      responses:
-        '200':
-          description: Logged in User
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoggedUser'
-        '400':
-          description: Bad Request
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
-  /aws/novnc/start:
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/run_instance:
     post:
-      description: Start NoVNC Service
-      responses:
-        '200':
-          description: Start NoVNC
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/novnc/status:
-    get:
-      description: NoVNC Service Status
-      responses:
-        '200':
-          description: NoVNC Status
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/novnc/stop:
-    post:
-      description: Stop NoVNC Service
-      responses:
-        '200':
-          description: Stop NoVNC
-          content:
-            text/html:
-              schema:
-                type: string
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-  /aws/update_dns_name:
-    patch:
-      description: Update DNS Name
-      parameters:
-      - name: zone
-        in: query
+      operationId: run_instance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpotRequestData'
         required: true
-        schema:
-          description: Route53 Zone
-          type: string
-      - name: dns_name
-        in: query
-        required: true
-        schema:
-          description: DNS Name
-          type: string
-      - name: old_ip
-        in: query
-        required: true
-        schema:
-          description: Old IPv4 Address
-          format: ipv4_address
-          type: string
-      - name: new_ip
-        in: query
-        required: true
-        schema:
-          description: New IPv4 Address
-          format: ipv4_address
-          type: string
       responses:
         '201':
-          description: Update Dns
+          description: Finished
           content:
             text/html:
               schema:
                 type: string
         '400':
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
   /aws/systemd_action:
     post:
-      description: Perform Systemd Action
-      parameters:
-      - name: action
-        in: query
-        required: true
-        schema:
-          description: SystemD Action
-          type: string
-          enum:
-          - start
-          - stop
-          - restart
-      - name: service
-        in: query
-        required: true
-        schema:
-          description: SystemD Service
-          type: string
+      operationId: systemd_action
       responses:
         '201':
           description: Systemd Action Output
@@ -828,17 +1374,35 @@ paths:
                 type: string
         '400':
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
   /aws/systemd_logs/{service}:
     get:
-      description: Get Systemd Logs for Service
-      parameters:
-      - name: service
-        in: path
-        required: true
-        schema:
-          type: string
+      operationId: systemd_logs
       responses:
         '200':
           description: Get Systemd Logs
@@ -848,11 +1412,35 @@ paths:
                 type: string
         '400':
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
   /aws/systemd_restart_all:
     post:
-      description: Restart all Systemd Services
+      operationId: systemd_restart_all
       responses:
         '201':
           description: Restart All Systemd Services
@@ -862,92 +1450,248 @@ paths:
                 type: string
         '400':
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
-  /aws/crontab_logs/{crontab_type}:
-    get:
-      description: Get Crontab Logs
-      parameters:
-      - name: crontab_type
-        in: path
-        required: true
-        schema:
-          type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/tag_item:
+    patch:
+      operationId: tag_item
       responses:
-        '200':
-          description: Get Crontab Logs
+        '201':
+          description: Finished
           content:
             text/html:
               schema:
                 type: string
         '400':
           description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/terminate:
+    delete:
+      operationId: terminate
+      responses:
+        '204':
+          description: Deleted
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/update:
+    post:
+      operationId: update
+      responses:
+        '201':
+          description: Update
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/update_dns_name:
+    patch:
+      operationId: update_dns_name
+      responses:
+        '201':
+          description: Update Dns
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+  /aws/user:
+    get:
+      operationId: user
+      responses:
+        '200':
+          description: Logged in User
+          content:
+            text/html:
+              schema:
+                type: object
+                required:
+                - email
+                - session
+                - created_at
+                properties:
+                  created_at:
+                    type: string
+                    format: date-time
+                  email:
+                    $ref: '#/components/schemas/str'
+                  session:
+                    type: string
+                    format: uuid
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
 components:
   schemas:
-    ResourceType:
-      type: string
-      enum:
-      - instances
-      - reserved
-      - spot
-      - ami
-      - volume
-      - snapshot
-      - ecr
-      - key
-      - script
-      - user
-      - group
-      - access-key
-      - route53
-      - systemd
-    IamUser:
-      properties:
-        arn:
-          description: Iam Arn
-          type: string
-        create_date:
-          description: Created DateTime
-          format: date-time
-          type: string
-        user_id:
-          description: User ID
-          type: string
-        user_name:
-          description: User Name
-          type: string
-        tags:
-          description: Tags
-          additionalProperties:
-            type: string
-          type: object
+    CommandRequest:
       type: object
       required:
-      - arn
-      - create_date
-      - user_id
-      - user_name
-      - tags
+      - instance
+      - command
+      properties:
+        command:
+          $ref: '#/components/schemas/str'
+        instance:
+          $ref: '#/components/schemas/str'
     IamAccessKey:
-      properties:
-        access_key_id:
-          description: Access Key ID
-          type: string
-        create_date:
-          description: Created DateTime
-          format: date-time
-          type: string
-        access_key_secret:
-          description: Access Secret Key
-          type: string
-        status:
-          description: Status
-          type: string
-        user_name:
-          description: User Name
-          type: string
       type: object
       required:
       - access_key_id
@@ -955,44 +1699,52 @@ components:
       - access_key_secret
       - status
       - user_name
-    IamAccessKey_Opt:
       properties:
         access_key_id:
-          description: Access Key ID
-          type: string
-        create_date:
-          description: Created DateTime
-          format: date-time
-          type: string
+          $ref: '#/components/schemas/str'
         access_key_secret:
-          description: Access Secret Key
+          $ref: '#/components/schemas/str'
+        create_date:
           type: string
+          format: date-time
         status:
-          description: Status
-          type: string
+          $ref: '#/components/schemas/str'
         user_name:
-          description: User Name
-          type: string
-      nullable: true
+          $ref: '#/components/schemas/str'
+    ReplaceData:
       type: object
       required:
-      - access_key_id
-      - create_date
-      - access_key_secret
-      - status
-      - user_name
-    LoggedUser:
+      - filename
+      - text
       properties:
-        email:
-          description: Email Address
-          example: user@example.com
-          type: string
-        session:
-          description: Session Id
-          format: uuid
-          example: 334518f4-1bfd-4f20-9978-bfad0dc033e1
-          type: string
+        filename:
+          $ref: '#/components/schemas/str'
+        text:
+          $ref: '#/components/schemas/str'
+    SpotRequestData:
       type: object
       required:
-      - email
-      - session
+      - ami
+      - instance_type
+      - security_group
+      - script
+      - key_name
+      - price
+      - name
+      properties:
+        ami:
+          $ref: '#/components/schemas/str'
+        instance_type:
+          $ref: '#/components/schemas/str'
+        key_name:
+          $ref: '#/components/schemas/str'
+        name:
+          $ref: '#/components/schemas/str'
+        price:
+          $ref: '#/components/schemas/str'
+        script:
+          $ref: '#/components/schemas/str'
+        security_group:
+          $ref: '#/components/schemas/str'
+    str:
+      type: string

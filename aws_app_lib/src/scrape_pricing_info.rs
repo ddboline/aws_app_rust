@@ -1,8 +1,8 @@
-use futures::{stream::FuturesUnordered, TryStreamExt};
+use futures::{TryStreamExt, stream::FuturesUnordered};
 use log::debug;
 use reqwest::Url;
 use serde::Deserialize;
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::collections::HashMap;
 use time::OffsetDateTime;
 
@@ -168,7 +168,7 @@ mod tests {
     use crate::{
         errors::AwslibError as Error,
         models::PricingType,
-        scrape_pricing_info::{parse_json, parse_json_url_body, PricingJson},
+        scrape_pricing_info::{PricingJson, parse_json, parse_json_url_body},
     };
 
     #[test]

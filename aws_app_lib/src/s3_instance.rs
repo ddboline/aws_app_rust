@@ -1,13 +1,13 @@
 use aws_config::SdkConfig;
 use aws_sdk_s3::{
+    Client as S3Client,
     operation::list_objects::ListObjectsOutput,
     primitives::ByteStream,
     types::{Bucket, Object},
-    Client as S3Client,
 };
 use once_cell::sync::Lazy;
 use parking_lot::{Mutex, MutexGuard};
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{fmt, path::Path};
 use tokio::io::AsyncReadExt;
 use url::Url;
