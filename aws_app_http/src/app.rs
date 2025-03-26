@@ -101,7 +101,7 @@ mod tests {
 
     use auth_server_http::app::run_test_app;
 
-    use aws_app_lib::{config::Config, errors::AwslibError as Error, resource_type::ResourceType};
+    use aws_app_lib::{config::Config, errors::AwslibError as Error, resource_type::ResourceType, get_random_string};
 
     use crate::{
         app::run_app,
@@ -114,8 +114,8 @@ mod tests {
             set_var("TESTENV", "true");
         }
 
-        let email = "test_aws_app_user@localhost";
-        let password = "abc123xyz8675309";
+        let email = format_sstr!("test_aws_app_user+{}@localhost", get_random_string(32));
+        let password = get_random_string(32);
 
         let auth_port: u32 = 54321;
         unsafe {
@@ -148,8 +148,8 @@ mod tests {
         let client = reqwest::Client::builder().cookie_store(true).build()?;
         let url = format_sstr!("http://localhost:{auth_port}/api/auth");
         let data = hashmap! {
-            "email" => &email,
-            "password" => &password,
+            "email" => email.as_str(),
+            "password" => password.as_str(),
         };
         let result = client
             .post(url.as_str())
