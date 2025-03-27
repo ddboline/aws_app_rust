@@ -530,3 +530,14 @@ function syncEmail() {
     xmlhttp.open("POST", url, true);
     xmlhttp.send(null);
 }
+function deleteSecurityGroup( group_id ) {
+    let url = "/aws/delete_security_group?group_id=" + group_id;
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.onload = function f() {
+        document.getElementById("garminconnectoutput").innerHTML = "done";
+        listResource('security-group');
+    }
+    xmlhttp.open("DELETE", url, true);
+    xmlhttp.send(null);
+    document.getElementById("garminconnectoutput").innerHTML = "running";
+}

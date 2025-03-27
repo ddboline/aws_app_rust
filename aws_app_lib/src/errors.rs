@@ -2,12 +2,14 @@ use aws_sdk_ec2::operation::{
     attach_volume::AttachVolumeError,
     cancel_spot_instance_requests::CancelSpotInstanceRequestsError, create_image::CreateImageError,
     create_snapshot::CreateSnapshotError, create_tags::CreateTagsError,
-    create_volume::CreateVolumeError, delete_snapshot::DeleteSnapshotError,
-    delete_volume::DeleteVolumeError, deregister_image::DeregisterImageError,
+    create_volume::CreateVolumeError, delete_security_group::DeleteSecurityGroupError,
+    delete_snapshot::DeleteSnapshotError, delete_volume::DeleteVolumeError,
+    deregister_image::DeregisterImageError,
     describe_availability_zones::DescribeAvailabilityZonesError,
     describe_images::DescribeImagesError, describe_instances::DescribeInstancesError,
     describe_key_pairs::DescribeKeyPairsError, describe_regions::DescribeRegionsError,
     describe_reserved_instances::DescribeReservedInstancesError,
+    describe_security_groups::DescribeSecurityGroupsError,
     describe_snapshots::DescribeSnapshotsError,
     describe_spot_instance_requests::DescribeSpotInstanceRequestsError,
     describe_spot_price_history::DescribeSpotPriceHistoryError,
@@ -186,6 +188,8 @@ pub enum AwslibError {
     RequestSpotInstancesError(Box<AwsSdkError<RequestSpotInstancesError>>),
     #[error("TerminateInstancesError {0}")]
     TerminateInstancesError(Box<AwsSdkError<TerminateInstancesError>>),
+    #[error("DescribeSecurityGroupsError {0}")]
+    DescribeSecurityGroupsError(Box<AwsSdkError<DescribeSecurityGroupsError>>),
     #[error("DescribeSnapshotsError {0}")]
     DescribeSnapshotsError(Box<AwsSdkError<DescribeSnapshotsError>>),
     #[error("DescribeVolumesError {0}")]
@@ -252,6 +256,8 @@ pub enum AwslibError {
     GetSendStatisticsError(Box<AwsSdkError<GetSendStatisticsError>>),
     #[error("GetSendQuotaError {0}")]
     GetSendQuotaError(Box<AwsSdkError<GetSendQuotaError>>),
+    #[error("DeleteSecurityGroupError {0}")]
+    DeleteSecurityGroupError(Box<AwsSdkError<DeleteSecurityGroupError>>),
 }
 
 impl From<AwsSdkError<ListObjectsError>> for AwslibError {
@@ -389,6 +395,18 @@ impl From<AwsSdkError<RequestSpotInstancesError>> for AwslibError {
 impl From<AwsSdkError<TerminateInstancesError>> for AwslibError {
     fn from(value: AwsSdkError<TerminateInstancesError>) -> Self {
         Self::TerminateInstancesError(Box::new(value))
+    }
+}
+
+impl From<AwsSdkError<DescribeSecurityGroupsError>> for AwslibError {
+    fn from(value: AwsSdkError<DescribeSecurityGroupsError>) -> Self {
+        Self::DescribeSecurityGroupsError(Box::new(value))
+    }
+}
+
+impl From<AwsSdkError<DeleteSecurityGroupError>> for AwslibError {
+    fn from(value: AwsSdkError<DeleteSecurityGroupError>) -> Self {
+        Self::DeleteSecurityGroupError(Box::new(value))
     }
 }
 

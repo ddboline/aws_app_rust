@@ -55,6 +55,8 @@ pub enum ResourceType {
     SystemD,
     #[serde(rename = "inbound-email")]
     InboundEmail,
+    #[serde(rename = "security-group")]
+    SecurityGroup,
     #[serde(rename = "all")]
     All,
 }
@@ -78,6 +80,7 @@ impl ResourceType {
             Self::Route53 => "route53",
             Self::SystemD => "systemd",
             Self::InboundEmail => "inbound-email",
+            Self::SecurityGroup => "security-group",
             Self::All => "all",
         }
     }
@@ -109,6 +112,7 @@ impl FromStr for ResourceType {
             "route53" | "dns" => Ok(Self::Route53),
             "systemd" => Ok(Self::SystemD),
             "inbound-email" => Ok(Self::InboundEmail),
+            "security-group" => Ok(Self::SecurityGroup),
             "all" => Ok(Self::All),
             _ => Err(Error::CustomError(format_sstr!(
                 "{} is not a ResourceType",

@@ -17,7 +17,9 @@ use walkdir::WalkDir;
 use crate::{
     config::Config,
     date_time_wrapper::DateTimeWrapper,
-    ec2_instance::{AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, KeyPair, SpotRequest},
+    ec2_instance::{
+        AmiInfo, Ec2Instance, Ec2InstanceInfo, InstanceRequest, KeyPair, SecurityGroup, SpotRequest,
+    },
     ecr_instance::EcrInstance,
     errors::AwslibError as Error,
     iam_instance::{IamAccessKey, IamInstance, IamUser},
@@ -412,6 +414,25 @@ impl AwsAppInterface {
                         self.stdout.send(format_sstr!("{service} not running"));
                     }
                 }
+            }
+            ResourceType::SecurityGroup => {
+                let groups = self
+                    .ec2
+                    .get_all_security_groups()
+                    .await?
+                    .map(
+                        |SecurityGroup {
+                             group_id,
+                             group_name,
+                             vpc_id,
+                             description,
+                         }| {
+                            format_sstr!("{group_id} {group_name} {vpc_id} {description}")
+                        },
+                    )
+                    .join("\n");
+                self.stdout
+                    .send(format_sstr!("---\nSecurityGroups:\n{groups}"));
             }
             ResourceType::InboundEmail => {}
         };

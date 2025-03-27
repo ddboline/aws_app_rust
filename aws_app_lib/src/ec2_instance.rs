@@ -880,6 +880,47 @@ impl Ec2Instance {
             })
             .map_err(Into::into)
     }
+
+    /// # Errors
+    /// Returns error if aws api call fails
+    pub async fn get_all_security_groups(
+        &self,
+    ) -> Result<impl Iterator<Item = SecurityGroup>, Error> {
+        self.ec2_client
+            .describe_security_groups()
+            .send()
+            .await
+            .map(|x| {
+                x.security_groups
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter_map(|g| {
+                        let group_id = g.group_id?.into();
+                        let group_name = g.group_name?.into();
+                        let vpc_id = g.vpc_id?.into();
+                        let description = g.description?.into();
+                        Some(SecurityGroup {
+                            group_id,
+                            group_name,
+                            vpc_id,
+                            description,
+                        })
+                    })
+            })
+            .map_err(Into::into)
+    }
+
+    /// # Errors
+    /// Returns error if aws api call fails
+    pub async fn delete_security_group(&self, group_id: &str) -> Result<(), Error> {
+        self.ec2_client
+            .delete_security_group()
+            .group_id(group_id)
+            .send()
+            .await
+            .map(|_| ())
+            .map_err(Into::into)
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -967,6 +1008,14 @@ pub struct KeyPair {
     pub id: StackString,
     pub name: StackString,
     pub fingerprint: StackString,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct SecurityGroup {
+    pub group_id: StackString,
+    pub group_name: StackString,
+    pub vpc_id: StackString,
+    pub description: StackString,
 }
 
 /// # Errors

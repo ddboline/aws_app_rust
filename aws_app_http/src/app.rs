@@ -101,7 +101,10 @@ mod tests {
 
     use auth_server_http::app::run_test_app;
 
-    use aws_app_lib::{config::Config, errors::AwslibError as Error, resource_type::ResourceType, get_random_string};
+    use aws_app_lib::{
+        config::Config, errors::AwslibError as Error, get_random_string,
+        resource_type::ResourceType,
+    };
 
     use crate::{
         app::run_app,

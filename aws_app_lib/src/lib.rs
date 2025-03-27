@@ -36,13 +36,13 @@ pub mod sysinfo_instance;
 pub mod systemd_instance;
 
 use rand::{
-    distr::{Distribution, Uniform, Alphanumeric, SampleString},
+    distr::{Alphanumeric, Distribution, SampleString, Uniform},
     rng as thread_rng,
 };
+use smallvec::SmallVec;
+use stack_string::{MAX_INLINE, StackString};
 use std::{convert::TryFrom, future::Future};
 use tokio::time::{Duration, sleep};
-use stack_string::{StackString, MAX_INLINE};
-use smallvec::SmallVec;
 
 use crate::errors::AwslibError as Error;
 

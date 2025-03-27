@@ -504,12 +504,21 @@ async fn build_spot_request(
         .map_err(Into::<Error>::into)?
         .collect();
 
+    let security_groups: Vec<_> = data
+        .aws
+        .ec2
+        .get_all_security_groups()
+        .await
+        .map_err(Into::<Error>::into)?
+        .collect();
+
     let body = build_spot_request_body(
         amis,
         inst_fams,
         instances,
         files,
         keys,
+        security_groups,
         data.aws.config.clone(),
     )?
     .into();
@@ -1372,6 +1381,38 @@ async fn inbound_email_delete(
     Ok(HtmlBase::new(body).into())
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+struct DeleteSecurityGroupRequest {
+    // Security Group ID")]
+    group_id: StackString,
+}
+
+#[derive(UtoipaResponse)]
+#[response(
+    description = "Delete Security Group",
+    content = "text/html",
+    status = "NO_CONTENT"
+)]
+#[rustfmt::skip]
+struct DeleteSecurityGroupResponse(HtmlBase::<&'static str>);
+
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_security_group",
+    responses(DeleteSecurityGroupResponse, Error)
+)]
+async fn delete_security_group(
+    data: State<Arc<AppState>>,
+    _: LoggedUser,
+    query: Query<DeleteSecurityGroupRequest>,
+) -> WarpResult<DeleteSecurityGroupResponse> {
+    let Query(DeleteSecurityGroupRequest { group_id }) = query;
+
+    data.aws.ec2.delete_security_group(&group_id).await?;
+
+    Ok(HtmlBase::new("finished").into())
+}
+
 #[derive(UtoipaResponse)]
 #[response(
     description = "Sync Inbound Email",
@@ -1451,6 +1492,7 @@ pub fn get_aws_path(app: &AppState) -> OpenApiRouter {
         .routes(routes!(inbound_email_detail))
         .routes(routes!(inbound_email_delete))
         .routes(routes!(sync_inboud_email))
+        .routes(routes!(delete_security_group))
         .with_state(app)
 }
 

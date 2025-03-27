@@ -17,7 +17,7 @@ use aws_app_lib::{
     config::Config,
     date_time_wrapper::DateTimeWrapper,
     ec2_instance::{
-        AmiInfo, Ec2InstanceInfo, KeyPair, ReservedInstanceInfo, SnapshotInfo,
+        AmiInfo, Ec2InstanceInfo, KeyPair, ReservedInstanceInfo, SecurityGroup, SnapshotInfo,
         SpotInstanceRequestInfo, VolumeInfo,
     },
     ecr_instance::ImageInfo,
@@ -108,6 +108,18 @@ pub async fn get_frontpage(
         ResourceType::Key => {
             let keys: Vec<_> = aws.ec2.get_all_key_pairs().await?.collect();
             let mut app = VirtualDom::new_with_props(KeyElement, KeyElementProps { keys });
+            app.rebuild_in_place();
+            let mut renderer = dioxus_ssr::Renderer::default();
+            let mut buffer = String::new();
+            renderer.render_to(&mut buffer, &app)?;
+            buffer
+        }
+        ResourceType::SecurityGroup => {
+            let groups: Vec<_> = aws.ec2.get_all_security_groups().await?.collect();
+            let mut app = VirtualDom::new_with_props(
+                SecurityGroupElement,
+                SecurityGroupElementProps { groups },
+            );
             app.rebuild_in_place();
             let mut renderer = dioxus_ssr::Renderer::default();
             let mut buffer = String::new();
@@ -345,6 +357,7 @@ fn index_element(children: Element) -> Element {
             input {"type": "button", name: "list_requests", value: "SpotRequests", "onclick": "listResource('spot');"},
             input {"type": "button", name: "list_scripts", value: "Scripts", "onclick": "listResource('script');"},
             br {
+            input {"type": "button", name: "list_security_groups", value: "Security", "onclick": "listResource('security-group');"},
             input {"type": "button", name: "list_users", value: "Users", "onclick": "listResource('user');"},
             input {"type": "button", name: "list_groups", value: "Groups", "onclick": "listResource('group');"},
             input {"type": "button", name: "list_access_keys", value: "AccessKey", "onclick": "listResource('access-key');"},
@@ -628,6 +641,50 @@ fn KeyElement(keys: Vec<KeyPair>) -> Element {
                         style: "text-align: center;",
                         td {"{name}"},
                         td {"{fingerprint}"},
+                    }
+                }
+            })}
+           }
+        }
+    }
+}
+
+#[component]
+fn SecurityGroupElement(groups: Vec<SecurityGroup>) -> Element {
+    rsx! {
+        table {
+            "border": "1",
+            class: "dataframe",
+            thead {
+                tr {
+                    th {"ID"}
+                    th {"Name"},
+                    th {"VPC ID"},
+                    th {"Description"},
+                }
+           },
+           tbody {
+            {groups.iter().enumerate().map(|(idx, group)| {
+                let group_id = &group.group_id;
+                let group_name = &group.group_name;
+                let vpc_id = &group.vpc_id;
+                let description = &group.description;
+                rsx! {
+                    tr {
+                        key: "security-group-{idx}",
+                        style: "text-align: center;",
+                        td {"{group_id}"},
+                        td {"{group_name}"},
+                        td {"{vpc_id}"},
+                        td {"{description}"},
+                        td {
+                            input {
+                                "type": "button",
+                                name: "DeleteGroup",
+                                value: "DeleteGroup",
+                                "onclick": "deleteSecurityGroup('{group_id}')",
+                            }
+                        }
                     }
                 }
             })}
@@ -1438,6 +1495,7 @@ pub fn build_spot_request_body(
     instances: Vec<InstanceList>,
     files: Vec<StackString>,
     keys: Vec<KeyPair>,
+    security_groups: Vec<SecurityGroup>,
     config: Config,
 ) -> Result<String, Error> {
     let mut app = VirtualDom::new_with_props(
@@ -1448,6 +1506,7 @@ pub fn build_spot_request_body(
             instances,
             files,
             keys,
+            security_groups,
             config,
         },
     );
@@ -1465,6 +1524,7 @@ fn BuildSpotRequestElement(
     instances: Vec<InstanceList>,
     files: Vec<StackString>,
     keys: Vec<KeyPair>,
+    mut security_groups: Vec<SecurityGroup>,
     config: Config,
 ) -> Element {
     let sec = config.spot_security_group.as_ref().unwrap_or_else(|| {
@@ -1473,6 +1533,13 @@ fn BuildSpotRequestElement(
             .as_ref()
             .expect("NO DEFAULT_SECURITY_GROUP")
     });
+    if let Some(index) = security_groups
+        .iter()
+        .enumerate()
+        .find_map(|(i, s)| if &s.group_id == sec { Some(i) } else { None })
+    {
+        security_groups.swap(0, index);
+    }
     let price = config.max_spot_price;
     rsx! {
         form {
@@ -1538,11 +1605,19 @@ fn BuildSpotRequestElement(
                     tr {
                         td {"Security group"},
                         td {
-                            input {
-                                "type": "text",
-                                name: "security_group",
+                            select {
                                 id: "security_group",
-                                value: "{sec}",
+                                {security_groups.iter().enumerate().map(|(idx, sg)| {
+                                    let group_id = &sg.group_id;
+                                    let group_name = &sg.group_name;
+                                    rsx! {
+                                        option {
+                                            key: "sg-{idx}",
+                                            value: "{group_id}",
+                                            "{group_name}",
+                                        }
+                                    }
+                                })}
                             }
                         }
                     },
