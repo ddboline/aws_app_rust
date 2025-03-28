@@ -571,6 +571,44 @@ paths:
                 properties:
                   message:
                     $ref: '#/components/schemas/str'
+  /aws/delete_security_group:
+    delete:
+      operationId: delete_security_group
+      responses:
+        '204':
+          description: Delete Security Group
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
+        '401':
+          description: Not Authorized
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/str'
   /aws/delete_snapshot:
     delete:
       operationId: delete_snapshot
