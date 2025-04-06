@@ -1,6 +1,6 @@
-use axum::http::{Method, StatusCode};
+use axum::http::{Method, StatusCode, header::CONTENT_TYPE};
 use stack_string::format_sstr;
-use std::{convert::TryInto, net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, time::Duration};
 use tokio::{net::TcpListener, task::spawn, time::interval};
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
@@ -51,7 +51,7 @@ async fn run_app(config: &Config, port: u32) -> Result<(), ServiceError> {
 
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
-        .allow_headers(["content-type".try_into()?, "jwt".try_into()?])
+        .allow_headers([CONTENT_TYPE])
         .allow_origin(Any);
 
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
@@ -67,7 +67,7 @@ async fn run_app(config: &Config, port: u32) -> Result<(), ServiceError> {
             axum::routing::get(|| async move {
                 (
                     StatusCode::OK,
-                    [("content-type", "application/json")],
+                    [(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str())],
                     spec_json,
                 )
             }),
@@ -75,7 +75,7 @@ async fn run_app(config: &Config, port: u32) -> Result<(), ServiceError> {
         .route(
             "/aws/openapi/yaml",
             axum::routing::get(|| async move {
-                (StatusCode::OK, [("content-type", "text/yaml")], spec_yaml)
+                (StatusCode::OK, [(CONTENT_TYPE, "text/yaml")], spec_yaml)
             }),
         )
         .layer(cors);
