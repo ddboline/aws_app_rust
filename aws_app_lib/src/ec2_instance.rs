@@ -567,7 +567,7 @@ impl Ec2Instance {
                 return Ok(());
             }
             if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id) {
-                debug!("tag {} with {:?}", instance_id, tags);
+                debug!("tag {instance_id} with {tags:?}",);
                 self.tag_ec2_instance_volume(instance_id, tags, 20).await?;
                 return Ok(());
             }
@@ -666,7 +666,7 @@ impl Ec2Instance {
                 .map(|inst| (inst.id.clone(), inst))
                 .collect();
             if let Some(inst) = instances.get(ec2_instance_id) {
-                debug!("tag {} with {:?}", ec2_instance_id, tags);
+                debug!("tag {ec2_instance_id} with {tags:?}",);
                 self.tag_aws_resource(ec2_instance_id, tags).await?;
                 if !inst.volumes.is_empty() {
                     for vol in &inst.volumes {

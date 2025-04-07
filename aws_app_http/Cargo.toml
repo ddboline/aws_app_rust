@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.12.0"
+version = "0.12.1"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2024"
 
@@ -9,7 +9,7 @@ edition = "2024"
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
 aws-config = {version="1.5", features=["behavior-version-latest"]}
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.0"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.1"}
 axum = { version = "0.8", features = ["multipart"] }
 axum-extra = {version="0.10", features=["cookie"]}
 cached = {version="0.55", features=["async", "async_tokio_rt_multi_thread"]}
@@ -41,7 +41,7 @@ utoipa-axum = { version = "0.2" }
 uuid = "1.13"
 
 [dev-dependencies]
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.0"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.0"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.1"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.1"}
 env_logger = {version="0.11", features=["color", "humantime", "regex"], default-features = false}
 reqwest = {version = "0.12", features=["cookies", "rustls-tls", "gzip", "json"], default-features=false}

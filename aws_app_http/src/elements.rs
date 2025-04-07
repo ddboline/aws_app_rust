@@ -1,7 +1,4 @@
-use dioxus::prelude::{
-    Element, IntoDynNode, Props, VirtualDom, component, dioxus_elements,
-    rsx,
-};
+use dioxus::prelude::{Element, IntoDynNode, Props, VirtualDom, component, dioxus_elements, rsx};
 use futures::{TryStreamExt, future::try_join_all, stream::FuturesUnordered, try_join};
 use stack_string::{StackString, format_sstr};
 use std::{

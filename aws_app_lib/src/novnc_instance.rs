@@ -107,7 +107,7 @@ impl NoVncInstance {
         let mut children = self.children.write().await;
         for child in children.iter_mut() {
             if let Err(e) = child.kill().await {
-                debug!("Failed to kill {}", e);
+                debug!("Failed to kill {e}",);
             }
         }
 
@@ -125,7 +125,7 @@ impl NoVncInstance {
         let mut output = Vec::new();
         while let Some(mut child) = children.pop() {
             if let Err(e) = child.kill().await {
-                debug!("Failed to kill {}", e);
+                debug!("Failed to kill {e}",);
             }
             let result = child.wait_with_output().await?;
             output.push(StackString::from_utf8_vec(result.stdout)?);

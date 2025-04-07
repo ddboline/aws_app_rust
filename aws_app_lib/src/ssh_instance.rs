@@ -55,7 +55,7 @@ impl SSHInstance {
         let cmd = cmd.as_ref();
         if let Some(host_lock) = LOCK_CACHE.read().await.get(&self.host) {
             let _lock = host_lock.lock().await;
-            debug!("cmd {}", cmd);
+            debug!("cmd {cmd}",);
             let user_host = self.get_ssh_username_host();
 
             let output = Command::new("ssh")
