@@ -11,7 +11,7 @@ use tokio::{
     task::spawn,
     time::{Duration, sleep},
 };
-use utoipa::{OpenApi, PartialSchema, ToSchema};
+use utoipa::{IntoParams, OpenApi, PartialSchema, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_helper::{
     UtoipaResponse, html_response::HtmlResponse as HtmlBase,
@@ -48,15 +48,16 @@ type WarpResult<T> = Result<T, Error>;
 struct AwsIndexResponse(HtmlBase::<StackString>);
 
 #[utoipa::path(get, path = "/aws/index.html", responses(AwsIndexResponse, Error))]
-// AWS App Main Page")]
+// AWS App Main Page
 async fn sync_frontpage(_: LoggedUser, data: State<Arc<AppState>>) -> WarpResult<AwsIndexResponse> {
     let body = get_index(&data.aws).await?;
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct ResourceRequest {
-    // Resource Type")]
+    // Resource Type
+    #[param(inline)]
     resource: ResourceTypeWrapper,
 }
 
@@ -65,8 +66,13 @@ struct ResourceRequest {
 #[rustfmt::skip]
 struct AwsListResponse(HtmlBase::<StackString>);
 
-#[utoipa::path(get, path = "/aws/list", responses(AwsListResponse, Error))]
-// List AWS Resources")]
+#[utoipa::path(
+    get,
+    path = "/aws/list",
+    params(ResourceRequest),
+    responses(AwsListResponse, Error)
+)]
+// List AWS Resources
 async fn list(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -77,9 +83,10 @@ async fn list(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct TerminateRequest {
-    // Instance ID or Name Tag")]
+    // Instance ID or Name Tag
+    #[param(inline)]
     instance: StackString,
 }
 
@@ -88,8 +95,13 @@ struct TerminateRequest {
 #[rustfmt::skip]
 struct DeletedResource(HtmlBase::<&'static str>);
 
-#[utoipa::path(delete, path = "/aws/terminate", responses(DeletedResource, Error))]
-// Terminate Ec2 Instance")]
+#[utoipa::path(
+    delete,
+    path = "/aws/terminate",
+    params(TerminateRequest),
+    responses(DeletedResource, Error)
+)]
+// Terminate Ec2 Instance
 async fn terminate(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -103,11 +115,13 @@ async fn terminate(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct CreateImageRequest {
-    // Instance ID or Name Tag")]
+    // Instance ID or Name Tag
+    #[param(inline)]
     inst_id: StackString,
-    // Ami Name")]
+    // Ami Name
+    #[param(inline)]
     name: StackString,
 }
 
@@ -119,9 +133,10 @@ struct CreateImageResponse(HtmlBase::<String>);
 #[utoipa::path(
     post,
     path = "/aws/create_image",
+    params(CreateImageRequest),
     responses(CreateImageResponse, Error)
 )]
-// Create EC2 AMI Image")]
+// Create EC2 AMI Image
 async fn create_image(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -137,14 +152,20 @@ async fn create_image(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct DeleteImageRequest {
-    // Ami ID")]
+    // Ami ID
+    #[param(inline)]
     ami: StackString,
 }
 
-#[utoipa::path(delete, path = "/aws/delete_image", responses(DeletedResource, Error))]
-// Delete EC2 AMI Image")]
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_image",
+    params(DeleteImageRequest),
+    responses(DeletedResource, Error)
+)]
+// Delete EC2 AMI Image
 async fn delete_image(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -158,14 +179,20 @@ async fn delete_image(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct DeleteVolumeRequest {
-    // Volume ID")]
+    // Volume ID
+    #[param(inline)]
     volid: StackString,
 }
 
-#[utoipa::path(delete, path = "/aws/delete_volume", responses(DeletedResource, Error))]
-// Delete EC2 Volume")]
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_volume",
+    params(DeleteVolumeRequest),
+    responses(DeletedResource, Error)
+)]
+// Delete EC2 Volume
 async fn delete_volume(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -179,11 +206,12 @@ async fn delete_volume(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct ModifyVolumeRequest {
-    // Volume ID")]
+    // Volume ID
+    #[param(inline)]
     volid: StackString,
-    // Volume Size GiB")]
+    // Volume Size GiB
     size: i32,
 }
 
@@ -192,8 +220,13 @@ struct ModifyVolumeRequest {
 #[rustfmt::skip]
 struct FinishedResource(HtmlBase::<&'static str>);
 
-#[utoipa::path(patch, path = "/aws/modify_volume", responses(FinishedResource, Error))]
-// Modify EC2 Volume")]
+#[utoipa::path(
+    patch,
+    path = "/aws/modify_volume",
+    params(ModifyVolumeRequest),
+    responses(FinishedResource, Error)
+)]
+// Modify EC2 Volume
 async fn modify_volume(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -207,18 +240,20 @@ async fn modify_volume(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct DeleteSnapshotRequest {
-    // Snapshot ID")]
+    // Snapshot ID
+    #[param(inline)]
     snapid: StackString,
 }
 
 #[utoipa::path(
     delete,
     path = "/aws/delete_snapshot",
+    params(DeleteSnapshotRequest),
     responses(DeletedResource, Error)
 )]
-// Delete EC2 Snapshot")]
+// Delete EC2 Snapshot
 async fn delete_snapshot(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -232,20 +267,23 @@ async fn delete_snapshot(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct CreateSnapshotRequest {
-    // Volume ID")]
+    // Volume ID
+    #[param(inline)]
     volid: StackString,
-    // Snapshot Name")]
+    // Snapshot Name
+    #[param(inline)]
     name: Option<StackString>,
 }
 
 #[utoipa::path(
     post,
     path = "/aws/create_snapshot",
+    params(CreateSnapshotRequest),
     responses(FinishedResource, Error)
 )]
-// Create EC2 Snapshot")]
+// Create EC2 Snapshot
 async fn create_snapshot(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -266,16 +304,23 @@ async fn create_snapshot(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct TagItemRequest {
-    // Resource ID")]
+    // Resource ID
+    #[param(inline)]
     id: StackString,
-    // Tag")]
+    // Tag
+    #[param(inline)]
     tag: StackString,
 }
 
-#[utoipa::path(patch, path = "/aws/tag_item", responses(FinishedResource, Error))]
-// Tag EC2 Resource")]
+#[utoipa::path(
+    patch,
+    path = "/aws/tag_item",
+    params(TagItemRequest),
+    responses(FinishedResource, Error)
+)]
+// Tag EC2 Resource
 async fn tag_item(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -295,20 +340,23 @@ async fn tag_item(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct DeleteEcrImageRequest {
-    // ECR Repository Name")]
+    // ECR Repository Name
+    #[param(inline)]
     reponame: StackString,
-    // Container Image ID")]
+    // Container Image ID
+    #[param(inline)]
     imageid: StackString,
 }
 
 #[utoipa::path(
     delete,
     path = "/aws/delete_ecr_image",
+    params(DeleteEcrImageRequest),
     responses(DeletedResource, Error)
 )]
-// Delete ECR Image")]
+// Delete ECR Image
 async fn delete_ecr_image(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -328,7 +376,7 @@ async fn delete_ecr_image(
     path = "/aws/cleanup_ecr_images",
     responses(DeletedResource, Error)
 )]
-// Cleanup ECR Images")]
+// Cleanup ECR Images
 async fn cleanup_ecr_images(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -341,9 +389,10 @@ async fn cleanup_ecr_images(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct ScriptFilename {
-    // Script Filename")]
+    // Script Filename
+    #[param(inline)]
     filename: StackString,
 }
 
@@ -352,8 +401,13 @@ struct ScriptFilename {
 #[rustfmt::skip]
 struct EditScriptResponse(HtmlBase::<StackString>);
 
-#[utoipa::path(get, path = "/aws/edit_script", responses(EditScriptResponse, Error))]
-// Edit Script")]
+#[utoipa::path(
+    get,
+    path = "/aws/edit_script",
+    params(ScriptFilename),
+    responses(EditScriptResponse, Error)
+)]
+// Edit Script
 async fn edit_script(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -375,14 +429,16 @@ async fn edit_script(
 
 #[derive(Serialize, Deserialize, ToSchema)]
 struct ReplaceData {
-    // Script Filename")]
+    // Script Filename
+    #[schema(inline)]
     filename: StackString,
-    // Script Text")]
+    // Script Text
+    #[schema(inline)]
     text: StackString,
 }
 
-#[utoipa::path(post, path = "/aws/replace_script", responses(FinishedResource, Error))]
-// Replace Script")]
+#[utoipa::path(post, path = "/aws/replace_script", request_body = ReplaceData, responses(FinishedResource, Error))]
+// Replace Script
 async fn replace_script(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -397,8 +453,13 @@ async fn replace_script(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[utoipa::path(delete, path = "/aws/delete_script", responses(DeletedResource, Error))]
-// Delete Script")]
+#[utoipa::path(
+    delete,
+    path = "/aws/delete_script",
+    params(ScriptFilename),
+    responses(DeletedResource, Error)
+)]
+// Delete Script
 async fn delete_script(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -412,13 +473,16 @@ async fn delete_script(
     Ok(HtmlBase::new("Deleted").into())
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, ToSchema, IntoParams)]
 struct SpotBuilder {
-    // AMI ID")]
+    // AMI ID
+    #[param(inline)]
     ami: Option<StackString>,
-    // Instance Type")]
+    // Instance Type
+    #[param(inline)]
     inst: Option<StackString>,
-    // Script")]
+    // Script
+    #[param(inline)]
     script: Option<StackString>,
 }
 
@@ -445,9 +509,10 @@ struct BuildSpotResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     post,
     path = "/aws/build_spot_request",
+    params(SpotBuilder),
     responses(BuildSpotResponse, Error)
 )]
-// Build Spot Request")]
+// Build Spot Request
 async fn build_spot_request(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -528,19 +593,26 @@ async fn build_spot_request(
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, ToSchema)]
 struct SpotRequestData {
-    // Ami ID")]
+    // Ami ID
+    #[schema(inline)]
     ami: StackString,
-    // Instance Type")]
+    // Instance Type
+    #[schema(inline)]
     instance_type: StackString,
-    // Security Group")]
+    // Security Group
+    #[schema(inline)]
     security_group: StackString,
-    // Script Filename")]
+    // Script Filename
+    #[schema(inline)]
     script: StackString,
-    // SSH Key Name")]
+    // SSH Key Name
+    #[schema(inline)]
     key_name: StackString,
-    // Spot Price")]
+    // Spot Price
+    #[schema(inline)]
     price: StackString,
-    // Spot Request Name Tag")]
+    // Spot Request Name Tag
+    #[schema(inline)]
     name: StackString,
 }
 
@@ -571,7 +643,7 @@ impl From<SpotRequestData> for InstanceRequest {
     }
 }
 
-#[utoipa::path(post, path = "/aws/request_spot", responses(FinishedResource, Error))]
+#[utoipa::path(post, path = "/aws/request_spot", request_body = SpotRequestData, responses(FinishedResource, Error))]
 async fn request_spot(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -594,7 +666,7 @@ async fn request_spot(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[utoipa::path(post, path = "/aws/run_instance", responses(FinishedResource, Error))]
+#[utoipa::path(post, path = "/aws/run_instance", request_body = SpotRequestData, responses(FinishedResource, Error))]
 async fn run_instance(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -610,9 +682,10 @@ async fn run_instance(
     Ok(HtmlBase::new("Finished").into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct CancelSpotRequest {
-    // Spot Request ID")]
+    // Spot Request ID
+    #[param(inline)]
     spot_id: StackString,
 }
 
@@ -625,8 +698,13 @@ struct CancelSpotRequest {
 #[rustfmt::skip]
 struct CancelledResponse(HtmlBase::<StackString>);
 
-#[utoipa::path(delete, path = "/aws/cancel_spot", responses(CancelledResponse, Error))]
-// Cancel Spot Request")]
+#[utoipa::path(
+    delete,
+    path = "/aws/cancel_spot",
+    params(CancelSpotRequest),
+    responses(CancelledResponse, Error)
+)]
+// Cancel Spot Request
 async fn cancel_spot(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -641,9 +719,10 @@ async fn cancel_spot(
     Ok(HtmlBase::new(format_sstr!("cancelled {}", query.spot_id)).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct PriceRequest {
-    // Search String")]
+    // Search String
+    #[param(inline)]
     search: Option<StackString>,
 }
 
@@ -652,8 +731,13 @@ struct PriceRequest {
 #[rustfmt::skip]
 struct PricesResponse(HtmlBase::<StackString>);
 
-#[utoipa::path(get, path = "/aws/prices", responses(PricesResponse, Error))]
-// Get Ec2 Prices")]
+#[utoipa::path(
+    get,
+    path = "/aws/prices",
+    params(PriceRequest),
+    responses(PricesResponse, Error)
+)]
+// Get Ec2 Prices
 async fn get_prices(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -688,7 +772,7 @@ async fn get_prices(
 struct UpdateResponse(HtmlBase::<StackString>);
 
 #[utoipa::path(post, path = "/aws/update", responses(UpdateResponse, Error))]
-// Update Data")]
+// Update Data
 async fn update(_: LoggedUser, data: State<Arc<AppState>>) -> WarpResult<UpdateResponse> {
     let entries: Vec<StackString> = data
         .aws
@@ -700,9 +784,10 @@ async fn update(_: LoggedUser, data: State<Arc<AppState>>) -> WarpResult<UpdateR
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct StatusRequest {
-    // Instance ID or Name Tag")]
+    // Instance ID or Name Tag
+    #[param(inline)]
     instance: StackString,
 }
 
@@ -714,9 +799,10 @@ struct InstanceStatusResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     get,
     path = "/aws/instance_status",
+    params(StatusRequest),
     responses(InstanceStatusResponse, Error)
 )]
-// Get Ec2 Instance Status")]
+// Get Ec2 Instance Status
 async fn instance_status(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -748,14 +834,16 @@ struct CommandResponse(HtmlBase::<StackString>);
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
 struct CommandRequest {
-    // Instance ID or Name Tag")]
+    // Instance ID or Name Tag
+    #[schema(inline)]
     instance: StackString,
-    // Command String")]
+    // Command String
+    #[schema(inline)]
     command: StackString,
 }
 
-#[utoipa::path(post, path = "/aws/command", responses(CommandResponse, Error))]
-// Run command on Ec2 Instance")]
+#[utoipa::path(post, path = "/aws/command", request_body = CommandRequest, responses(CommandResponse, Error))]
+// Run command on Ec2 Instance
 async fn command(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -777,9 +865,10 @@ async fn command(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct InstancesRequest {
-    // Instance ID or Name Tag")]
+    // Instance ID or Name Tag
+    #[param(inline)]
     inst: StackString,
 }
 
@@ -788,8 +877,13 @@ struct InstancesRequest {
 #[rustfmt::skip]
 struct InstancesResponse(HtmlBase::<String>);
 
-#[utoipa::path(get, path = "/aws/instances", responses(InstancesResponse, Error))]
-// List Ec2 Instances")]
+#[utoipa::path(
+    get,
+    path = "/aws/instances",
+    params(InstancesRequest),
+    responses(InstancesResponse, Error)
+)]
+// List Ec2 Instances
 async fn get_instances(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -813,7 +907,7 @@ async fn get_instances(
 struct NovncStartResponse(HtmlBase::<StackString>);
 
 #[utoipa::path(post, path = "/aws/novnc/start", responses(NovncStartResponse, Error))]
-// Start NoVNC Service")]
+// Start NoVNC Service
 async fn novnc_launcher(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -849,7 +943,7 @@ async fn novnc_launcher(
 struct NovncStopResponse(HtmlBase::<StackString>);
 
 #[utoipa::path(post, path = "/aws/novnc/stop", responses(NovncStopResponse, Error))]
-// Stop NoVNC Service")]
+// Stop NoVNC Service
 async fn novnc_shutdown(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -872,7 +966,7 @@ async fn novnc_shutdown(
 struct NovncStatusResponse(HtmlBase::<StackString>);
 
 #[utoipa::path(get, path = "/aws/novnc/status", responses(NovncStatusResponse, Error))]
-// NoVNC Service Status")]
+// NoVNC Service Status
 async fn novnc_status(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -900,14 +994,15 @@ async fn novnc_status(
 struct UserResponse(JsonBase::<LoggedUser>);
 
 #[utoipa::path(get, path = "/aws/user", responses(UserResponse, Error))]
-// User Object if logged in")]
+// User Object if logged in
 async fn user(user: LoggedUser) -> WarpResult<UserResponse> {
     Ok(JsonBase::new(user).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct CreateUserRequest {
-    // User Name")]
+    // User Name
+    #[param(inline)]
     user_name: StackString,
 }
 
@@ -916,8 +1011,13 @@ struct CreateUserRequest {
 #[rustfmt::skip]
 struct CreateUserResponse(JsonBase::<IamUserWrapper>);
 
-#[utoipa::path(post, path = "/aws/create_user", responses(CreateUserResponse, Error))]
-// Create IAM User")]
+#[utoipa::path(
+    post,
+    path = "/aws/create_user",
+    params(CreateUserRequest),
+    responses(CreateUserResponse, Error)
+)]
+// Create IAM User
 async fn create_user(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -946,9 +1046,10 @@ struct DeleteUserResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     delete,
     path = "/aws/delete_user",
+    params(CreateUserRequest),
     responses(DeleteUserResponse, Error)
 )]
-// Delete IAM User")]
+// Delete IAM User
 async fn delete_user(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -962,11 +1063,13 @@ async fn delete_user(
     Ok(HtmlBase::new(format_sstr!("{} deleted", query.user_name)).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct AddUserToGroupRequest {
-    // User Name")]
+    // User Name
+    #[param(inline)]
     user_name: StackString,
-    // Group Name")]
+    // Group Name
+    #[param(inline)]
     group_name: StackString,
 }
 
@@ -978,9 +1081,10 @@ struct AddUserGroupResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     patch,
     path = "/aws/add_user_to_group",
+    params(AddUserToGroupRequest),
     responses(AddUserGroupResponse, Error)
 )]
-// Add IAM User to Group")]
+// Add IAM User to Group
 async fn add_user_to_group(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -1011,9 +1115,10 @@ struct RemoveUserGroupResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     delete,
     path = "/aws/remove_user_from_group",
+    params(AddUserToGroupRequest),
     responses(RemoveUserGroupResponse, Error)
 )]
-// Remove IAM User from Group")]
+// Remove IAM User from Group
 async fn remove_user_from_group(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -1032,11 +1137,13 @@ async fn remove_user_from_group(
     .into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct DeleteAccesssKeyRequest {
-    // User Name")]
+    // User Name
+    #[param(inline)]
     user_name: StackString,
-    // Access Key ID")]
+    // Access Key ID
+    #[param(inline)]
     access_key_id: StackString,
 }
 
@@ -1051,9 +1158,10 @@ struct CreateKeyResponse(JsonBase::<CreateKeyInner>);
 #[utoipa::path(
     post,
     path = "/aws/create_access_key",
+    params(CreateUserRequest),
     responses(CreateKeyResponse, Error)
 )]
-// Create Access Key for IAM User")]
+// Create Access Key for IAM User
 async fn create_access_key(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -1076,9 +1184,10 @@ struct DeleteKeyResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     delete,
     path = "/aws/delete_access_key",
+    params(DeleteAccesssKeyRequest),
     responses(DeleteKeyResponse, Error)
 )]
-// Delete Access Key for IAM User")]
+// Delete Access Key for IAM User
 async fn delete_access_key(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -1097,15 +1206,19 @@ async fn delete_access_key(
     .into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct UpdateDnsNameRequest {
-    // Route53 Zone")]
+    // Route53 Zone
+    #[param(inline)]
     zone: StackString,
-    // DNS Name")]
+    // DNS Name
+    #[param(inline)]
     dns_name: StackString,
-    // Old IPv4 Address")]
+    // Old IPv4 Address
+    #[param(inline)]
     old_ip: Ipv4AddrWrapper,
-    // New IPv4 Address")]
+    // New IPv4 Address
+    #[param(inline)]
     new_ip: Ipv4AddrWrapper,
 }
 
@@ -1117,9 +1230,10 @@ struct UpdateDnsResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     patch,
     path = "/aws/update_dns_name",
+    params(UpdateDnsNameRequest),
     responses(UpdateDnsResponse, Error)
 )]
-// Update DNS Name")]
+// Update DNS Name
 async fn update_dns_name(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -1165,11 +1279,12 @@ impl SystemdActions {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct SystemdAction {
-    // SystemD Action")]
+    // SystemD Action
     action: SystemdActions,
-    // SystemD Service")]
+    // SystemD Service
+    #[param(inline)]
     service: StackString,
 }
 
@@ -1185,9 +1300,10 @@ struct SystemdActionResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     post,
     path = "/aws/systemd_action",
+    params(SystemdAction),
     responses(SystemdActionResponse, Error)
 )]
-// Perform Systemd Action")]
+// Perform Systemd Action
 async fn systemd_action(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -1217,7 +1333,7 @@ struct SystemdRestartAllResponse(HtmlBase::<String>);
     path = "/aws/systemd_restart_all",
     responses(SystemdRestartAllResponse, Error)
 )]
-// Restart all Systemd Services")]
+// Restart all Systemd Services
 async fn systemd_restart_all(
     _: LoggedUser,
     data: State<Arc<AppState>>,
@@ -1257,9 +1373,10 @@ struct SystemdLogResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     get,
     path = "/aws/systemd_logs/{service}",
+    params(("service" = inline(StackString), description = "Systemd Service")),
     responses(SystemdLogResponse, Error)
 )]
-// Get Systemd Logs for Service")]
+// Get Systemd Logs for Service
 async fn systemd_logs(
     data: State<Arc<AppState>>,
     _: LoggedUser,
@@ -1286,9 +1403,10 @@ struct CrontabLogResponse(HtmlBase::<StackString>);
 #[utoipa::path(
     get,
     path = "/aws/crontab_logs/{crontab_type}",
+    params(("crontab_type" = inline(StackString), description = "Crontab Type")),
     responses(CrontabLogResponse, Error)
 )]
-// Get Crontab Logs")]
+// Get Crontab Logs
 async fn crontab_logs(
     data: State<Arc<AppState>>,
     _: LoggedUser,
@@ -1323,6 +1441,7 @@ struct InboundEmailDetailResponse(HtmlBase::<String>);
 #[utoipa::path(
     get,
     path = "/aws/inbound-email/{id}",
+    params(("id" = inline(Uuid), description = "Email ID")),
     responses(InboundEmailDetailResponse, Error)
 )]
 async fn inbound_email_detail(
@@ -1354,6 +1473,7 @@ struct DeleteEmailResponse(HtmlBase::<&'static str>);
 #[utoipa::path(
     delete,
     path = "/aws/inbound-email/{id}",
+    params(("id" = inline(Uuid), description = "Email ID")),
     responses(DeleteEmailResponse, Error)
 )]
 async fn inbound_email_delete(
@@ -1381,9 +1501,10 @@ async fn inbound_email_delete(
     Ok(HtmlBase::new(body).into())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 struct DeleteSecurityGroupRequest {
-    // Security Group ID")]
+    // Security Group ID
+    #[param(inline)]
     group_id: StackString,
 }
 
@@ -1399,6 +1520,7 @@ struct DeleteSecurityGroupResponse(HtmlBase::<&'static str>);
 #[utoipa::path(
     delete,
     path = "/aws/delete_security_group",
+    params(DeleteSecurityGroupRequest),
     responses(DeleteSecurityGroupResponse, Error)
 )]
 async fn delete_security_group(
@@ -1502,6 +1624,11 @@ pub fn get_aws_path(app: &AppState) -> OpenApiRouter {
         title = "Frontend for AWS",
         description = "Web Frontend for AWS Services",
     ),
-    components(schemas(IamAccessKeyWrapper,))
+    components(schemas(
+        IamAccessKeyWrapper,
+        SystemdActions,
+        ResourceTypeWrapper,
+        Ipv4AddrWrapper
+    ))
 )]
 pub struct ApiDoc;

@@ -39,14 +39,18 @@ derive_utoipa_schema!(IamUserWrapper, _IamUserWrapper);
 // IamUser
 struct _IamUserWrapper {
     // Iam Arn
+    #[schema(inline)]
     arn: StackString,
     // Created DateTime
     create_date: OffsetDateTime,
     // User ID
+    #[schema(inline)]
     user_id: StackString,
     // User Name
+    #[schema(inline)]
     user_name: StackString,
     // Tags
+    #[schema(inline)]
     tags: HashMap<String, StackString>,
 }
 
@@ -61,14 +65,19 @@ derive_utoipa_schema!(IamAccessKeyWrapper, _IamAccessKeyWrapper);
 #[schema(as = IamAccessKey)]
 struct _IamAccessKeyWrapper {
     // Access Key ID
+    #[schema(inline)]
     access_key_id: StackString,
     // Created DateTime
+    #[schema(inline)]
     create_date: OffsetDateTime,
     // Access Secret Key
+    #[schema(inline)]
     access_key_secret: StackString,
     // Status
+    #[schema(inline)]
     status: StackString,
     // User Name
+    #[schema(inline)]
     user_name: StackString,
 }
 
@@ -80,6 +89,7 @@ derive_utoipa_schema!(ResourceTypeWrapper, _ResourceTypeWrapper);
 #[allow(dead_code)]
 #[derive(ToSchema, Serialize)]
 // ResourceType
+#[schema(as = ResourceType)]
 enum _ResourceTypeWrapper {
     #[serde(rename = "instances")]
     Instances,

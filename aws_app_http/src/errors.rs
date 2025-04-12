@@ -74,6 +74,7 @@ impl From<FromUtf8Error> for ServiceError {
 
 #[derive(Serialize, ToSchema)]
 struct ErrorMessage {
+    #[schema(inline)]
     message: StackString,
 }
 

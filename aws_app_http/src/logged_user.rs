@@ -26,12 +26,14 @@ use crate::errors::ServiceError as Error;
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, ToSchema)]
 // LoggedUser
 pub struct LoggedUser {
-    #[schema(example = r#""user@example.com""#)]
+    #[schema(example = r#""user@example.com""#, inline)]
     // Email Address
     pub email: StackString,
     // Session Id
+    #[schema(inline)]
     pub session: Uuid,
     // User Created At
+    #[schema(inline)]
     pub created_at: OffsetDateTime,
 }
 

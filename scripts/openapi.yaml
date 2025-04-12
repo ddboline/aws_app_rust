@@ -12,6 +12,17 @@ paths:
   /aws/add_user_to_group:
     patch:
       operationId: add_user_to_group
+      parameters:
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: group_name
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Add User to Group
@@ -29,7 +40,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -46,10 +57,32 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/build_spot_request:
     post:
       operationId: build_spot_request
+      parameters:
+      - name: ami
+        in: query
+        required: false
+        schema:
+          oneOf:
+          - type: 'null'
+          - type: string
+      - name: inst
+        in: query
+        required: false
+        schema:
+          oneOf:
+          - type: 'null'
+          - type: string
+      - name: script
+        in: query
+        required: false
+        schema:
+          oneOf:
+          - type: 'null'
+          - type: string
       responses:
         '201':
           description: Spot Request
@@ -67,7 +100,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -84,10 +117,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/cancel_spot:
     delete:
       operationId: cancel_spot
+      parameters:
+      - name: spot_id
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Cancelled Spot
@@ -105,7 +144,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -122,7 +161,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/cleanup_ecr_images:
     delete:
       operationId: cleanup_ecr_images
@@ -143,7 +182,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -160,7 +199,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/command:
     post:
       operationId: command
@@ -187,7 +226,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -204,10 +243,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/create_access_key:
     post:
       operationId: create_access_key
+      parameters:
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Create Access Key
@@ -227,7 +272,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -244,10 +289,21 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/create_image:
     post:
       operationId: create_image
+      parameters:
+      - name: inst_id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: name
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Image ID
@@ -265,7 +321,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -282,10 +338,23 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/create_snapshot:
     post:
       operationId: create_snapshot
+      parameters:
+      - name: volid
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: name
+        in: query
+        required: false
+        schema:
+          oneOf:
+          - type: 'null'
+          - type: string
       responses:
         '201':
           description: Finished
@@ -303,7 +372,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -320,10 +389,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/create_user:
     post:
       operationId: create_user
+      parameters:
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Created Iam User
@@ -339,20 +414,20 @@ paths:
                 - tags
                 properties:
                   arn:
-                    $ref: '#/components/schemas/str'
+                    type: string
                   create_date:
                     type: string
                     format: date-time
                   tags:
                     type: object
                     additionalProperties:
-                      $ref: '#/components/schemas/str'
+                      type: string
                     propertyNames:
                       type: string
                   user_id:
-                    $ref: '#/components/schemas/str'
+                    type: string
                   user_name:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '400':
           description: Bad Request
           content:
@@ -363,7 +438,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -380,10 +455,17 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/crontab_logs/{crontab_type}:
     get:
       operationId: crontab_logs
+      parameters:
+      - name: crontab_type
+        in: path
+        description: Crontab Type
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Get Crontab Logs
@@ -401,7 +483,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -418,10 +500,21 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_access_key:
     delete:
       operationId: delete_access_key
+      parameters:
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: access_key_id
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Delete Access Key
@@ -439,7 +532,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -456,10 +549,21 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_ecr_image:
     delete:
       operationId: delete_ecr_image
+      parameters:
+      - name: reponame
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: imageid
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Deleted
@@ -477,7 +581,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -494,10 +598,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_image:
     delete:
       operationId: delete_image
+      parameters:
+      - name: ami
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Deleted
@@ -515,7 +625,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -532,10 +642,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_script:
     delete:
       operationId: delete_script
+      parameters:
+      - name: filename
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Deleted
@@ -553,7 +669,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -570,10 +686,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_security_group:
     delete:
       operationId: delete_security_group
+      parameters:
+      - name: group_id
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Delete Security Group
@@ -591,7 +713,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -608,10 +730,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_snapshot:
     delete:
       operationId: delete_snapshot
+      parameters:
+      - name: snapid
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Deleted
@@ -629,7 +757,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -646,10 +774,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_user:
     delete:
       operationId: delete_user
+      parameters:
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Delete Iam User
@@ -667,7 +801,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -684,10 +818,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/delete_volume:
     delete:
       operationId: delete_volume
+      parameters:
+      - name: volid
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Deleted
@@ -705,7 +845,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -722,10 +862,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/edit_script:
     get:
       operationId: edit_script
+      parameters:
+      - name: filename
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Edit Script
@@ -743,7 +889,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -760,7 +906,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/inbound-email/sync:
     post:
       operationId: sync_inboud_email
@@ -781,7 +927,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -798,13 +944,14 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/inbound-email/{id}:
     get:
       operationId: inbound_email_detail
       parameters:
       - name: id
         in: path
+        description: Email ID
         required: true
         schema:
           type: string
@@ -826,7 +973,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -843,12 +990,13 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
     delete:
       operationId: inbound_email_delete
       parameters:
       - name: id
         in: path
+        description: Email ID
         required: true
         schema:
           type: string
@@ -870,7 +1018,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -887,7 +1035,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/index.html:
     get:
       operationId: sync_frontpage
@@ -908,7 +1056,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -925,10 +1073,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/instance_status:
     get:
       operationId: instance_status
+      parameters:
+      - name: instance
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Instance Status
@@ -946,7 +1100,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -963,10 +1117,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/instances:
     get:
       operationId: get_instances
+      parameters:
+      - name: inst
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Describe Instances
@@ -984,7 +1144,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1001,10 +1161,32 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/list:
     get:
       operationId: list
+      parameters:
+      - name: resource
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - instances
+          - reserved
+          - spot
+          - ami
+          - volume
+          - snapshot
+          - ecr
+          - key
+          - script
+          - user
+          - group
+          - access-key
+          - route53
+          - systemd
+          - inbound-email
       responses:
         '200':
           description: List Resources
@@ -1022,7 +1204,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1039,10 +1221,22 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/modify_volume:
     patch:
       operationId: modify_volume
+      parameters:
+      - name: volid
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: size
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
       responses:
         '201':
           description: Finished
@@ -1060,7 +1254,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1077,7 +1271,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/novnc/start:
     post:
       operationId: novnc_launcher
@@ -1098,7 +1292,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1115,7 +1309,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/novnc/status:
     get:
       operationId: novnc_status
@@ -1136,7 +1330,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1153,7 +1347,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/novnc/stop:
     post:
       operationId: novnc_shutdown
@@ -1174,7 +1368,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1191,10 +1385,18 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/prices:
     get:
       operationId: get_prices
+      parameters:
+      - name: search
+        in: query
+        required: false
+        schema:
+          oneOf:
+          - type: 'null'
+          - type: string
       responses:
         '200':
           description: Prices
@@ -1212,7 +1414,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1229,10 +1431,21 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/remove_user_from_group:
     delete:
       operationId: remove_user_from_group
+      parameters:
+      - name: user_name
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: group_name
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Remove User to Group
@@ -1250,7 +1463,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1267,7 +1480,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/replace_script:
     post:
       operationId: replace_script
@@ -1294,7 +1507,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1311,7 +1524,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/request_spot:
     post:
       operationId: request_spot
@@ -1338,7 +1551,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1355,7 +1568,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/run_instance:
     post:
       operationId: run_instance
@@ -1382,7 +1595,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1399,10 +1612,21 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/systemd_action:
     post:
       operationId: systemd_action
+      parameters:
+      - name: action
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/SystemdActions'
+      - name: service
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Systemd Action Output
@@ -1420,7 +1644,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1437,10 +1661,17 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/systemd_logs/{service}:
     get:
       operationId: systemd_logs
+      parameters:
+      - name: service
+        in: path
+        description: Systemd Service
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Get Systemd Logs
@@ -1458,7 +1689,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1475,7 +1706,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/systemd_restart_all:
     post:
       operationId: systemd_restart_all
@@ -1496,7 +1727,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1513,10 +1744,21 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/tag_item:
     patch:
       operationId: tag_item
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: tag
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '201':
           description: Finished
@@ -1534,7 +1776,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1551,10 +1793,16 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/terminate:
     delete:
       operationId: terminate
+      parameters:
+      - name: instance
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '204':
           description: Deleted
@@ -1572,7 +1820,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1589,7 +1837,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/update:
     post:
       operationId: update
@@ -1610,7 +1858,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1627,10 +1875,33 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/update_dns_name:
     patch:
       operationId: update_dns_name
+      parameters:
+      - name: zone
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: dns_name
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: old_ip
+        in: query
+        required: true
+        schema:
+          type: string
+          format: ipv4_address
+      - name: new_ip
+        in: query
+        required: true
+        schema:
+          type: string
+          format: ipv4_address
       responses:
         '201':
           description: Update Dns
@@ -1648,7 +1919,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1665,7 +1936,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
   /aws/user:
     get:
       operationId: user
@@ -1685,7 +1956,7 @@ paths:
                     type: string
                     format: date-time
                   email:
-                    $ref: '#/components/schemas/str'
+                    type: string
                   session:
                     type: string
                     format: uuid
@@ -1699,7 +1970,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
         '401':
           description: Not Authorized
           content:
@@ -1716,7 +1987,7 @@ paths:
                 - message
                 properties:
                   message:
-                    $ref: '#/components/schemas/str'
+                    type: string
 components:
   schemas:
     CommandRequest:
@@ -1726,9 +1997,9 @@ components:
       - command
       properties:
         command:
-          $ref: '#/components/schemas/str'
+          type: string
         instance:
-          $ref: '#/components/schemas/str'
+          type: string
     IamAccessKey:
       type: object
       required:
@@ -1739,16 +2010,16 @@ components:
       - user_name
       properties:
         access_key_id:
-          $ref: '#/components/schemas/str'
+          type: string
         access_key_secret:
-          $ref: '#/components/schemas/str'
+          type: string
         create_date:
           type: string
           format: date-time
         status:
-          $ref: '#/components/schemas/str'
+          type: string
         user_name:
-          $ref: '#/components/schemas/str'
+          type: string
     ReplaceData:
       type: object
       required:
@@ -1756,9 +2027,27 @@ components:
       - text
       properties:
         filename:
-          $ref: '#/components/schemas/str'
+          type: string
         text:
-          $ref: '#/components/schemas/str'
+          type: string
+    ResourceType:
+      type: string
+      enum:
+      - instances
+      - reserved
+      - spot
+      - ami
+      - volume
+      - snapshot
+      - ecr
+      - key
+      - script
+      - user
+      - group
+      - access-key
+      - route53
+      - systemd
+      - inbound-email
     SpotRequestData:
       type: object
       required:
@@ -1771,18 +2060,25 @@ components:
       - name
       properties:
         ami:
-          $ref: '#/components/schemas/str'
+          type: string
         instance_type:
-          $ref: '#/components/schemas/str'
+          type: string
         key_name:
-          $ref: '#/components/schemas/str'
+          type: string
         name:
-          $ref: '#/components/schemas/str'
+          type: string
         price:
-          $ref: '#/components/schemas/str'
+          type: string
         script:
-          $ref: '#/components/schemas/str'
+          type: string
         security_group:
-          $ref: '#/components/schemas/str'
-    str:
+          type: string
+    SystemdActions:
       type: string
+      enum:
+      - start
+      - stop
+      - restart
+    ipv4_address:
+      type: string
+      format: ipv4_address
