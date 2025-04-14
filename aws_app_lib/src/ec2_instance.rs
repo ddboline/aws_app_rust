@@ -554,22 +554,34 @@ impl Ec2Instance {
         &self,
         spot_instance_request_id: &str,
         tags: &HashMap<StackString, StackString>,
-        iterations: usize,
     ) -> Result<(), Error> {
+        let statuses_to_exit = [
+            "constraint-not-fulfillable",
+            "instance-terminated-by-user",
+            "instance-terminated-by-price",
+            "instance-stopped-by-user",
+        ];
         sleep(std::time::Duration::from_secs(2)).await;
-        for i in 0..iterations {
+        let mut i = 0;
+        loop {
             let reqs: HashMap<_, _> = self
                 .get_spot_instance_requests()
                 .await?
-                .map(|r| (r.id, r.instance_id))
+                .map(|r| (r.id, (r.instance_id, r.status)))
                 .collect();
             if !reqs.contains_key(spot_instance_request_id) && i > 10 {
                 return Ok(());
             }
-            if let Some(Some(instance_id)) = reqs.get(spot_instance_request_id) {
+            if let Some((Some(instance_id), status)) = reqs.get(spot_instance_request_id) {
                 debug!("tag {instance_id} with {tags:?}",);
-                self.tag_ec2_instance_volume(instance_id, tags, 20).await?;
-                return Ok(());
+                if status.as_str() == "fulfilled" {
+                    self.tag_ec2_instance_volume(instance_id, tags, 20).await?;
+                    return Ok(());
+                } else if statuses_to_exit.contains(&status.as_str()) {
+                    return Err(Error::CustomError(format_sstr!(
+                        "spot has tag {status}, exiting"
+                    )));
+                }
             }
             let secs = if i < 20 {
                 2
@@ -579,8 +591,8 @@ impl Ec2Instance {
                 40
             };
             sleep(std::time::Duration::from_secs(secs)).await;
+            i += 1;
         }
-        Ok(())
     }
 
     /// # Errors

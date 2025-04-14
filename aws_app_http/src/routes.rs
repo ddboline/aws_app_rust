@@ -661,7 +661,7 @@ async fn request_spot(
     {
         let ec2 = data.aws.ec2.clone();
         let tags = tags.clone();
-        spawn(async move { ec2.tag_spot_instance(&spot_id, &tags, 1000).await });
+        spawn(async move { ec2.tag_spot_instance(&spot_id, &tags).await });
     }
     Ok(HtmlBase::new("Finished").into())
 }

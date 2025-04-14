@@ -669,7 +669,7 @@ impl AwsAppInterface {
             req.ami = a.clone();
         }
         if let Some(spot_id) = self.ec2.request_spot_instance(req).await?.next() {
-            self.ec2.tag_spot_instance(&spot_id, &req.tags, 20).await?;
+            self.ec2.tag_spot_instance(&spot_id, &req.tags).await?;
         }
         Ok(())
     }
