@@ -1,7 +1,6 @@
 use log::debug;
-use once_cell::sync::Lazy;
 use stack_string::{StackString, format_sstr};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 use tokio::{
     process::Command,
     sync::{Mutex, RwLock},
@@ -9,8 +8,8 @@ use tokio::{
 
 use crate::errors::AwslibError as Error;
 
-static LOCK_CACHE: Lazy<RwLock<HashMap<StackString, Mutex<()>>>> =
-    Lazy::new(|| RwLock::new(HashMap::new()));
+static LOCK_CACHE: LazyLock<RwLock<HashMap<StackString, Mutex<()>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
 
 #[derive(Debug, Clone)]
 pub struct SSHInstance {

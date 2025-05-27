@@ -5,16 +5,15 @@ use aws_sdk_s3::{
     primitives::ByteStream,
     types::{Bucket, Object},
 };
-use once_cell::sync::Lazy;
 use parking_lot::{Mutex, MutexGuard};
 use stack_string::{StackString, format_sstr};
-use std::{fmt, path::Path};
+use std::{fmt, path::Path, sync::LazyLock};
 use tokio::io::AsyncReadExt;
 use url::Url;
 
 use crate::{errors::AwslibError as Error, exponential_retry};
 
-static S3INSTANCE_TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+static S3INSTANCE_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 #[derive(Clone)]
 pub struct S3Instance {

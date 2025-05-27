@@ -41,15 +41,15 @@ impl NoVncInstance {
         }
         if !websockify.exists() {
             debug!("no websockify");
-        };
+        }
         if !vncpwd.exists() {
             debug!("no vncpwd");
         }
         if !cert.exists() {
-            debug!("no cert {cert:?}");
+            debug!("no cert {}", cert.display());
         }
         if !key.exists() {
-            debug!("no key {key:?}");
+            debug!("no key {}", key.display());
         }
 
         if !x11vnc.exists()

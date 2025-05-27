@@ -1,12 +1,13 @@
 use bytes::BytesMut;
 use derive_more::{Deref, DerefMut, Display, From, Into};
-use once_cell::sync::Lazy;
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
 use time::OffsetDateTime;
 use time_tz::{Tz, timezones::db::UTC};
 
-static LOCAL_TZ: Lazy<&'static Tz> = Lazy::new(|| time_tz::system::get_timezone().unwrap_or(UTC));
+static LOCAL_TZ: LazyLock<&'static Tz> =
+    LazyLock::new(|| time_tz::system::get_timezone().unwrap_or(UTC));
 
 #[derive(
     Serialize,

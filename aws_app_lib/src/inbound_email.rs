@@ -34,6 +34,26 @@ pub struct InboundEmail {
     pub raw_email: StackString,
 }
 
+pub struct InboundEmailSyncDbResult {
+    pub new_keys: Vec<StackString>,
+    pub new_attachments: Vec<StackString>,
+}
+
+impl InboundEmailSyncDbResult {
+    fn keys(&self) -> StackString {
+        self.new_keys.join("\n").into()
+    }
+
+    fn attachments(&self) -> StackString {
+        self.new_attachments.join("\n").into()
+    }
+
+    #[must_use]
+    pub fn summary(&self) -> (StackString, StackString) {
+        (self.keys(), self.attachments())
+    }
+}
+
 impl From<InboundEmailDB> for InboundEmail {
     fn from(value: InboundEmailDB) -> Self {
         Self {
@@ -124,7 +144,7 @@ impl InboundEmail {
         config: &Config,
         s3: &S3Instance,
         pool: &PgPool,
-    ) -> Result<(Vec<StackString>, Vec<StackString>), Error> {
+    ) -> Result<InboundEmailSyncDbResult, Error> {
         let parser = MessageParser::default();
         let bucket = config
             .inbound_email_bucket
@@ -165,7 +185,10 @@ impl InboundEmail {
             }
         }
 
-        Ok((new_keys, new_attachments))
+        Ok(InboundEmailSyncDbResult {
+            new_keys,
+            new_attachments,
+        })
     }
 
     /// # Errors
@@ -258,7 +281,7 @@ mod tests {
     use crate::{
         config::Config,
         errors::AwslibError as Error,
-        inbound_email::{InboundEmail, extract_zip},
+        inbound_email::{InboundEmail, InboundEmailSyncDbResult, extract_zip},
         models::{DmarcRecords, InboundEmailDB},
         pgpool::PgPool,
         s3_instance::S3Instance,
@@ -366,7 +389,8 @@ mod tests {
             None
         };
 
-        let (new_keys, _) = InboundEmail::sync_db(&config, &s3, &pool).await?;
+        let InboundEmailSyncDbResult { new_keys, .. } =
+            InboundEmail::sync_db(&config, &s3, &pool).await?;
         if let Some(existing) = &existing {
             assert!(new_keys.len() > 0);
             assert!(new_keys.contains(existing));

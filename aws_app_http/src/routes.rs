@@ -1558,7 +1558,7 @@ async fn sync_inboud_email(
     let (new_keys, new_attachments) = InboundEmail::sync_db(&data.aws.config, &s3, &data.aws.pool)
         .await
         .map_err(Into::<Error>::into)
-        .map(|(k, a)| (k.join("\n"), a.join("\n")))?;
+        .map(|r| r.summary())?;
     let new_records = InboundEmail::parse_dmarc_records(&data.aws.config, &s3, &data.aws.pool)
         .await
         .map_err(Into::<Error>::into)?

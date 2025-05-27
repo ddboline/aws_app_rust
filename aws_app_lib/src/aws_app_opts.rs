@@ -454,7 +454,7 @@ impl AwsAppOpts {
                 let (new_keys, new_attachments) =
                     InboundEmail::sync_db(&app.config, &s3, &app.pool)
                         .await
-                        .map(|(k, a)| (k.join("\n"), a.join("\n")))?;
+                        .map(|r| r.summary())?;
                 let new_records = InboundEmail::parse_dmarc_records(&app.config, &s3, &app.pool)
                     .await?
                     .len();

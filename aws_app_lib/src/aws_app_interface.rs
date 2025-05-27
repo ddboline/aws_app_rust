@@ -1,12 +1,11 @@
 use aws_config::SdkConfig;
 use futures::{TryStreamExt, future::try_join_all, stream::FuturesUnordered};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use stack_string::{StackString, format_sstr};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 use stdout_channel::StdoutChannel;
 use time::OffsetDateTime;
@@ -36,8 +35,8 @@ use crate::{
     systemd_instance::SystemdInstance,
 };
 
-pub static INSTANCE_LIST: Lazy<RwLock<Arc<Vec<Ec2InstanceInfo>>>> =
-    Lazy::new(|| RwLock::new(Arc::new(Vec::new())));
+pub static INSTANCE_LIST: LazyLock<RwLock<Arc<Vec<Ec2InstanceInfo>>>> =
+    LazyLock::new(|| RwLock::new(Arc::new(Vec::new())));
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct AwsInstancePrice {
@@ -435,7 +434,7 @@ impl AwsAppInterface {
                     .send(format_sstr!("---\nSecurityGroups:\n{groups}"));
             }
             ResourceType::InboundEmail => {}
-        };
+        }
         Ok(())
     }
 

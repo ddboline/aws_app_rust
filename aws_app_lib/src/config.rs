@@ -1,16 +1,16 @@
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use stack_string::StackString;
 use std::{
     ops::Deref,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 
 use crate::errors::AwslibError as Error;
 
-static CONFIG_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::config_dir().expect("No CONFIG directory"));
-static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().expect("No HOME directory"));
+static CONFIG_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| dirs::config_dir().expect("No CONFIG directory"));
+static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| dirs::home_dir().expect("No HOME directory"));
 
 #[derive(Default, Debug, Deserialize, PartialEq)]
 pub struct ConfigInner {
