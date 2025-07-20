@@ -1,3 +1,4 @@
+use authorized_users::AuthInfo;
 pub use authorized_users::{
     AUTHORIZED_USERS, AuthorizedUser, AuthorizedUser as ExternalUser, JWT_SECRET, KEY_LENGTH,
     LOGIN_HTML, SECRET_KEY, get_random_key, get_secrets, token::Token,
@@ -67,9 +68,9 @@ impl LoggedUser {
 impl From<AuthorizedUser> for LoggedUser {
     fn from(user: AuthorizedUser) -> Self {
         Self {
-            email: user.email,
-            session: user.session,
-            created_at: user.created_at,
+            email: user.get_email().into(),
+            session: user.get_session(),
+            created_at: user.get_created_at(),
         }
     }
 }
@@ -119,18 +120,17 @@ where
 pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
     if let Ok("true") = var("TESTENV").as_ref().map(String::as_str) {
         AUTHORIZED_USERS.update_users(hashmap! {
-            "user@test".into() => ExternalUser {
-                email: "user@test".into(),
-                session: Uuid::new_v4(),
-                secret_key: StackString::default(),
-                created_at: OffsetDateTime::now_utc()
-            }
+            "user@test".into() => ExternalUser::new(
+                "user@test",
+                Uuid::new_v4(),
+                "",
+            )
         });
         return Ok(());
     }
     let most_recent_user_db = AuthorizedUsersDB::get_most_recent(pool).await?;
     let existing_users = AUTHORIZED_USERS.get_users();
-    let most_recent_user = existing_users.values().map(|i| i.created_at).max();
+    let most_recent_user = existing_users.values().map(AuthInfo::get_created_at).max();
     if most_recent_user_db.is_some()
         && most_recent_user.is_some()
         && most_recent_user_db <= most_recent_user
@@ -144,12 +144,7 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
         .map_ok(|u| {
             (
                 u.email.clone(),
-                ExternalUser {
-                    email: u.email,
-                    session: Uuid::new_v4(),
-                    secret_key: StackString::default(),
-                    created_at: u.created_at,
-                },
+                ExternalUser::new(&u.email, Uuid::new_v4(), ""),
             )
         })
         .try_collect()
@@ -163,17 +158,14 @@ pub async fn fill_from_db(pool: &PgPool) -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use authorized_users::AuthorizedUser;
+    use uuid::Uuid;
 
     use crate::logged_user::LoggedUser;
 
     #[test]
     fn test_authorized_user_to_logged_user() {
         let email = "test@localhost";
-        let user = AuthorizedUser {
-            email: email.into(),
-            ..AuthorizedUser::default()
-        };
-
+        let user = AuthorizedUser::new(email, Uuid::new_v4(), "");
         let user: LoggedUser = user.into();
 
         assert_eq!(user.email, email);
