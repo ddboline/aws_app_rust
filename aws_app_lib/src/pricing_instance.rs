@@ -219,11 +219,11 @@ impl PricingInstance {
                                     let instance_type: StackString = instance_type.into();
                                     if let Some(i) =
                                         entries.get(&(instance_type.clone(), price_type))
+                                        && i.price_timestamp > price_timestamp
                                     {
-                                        if i.price_timestamp > price_timestamp {
-                                            continue;
-                                        }
+                                        continue;
                                     }
+
                                     let i = InstancePricing::new(
                                         instance_type.as_str(),
                                         price,
@@ -258,11 +258,11 @@ impl PricingInstance {
                                     let instance_type: StackString = instance_type.into();
                                     if let Some(i) =
                                         entries.get(&(instance_type.clone(), price_type))
+                                        && i.price_timestamp > price_timestamp
                                     {
-                                        if i.price_timestamp > price_timestamp {
-                                            continue;
-                                        }
+                                        continue;
                                     }
+
                                     let i = InstancePricing::new(
                                         instance_type.as_str(),
                                         price,

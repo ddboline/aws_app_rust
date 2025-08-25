@@ -228,16 +228,18 @@ impl S3Instance {
                     .list_keys(bucket, prefix, marker.as_ref(), max_keys)
                     .await?;
                 if let Some(contents) = output.contents.take() {
-                    if let Some(last) = contents.last() {
-                        if let Some(key) = &last.key {
-                            marker.replace(key.into());
-                        }
+                    if let Some(last) = contents.last()
+                        && let Some(key) = &last.key
+                    {
+                        marker.replace(key.into());
                     }
-                    if let Some(n) = max_keys {
-                        if contents.len() <= n as usize {
-                            max_keys.replace(n - contents.len() as i32);
-                        }
+
+                    if let Some(n) = max_keys
+                        && contents.len() <= n as usize
+                    {
+                        max_keys.replace(n - contents.len() as i32);
                     }
+
                     list_of_keys.extend_from_slice(&contents);
                 }
                 if output.is_truncated == Some(false) || output.is_truncated.is_none() {
@@ -267,16 +269,18 @@ impl S3Instance {
                 .list_keys(bucket, prefix, marker.as_ref(), max_keys)
                 .await?;
             if let Some(contents) = output.contents.take() {
-                if let Some(last) = contents.last() {
-                    if let Some(key) = &last.key {
-                        marker.replace(key.into());
-                    }
+                if let Some(last) = contents.last()
+                    && let Some(key) = &last.key
+                {
+                    marker.replace(key.into());
                 }
-                if let Some(n) = max_keys {
-                    if contents.len() <= n as usize {
-                        max_keys.replace(n - contents.len() as i32);
-                    }
+
+                if let Some(n) = max_keys
+                    && contents.len() <= n as usize
+                {
+                    max_keys.replace(n - contents.len() as i32);
                 }
+
                 for object in &contents {
                     callback(object)?;
                 }

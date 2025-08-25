@@ -670,23 +670,22 @@ impl InboundEmailDB {
         let tdir = TempDir::new()?;
         if let Some(message) = parser.parse(self.raw_email.as_bytes()) {
             for attachment in message.attachments() {
-                if let PartType::Binary(body) = &attachment.body {
-                    if let Some(filename) = attachment
+                if let PartType::Binary(body) = &attachment.body
+                    && let Some(filename) = attachment
                         .content_disposition()
                         .and_then(|c| c.attribute("filename").or_else(|| c.attribute("name")))
-                    {
-                        let s3key = format_sstr!("attachments/{filename}");
-                        if attachments.contains(&s3key) {
-                            continue;
-                        }
-                        let filepath = tdir.path().join(filename);
-                        fs::write(&filepath, &body).await?;
-                        s3.upload(&filepath, bucket, &s3key).await?;
-                        extracted_attachments.push(s3key);
-                        if let Some(content_type) = attachment.content_disposition() {
-                            for a in content_type.attributes().unwrap_or(&[]) {
-                                println!("{a:?}");
-                            }
+                {
+                    let s3key = format_sstr!("attachments/{filename}");
+                    if attachments.contains(&s3key) {
+                        continue;
+                    }
+                    let filepath = tdir.path().join(filename);
+                    fs::write(&filepath, &body).await?;
+                    s3.upload(&filepath, bucket, &s3key).await?;
+                    extracted_attachments.push(s3key);
+                    if let Some(content_type) = attachment.content_disposition() {
+                        for a in content_type.attributes().unwrap_or(&[]) {
+                            println!("{a:?}");
                         }
                     }
                 }

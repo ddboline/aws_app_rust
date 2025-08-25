@@ -210,38 +210,37 @@ impl InboundEmail {
             .collect();
 
         for attachment in s3.get_list_of_keys(bucket, Some("attachments/")).await? {
-            if let Some(key) = &attachment.key {
-                if !parsed_attachments.contains(key.as_str()) {
-                    let f = NamedTempFile::new()?;
-                    s3.download(bucket, key, f.path()).await?;
-                    if let Some(t) = infer::get_from_path(f.path())? {
-                        let mut buffers = Vec::new();
-                        if t.mime_type() == "text/xml" {
-                            buffers.push(tokio::fs::read_to_string(f.path()).await?);
-                        } else if t.mime_type() == "application/gzip" {
-                            let mut buf = String::new();
-                            GzDecoder::new(std::fs::File::open(f.path())?)
-                                .read_to_string(&mut buf)?;
-                            buffers.push(buf);
-                        } else if t.mime_type() == "application/zip" {
-                            let result: Result<Vec<String>, Error> =
-                                tokio::task::spawn_blocking(move || {
-                                    let tempdir = TempDir::new("inbound_email")?;
-                                    let zippath = tempdir.path();
-                                    let mut b = Vec::new();
-                                    for p in extract_zip(f.path(), zippath)? {
-                                        b.push(std::fs::read_to_string(&p)?);
-                                    }
-                                    Ok(b)
-                                })
-                                .await?;
-                            buffers = result?;
-                        }
-                        for buffer in buffers {
-                            for record in DmarcRecords::parse_xml(&buffer, Some(key.as_str()))? {
-                                record.insert_entry(pool).await?;
-                                new_records.push(record);
-                            }
+            if let Some(key) = &attachment.key
+                && !parsed_attachments.contains(key.as_str())
+            {
+                let f = NamedTempFile::new()?;
+                s3.download(bucket, key, f.path()).await?;
+                if let Some(t) = infer::get_from_path(f.path())? {
+                    let mut buffers = Vec::new();
+                    if t.mime_type() == "text/xml" {
+                        buffers.push(tokio::fs::read_to_string(f.path()).await?);
+                    } else if t.mime_type() == "application/gzip" {
+                        let mut buf = String::new();
+                        GzDecoder::new(std::fs::File::open(f.path())?).read_to_string(&mut buf)?;
+                        buffers.push(buf);
+                    } else if t.mime_type() == "application/zip" {
+                        let result: Result<Vec<String>, Error> =
+                            tokio::task::spawn_blocking(move || {
+                                let tempdir = TempDir::new("inbound_email")?;
+                                let zippath = tempdir.path();
+                                let mut b = Vec::new();
+                                for p in extract_zip(f.path(), zippath)? {
+                                    b.push(std::fs::read_to_string(&p)?);
+                                }
+                                Ok(b)
+                            })
+                            .await?;
+                        buffers = result?;
+                    }
+                    for buffer in buffers {
+                        for record in DmarcRecords::parse_xml(&buffer, Some(key.as_str()))? {
+                            record.insert_entry(pool).await?;
+                            new_records.push(record);
                         }
                     }
                 }

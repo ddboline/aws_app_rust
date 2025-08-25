@@ -529,13 +529,13 @@ impl Ec2Instance {
                 .get_ami_tags()
                 .await?
                 .find(|ami| ami.id == inst_id || ami.name == inst_id)
+                && let Some(snapshot_id) = ami.snapshot_ids.first()
             {
-                if let Some(snapshot_id) = ami.snapshot_ids.first() {
-                    let tags = hashmap! {"Name".into() => name.into()};
-                    self.tag_aws_resource(snapshot_id, &tags).await?;
-                    break;
-                }
+                let tags = hashmap! {"Name".into() => name.into()};
+                self.tag_aws_resource(snapshot_id, &tags).await?;
+                break;
             }
+
             let secs = if i < 20 {
                 2
             } else if i < 40 {

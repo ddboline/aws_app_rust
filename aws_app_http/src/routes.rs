@@ -713,7 +713,7 @@ async fn cancel_spot(
     let Query(query) = query;
     data.aws
         .ec2
-        .cancel_spot_instance_request(&[query.spot_id.clone()])
+        .cancel_spot_instance_request(std::slice::from_ref(&query.spot_id))
         .await
         .map_err(Into::<Error>::into)?;
     Ok(HtmlBase::new(format_sstr!("cancelled {}", query.spot_id)).into())

@@ -71,16 +71,16 @@ fn parse_result(
                 }
 
                 for a in c.find(Name("a")) {
-                    if let Some(url) = a.attr("href") {
-                        if url.contains("instance-types") {
-                            let url = url.replace("https://aws.amazon.com", "");
-                            if let Some(key) = url.split('/').nth(3) {
-                                let mut s = StackString::new();
-                                s.push_str("https://aws.amazon.com");
-                                s.push_str(&url);
-                                let k: StackString = key.into();
-                                data_urls.insert(k, s);
-                            }
+                    if let Some(url) = a.attr("href")
+                        && url.contains("instance-types")
+                    {
+                        let url = url.replace("https://aws.amazon.com", "");
+                        if let Some(key) = url.split('/').nth(3) {
+                            let mut s = StackString::new();
+                            s.push_str("https://aws.amazon.com");
+                            s.push_str(&url);
+                            let k: StackString = key.into();
+                            data_urls.insert(k, s);
                         }
                     }
                 }

@@ -36,10 +36,9 @@ impl SystemdInstance {
                     .split_whitespace()
                     .next()
                     .and_then(|x| x.split('.').next())
+                    && self.services.contains(service)
                 {
-                    if self.services.contains(service) {
-                        return Some((service.into(), RunStatus::Running));
-                    }
+                    return Some((service.into(), RunStatus::Running));
                 }
                 None
             })
