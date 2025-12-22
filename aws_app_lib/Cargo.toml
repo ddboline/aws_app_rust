@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_lib"
-version = "0.12.6"
+version = "0.12.7"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2024"
 
@@ -9,59 +9,59 @@ edition = "2024"
 [dependencies]
 aws-config = {version="1.8", features=["behavior-version-latest"]}
 aws-types = "1.3"
-aws-sdk-ec2 = "1.160"
-aws-sdk-ecr = "1.90"
-aws-sdk-iam = "1.87"
-aws-sdk-pricing = "1.85"
-aws-sdk-route53 = "1.91"
-aws-sdk-s3 = "1.103"
-aws-sdk-ses = "1.84"
-aws-sdk-sts = "1.84"
+aws-sdk-ec2 = "1.198"
+aws-sdk-ecr = "1.104"
+aws-sdk-iam = "1.101"
+aws-sdk-pricing = "1.94"
+aws-sdk-route53 = "1.104"
+aws-sdk-s3 = "1.118"
+aws-sdk-ses = "1.94"
+aws-sdk-sts = "1.95"
 aws-smithy-runtime-api = "1.9"
 aws-smithy-types = "1.3"
 base64 = "0.22"
-bytes = "1.10"
+bytes = "1.11"
 clap = {version="4.5", features=["derive"]}
 deadpool = "0.12"
 deadpool-postgres = { version = "0.14", features=["serde"] }
-derive_more = {version="2.0", features = ["full"]}
+derive_more = {version="2.1", features = ["full"]}
 dirs = "6.0"
 dotenvy = "0.15"
 envy = "0.4"
-flate2 = "1.0"
+flate2 = "1.1"
 futures = "0.3"
 infer = "0.19"
 itertools = "0.14"
 log = "0.4"
 maplit = "1.0"
-once_cell = "1.20"
+once_cell = "1.21"
 parking_lot = "0.12"
 postgres-types = "0.2"
 postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.8", features=["deadpool"]}
 rand = "0.9"
-refinery = {version="0.8", features=["tokio-postgres"]}
+refinery = {version="0.9", features=["tokio-postgres"]}
 reqwest = {version="0.12", features=["cookies", "json", "rustls-tls"], default-features=false}
-roxmltree = "0.20"
+roxmltree = "0.21"
 select = "0.6"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-smallvec = "1.0"
+smallvec = "1.15"
 stack-string = { version="1.1", features=["postgres_types"] }
 stdout-channel = "0.6"
 sysinfo = "0.37"
-tempfile = "3.16"
+tempfile = "3.23"
 tempdir = "0.3"
 thiserror = "2.0"
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
-tokio = { version="1.47", features=["rt", "macros", "rt-multi-thread"]}
+tokio = { version="1.48", features=["rt", "macros", "rt-multi-thread"]}
 tokio-postgres = {version = "0.7", features = ["with-time-0_3", "with-uuid-1", "with-serde_json-1"]}
 walkdir = "2.5"
 url = "2.5"
-uuid = { version = "1.13", features = ["serde", "v4"] }
+uuid = { version = "1.19", features = ["serde", "v4"] }
 mail-parser = "0.11"
-zip = {version = "4.3", default-features = false, features=["aes-crypto", "bzip2", "deflate", "deflate64", "lzma", "time", "zstd"]}
+zip = {version = "7.0", default-features = false, features=["aes-crypto", "bzip2", "deflate", "deflate64", "lzma", "time", "zstd"]}
 
 [dev-dependencies]
-flate2 = "1.0"
+flate2 = "1.1"

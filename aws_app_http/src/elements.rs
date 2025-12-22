@@ -1,4 +1,4 @@
-use dioxus::prelude::{Element, IntoDynNode, Props, VirtualDom, component, dioxus_elements, rsx};
+use dioxus::prelude::{Element, Props, VirtualDom, component, dioxus_elements, rsx};
 use futures::{TryStreamExt, future::try_join_all, stream::FuturesUnordered, try_join};
 use stack_string::{StackString, format_sstr};
 use std::{
@@ -8,9 +8,6 @@ use std::{
 };
 use time::{OffsetDateTime, macros::format_description};
 use time_tz::OffsetDateTimeExt;
-
-#[cfg(debug_assertions)]
-use dioxus::prelude::{GlobalSignal, Readable};
 
 use aws_app_lib::{
     aws_app_interface::{AwsAppInterface, AwsInstancePrice, INSTANCE_LIST},

@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.12.6"
+version = "0.12.7"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2024"
 
@@ -9,15 +9,16 @@ edition = "2024"
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
 aws-config = {version="1.8", features=["behavior-version-latest"]}
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.3"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.4"}
 axum = { version = "0.8", features = ["multipart"] }
-axum-extra = {version="0.10", features=["cookie"]}
+axum-extra = {version="0.12", features=["cookie"]}
 cached = {version="0.56", features=["async", "async_tokio_rt_multi_thread"]}
 derive_more = {version="2.0", features=["full"]}
 dirs = "6.0"
-dioxus = "0.6"
-dioxus-core = "0.6"
-dioxus-ssr = "0.6"
+dioxus = "0.7"
+dioxus-core = "0.7"
+dioxus-signals = "0.7"
+dioxus-ssr = "0.7"
 futures = "0.3"
 itertools = "0.14"
 log = "0.4"
@@ -28,20 +29,20 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 serde_yml = "0.0.12"
-smallvec = "1.14"
+smallvec = "1.15"
 stack-string = { version="1.1", features=["postgres_types", "utoipa_types", "axum_types"] }
 thiserror = "2.0"
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
-tokio = {version="1.47", features=["rt", "macros", "rt-multi-thread"]}
+tokio = {version="1.48", features=["rt", "macros", "rt-multi-thread"]}
 tower-http = {version="0.6", features=["cors"]}
-utoipa = { version = "5.3", features = ["axum_extras", "yaml", "time", "uuid", "smallvec", "url", "openapi_extensions", "decimal"] }
+utoipa = { version = "5.4", features = ["axum_extras", "yaml", "time", "uuid", "smallvec", "url", "openapi_extensions", "decimal"] }
 utoipa-helper = "0.1"
 utoipa-axum = { version = "0.2" }
-uuid = "1.13"
+uuid = "1.19"
 
 [dev-dependencies]
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.3"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.3"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.4"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.4"}
 env_logger = {version="0.11", features=["color", "humantime", "regex"], default-features = false}
 reqwest = {version = "0.12", features=["cookies", "rustls-tls", "gzip", "json"], default-features=false}
