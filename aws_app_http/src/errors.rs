@@ -10,7 +10,7 @@ use axum::{
 use postgres_query::Error as PqError;
 use serde::Serialize;
 use serde_json::Error as SerdeJsonError;
-use serde_yml::Error as YamlError;
+use serde_yaml_ng::Error as YamlError;
 use stack_string::{StackString, format_sstr};
 use std::{
     fmt::{Debug, Error as FmtError},
@@ -152,7 +152,7 @@ impl IntoResponses for ServiceError {
 #[cfg(test)]
 mod test {
     use postgres_query::Error as PqError;
-    use serde_yml::Error as YamlError;
+    use serde_yaml_ng::Error as YamlError;
     use std::{fmt::Error as FmtError, string::FromUtf8Error};
     use time_tz::system::Error as TzSystemError;
 

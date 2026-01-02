@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_lib"
-version = "0.12.7"
+version = "0.12.8"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2024"
 
@@ -9,12 +9,12 @@ edition = "2024"
 [dependencies]
 aws-config = {version="1.8", features=["behavior-version-latest"]}
 aws-types = "1.3"
-aws-sdk-ec2 = "1.198"
+aws-sdk-ec2 = "1.199"
 aws-sdk-ecr = "1.104"
 aws-sdk-iam = "1.101"
 aws-sdk-pricing = "1.94"
 aws-sdk-route53 = "1.104"
-aws-sdk-s3 = "1.118"
+aws-sdk-s3 = "1.119"
 aws-sdk-ses = "1.94"
 aws-sdk-sts = "1.95"
 aws-smithy-runtime-api = "1.9"
@@ -40,7 +40,7 @@ postgres-types = "0.2"
 postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.8", features=["deadpool"]}
 rand = "0.9"
 refinery = {version="0.9", features=["tokio-postgres"]}
-reqwest = {version="0.12", features=["cookies", "json", "rustls-tls"], default-features=false}
+reqwest = {version="0.13", features=["cookies", "json"]}
 roxmltree = "0.21"
 select = "0.6"
 serde = "1.0"
