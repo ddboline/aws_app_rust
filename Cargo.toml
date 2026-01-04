@@ -24,7 +24,7 @@ aws_app_http = {path="aws_app_http"}
 env_logger = {version="0.11", features=["color", "humantime", "regex"], default-features = false}
 log = "0.4"
 stack-string = { version="1.1", features=["postgres_types"] }
-tokio = {version="1.48", features=["rt", "macros", "rt-multi-thread"]}
+tokio = {version="1.49", features=["rt", "macros", "rt-multi-thread"]}
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
 
