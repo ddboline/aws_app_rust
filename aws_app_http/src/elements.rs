@@ -156,7 +156,12 @@ pub async fn get_frontpage(
                 .get_all_repositories()
                 .await?
                 .map(|repo| async move {
-                    let images: Vec<_> = aws.ecr.get_all_images(repo).await?.collect();
+                    let images: Vec<_> = aws
+                        .ecr
+                        .get_all_images(repo)
+                        .await?
+                        .filter(|image| !image.tags.is_empty())
+                        .collect();
                     Ok(images)
                 });
             let results: Result<Vec<Vec<ImageInfo>>, Error> = try_join_all(futures).await;
