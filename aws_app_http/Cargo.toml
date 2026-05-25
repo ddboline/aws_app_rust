@@ -1,6 +1,6 @@
 [package]
 name = "aws_app_http"
-version = "0.12.9"
+version = "0.12.10"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2024"
 
@@ -9,10 +9,10 @@ edition = "2024"
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
 aws-config = {version="1.8", features=["behavior-version-latest"]}
-authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.5"}
+authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.9"}
 axum = { version = "0.8", features = ["multipart"] }
 axum-extra = {version="0.12", features=["cookie"]}
-cached = {version="0.56", features=["async", "async_tokio_rt_multi_thread"]}
+cached = {version="1.0", features=["async", "async_tokio_rt_multi_thread"]}
 derive_more = {version="2.1", features=["full"]}
 dirs = "6.0"
 dioxus = "0.7"
@@ -24,7 +24,7 @@ itertools = "0.14"
 log = "0.4"
 maplit = "1.0"
 mime = "0.3"
-postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.8", features=["deadpool"]}
+postgres_query = {git = "https://github.com/ddboline/rust-postgres-query", tag = "0.3.9", features=["deadpool"]}
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
@@ -34,15 +34,15 @@ stack-string = { version="1.1", features=["postgres_types", "utoipa_types", "axu
 thiserror = "2.0"
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
-tokio = {version="1.48", features=["rt", "macros", "rt-multi-thread"]}
+tokio = {version="1.52", features=["rt", "macros", "rt-multi-thread"]}
 tower-http = {version="0.6", features=["cors"]}
-utoipa = { version = "5.4", features = ["axum_extras", "yaml", "time", "uuid", "smallvec", "url", "openapi_extensions", "decimal"] }
+utoipa = { version = "5.5", features = ["axum_extras", "yaml", "time", "uuid", "smallvec", "url", "openapi_extensions", "decimal"] }
 utoipa-helper = "0.1"
 utoipa-axum = { version = "0.2" }
-uuid = "1.19"
+uuid = "1.23"
 
 [dev-dependencies]
-auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.5"}
-auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.5"}
+auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.9"}
+auth_server_lib = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.9"}
 env_logger = {version="0.11", features=["color", "humantime", "regex"], default-features = false}
 reqwest = {version = "0.13", features=["cookies", "gzip", "json"]}
