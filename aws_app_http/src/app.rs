@@ -33,7 +33,7 @@ pub async fn start_app() -> Result<(), ServiceError> {
 
 async fn run_app(config: &Config, port: u32) -> Result<(), ServiceError> {
     async fn update_db(pool: PgPool) {
-        let mut i = interval(Duration::from_secs(60));
+        let mut i = interval(Duration::from_mins(1));
         loop {
             fill_from_db(&pool).await.unwrap_or(());
             i.tick().await;

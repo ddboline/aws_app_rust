@@ -100,7 +100,7 @@ impl AwsAppInterface {
             scrape_instance_info(AwsGeneration::HVM, &self.pool),
             scrape_instance_info(AwsGeneration::PV, &self.pool),
         )?;
-        let iter = hvm.into_iter().chain(pv.into_iter());
+        let iter = hvm.into_iter().chain(pv);
         Ok(iter)
     }
 
@@ -470,7 +470,7 @@ impl AwsAppInterface {
 
         let futures: FuturesUnordered<_> = [ResourceType::Instances]
             .iter()
-            .chain(resources.into_iter())
+            .chain(resources)
             .map(|resource| {
                 let resource = *resource;
                 let visit_resource = visited_resources.insert(resource);

@@ -810,7 +810,7 @@ async fn instance_status(
 ) -> WarpResult<InstanceStatusResponse> {
     let Query(query) = query;
     let entries = match tokio::time::timeout(
-        tokio::time::Duration::from_secs(60),
+        tokio::time::Duration::from_mins(1),
         data.aws.get_status(&query.instance),
     )
     .await
@@ -851,7 +851,7 @@ async fn command(
 ) -> WarpResult<CommandResponse> {
     let Json(payload) = payload;
     let entries = match tokio::time::timeout(
-        tokio::time::Duration::from_secs(60),
+        tokio::time::Duration::from_mins(1),
         data.aws.run_command(&payload.instance, &payload.command),
     )
     .await

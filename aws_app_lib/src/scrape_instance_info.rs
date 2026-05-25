@@ -142,7 +142,7 @@ async fn insert_result(
         })
         .collect();
     let typ: Result<Vec<_>, Error> = futures.try_collect().await;
-    let output: Vec<_> = fam?.into_iter().chain(typ?.into_iter()).flatten().collect();
+    let output: Vec<_> = fam?.into_iter().chain(typ?).flatten().collect();
     Ok(output)
 }
 
@@ -305,15 +305,15 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
                 |row| match extract_instance_type_object_hvm(row, final_indicies) {
                     Ok(x) => {
                         if &x.instance_type == "1" || &x.instance_type == "8" {
-                            debug!("{final_indicies:?}",);
+                            debug!("{final_indicies:?}");
                             debug!("{:?}", rows[0]);
-                            debug!("row {row:?}",);
+                            debug!("row {row:?}");
                         }
                         Ok(x)
                     }
                     Err(e) => {
-                        debug!("{final_indicies:?}",);
-                        debug!("{row:?}",);
+                        debug!("{final_indicies:?}");
+                        debug!("{row:?}");
                         Err(e)
                     }
                 },
@@ -322,7 +322,7 @@ fn extract_instance_types_hvm(table: &Node) -> Result<Vec<InstanceList>, Error> 
     } else {
         debug!("{:?}", rows[0]);
         debug!("{:?}", rows[1]);
-        debug!("{final_indicies:?}",);
+        debug!("{final_indicies:?}");
         Ok(Vec::new())
     }
 }
