@@ -1,7 +1,7 @@
 use flate2::read::GzDecoder;
 use futures::TryStreamExt;
 use mail_parser::{Message, MessageParser, MessagePart};
-use stack_string::StackString;
+use stack_string::{format_sstr, StackString};
 use std::{
     collections::{HashMap, HashSet},
     convert::{TryFrom, TryInto},
@@ -261,7 +261,8 @@ fn extract_zip(filename: &Path, ziptmpdir: &Path) -> Result<Vec<PathBuf>, Error>
     (0..zip.len())
         .map(|i| {
             let mut f = zip.by_index(i)?;
-            let fpath = ziptmpdir.join(f.name());
+            let name = format_sstr!("{}", f.name()?);
+            let fpath = ziptmpdir.join(name);
             let mut g = File::create(&fpath)?;
             std::io::copy(&mut f, &mut g)?;
             Ok(fpath)

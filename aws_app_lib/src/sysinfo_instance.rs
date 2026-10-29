@@ -55,16 +55,16 @@ pub struct SysinfoInstance {
 
 impl SysinfoInstance {
     #[must_use]
-    pub fn new(names: impl IntoIterator<Item = impl Into<StackString>>) -> Self {
+    pub fn new(names: impl IntoIterator<Item = impl Into<StackString>>) -> Option<Self> {
         let process_names = names.into_iter().map(Into::into).collect();
         let process_names = Arc::new(process_names);
-        let mut sys = System::default();
+        let mut sys = System::new_all().ok()?;
         sys.refresh_processes(ProcessesToUpdate::All, true);
         let system = Arc::new(Mutex::new(sys));
-        Self {
+        Some(Self {
             system,
             process_names,
-        }
+        })
     }
 
     #[must_use]
@@ -98,7 +98,7 @@ mod tests {
         let names = vec!["cargo"];
 
         let sys_instance = SysinfoInstance::new(names);
-        let procs = sys_instance.get_process_info();
+        let procs = sys_instance.unwrap().get_process_info();
         assert!(procs.len() >= 1);
         for proc in procs {
             println!("{proc}");

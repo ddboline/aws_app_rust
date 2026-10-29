@@ -60,7 +60,7 @@ pub struct AwsAppInterface {
     pub route53: Route53Instance,
     pub pricing: PricingInstance,
     pub systemd: SystemdInstance,
-    pub sysinfo: SysinfoInstance,
+    pub sysinfo: Option<SysinfoInstance>,
     pub s3: S3Instance,
     pub stdout: StdoutChannel<StackString>,
 }

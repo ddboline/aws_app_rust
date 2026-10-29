@@ -8,19 +8,19 @@ edition = "2024"
 
 [dependencies]
 aws_app_lib = {path = "../aws_app_lib"}
-aws-config = {version="1.8", features=["behavior-version-latest"]}
+aws-config = {version="1.13", features=["behavior-version-latest"]}
 authorized_users = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.9"}
 axum = { version = "0.8", features = ["multipart"] }
 axum-extra = {version="0.12", features=["cookie"]}
 cached = {version="1.0", features=["async", "async_tokio_rt_multi_thread"]}
 derive_more = {version="2.1", features=["full"]}
-dirs = "6.0"
+dirs = "7.0"
 dioxus = "0.7"
 dioxus-core = "0.7"
 dioxus-signals = "0.7"
 dioxus-ssr = "0.7"
 futures = "0.3"
-itertools = "0.14"
+itertools = "0.15"
 log = "0.4"
 maplit = "1.0"
 mime = "0.3"
@@ -29,17 +29,17 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 serde_yaml_ng = "0.10"
-smallvec = "1.15"
+smallvec = "1.16"
 stack-string = { version="1.1", features=["postgres_types", "utoipa_types", "axum_types"] }
 thiserror = "2.0"
 time = {version="0.3", features=["serde-human-readable", "macros", "formatting"]}
 time-tz = {version="2.0", features=["system"]}
-tokio = {version="1.52", features=["rt", "macros", "rt-multi-thread"]}
-tower-http = {version="0.6", features=["cors"]}
+tokio = {version="1.54", features=["rt", "macros", "rt-multi-thread"]}
+tower-http = {version="0.7", features=["cors"]}
 utoipa = { version = "5.5", features = ["axum_extras", "yaml", "time", "uuid", "smallvec", "url", "openapi_extensions", "decimal"] }
 utoipa-helper = "0.1"
 utoipa-axum = { version = "0.2" }
-uuid = "1.23"
+uuid = "1.29"
 
 [dev-dependencies]
 auth_server_http = { git = "https://github.com/ddboline/auth_server_rust.git", tag="0.13.9"}

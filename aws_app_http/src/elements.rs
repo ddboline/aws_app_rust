@@ -298,14 +298,16 @@ pub async fn get_frontpage(
             buffer
         }
         ResourceType::SystemD => {
-            let processes: HashMap<StackString, Vec<_>> = aws
-                .sysinfo
-                .get_process_info()
-                .into_iter()
-                .fold(HashMap::new(), |mut h, proc| {
-                    h.entry(proc.name.clone()).or_default().push(proc);
-                    h
-                });
+            let mut processes: HashMap<StackString, Vec<_>> = HashMap::new();
+            if let Some(sysinfo) = &aws.sysinfo {
+                processes = sysinfo
+                    .get_process_info()
+                    .into_iter()
+                    .fold(HashMap::new(), |mut h, proc| {
+                        h.entry(proc.name.clone()).or_default().push(proc);
+                        h
+                    });
+            }
             let services = aws.systemd.list_running_services().await?;
             let config = aws.config.clone();
             let mut app = VirtualDom::new_with_props(

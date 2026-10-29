@@ -414,14 +414,16 @@ impl AwsAppOpts {
                 } else {
                     SysinfoInstance::new(&app.config.systemd_services)
                 };
-                let procs = sysinfo.get_process_info();
-                for proc in procs {
-                    println!(
-                        "{name:15}\t{pid}\t{memory:0.1} MiB",
-                        name = proc.name,
-                        pid = proc.pid,
-                        memory = proc.memory as f64 / 1e6
-                    );
+                if let Some(sysinfo) = sysinfo {
+                    let procs = sysinfo.get_process_info();
+                    for proc in procs {
+                        println!(
+                            "{name:15}\t{pid}\t{memory:0.1} MiB",
+                            name = proc.name,
+                            pid = proc.pid,
+                            memory = proc.memory as f64 / 1e6
+                        );
+                    }
                 }
                 Ok(())
             }
