@@ -1,5 +1,5 @@
 use futures::Stream;
-use mail_parser::{MessageParser, MimeHeaders, PartType};
+use mail_parser::MessageParser;
 use postgres_query::{Error as PqError, FromSqlRow, client::GenericClient, query, query_dyn};
 use roxmltree::{Document, NodeType};
 use stack_string::{StackString, format_sstr};
@@ -670,11 +670,11 @@ impl InboundEmailDB {
         let tdir = TempDir::new()?;
         if let Some(message) = parser.parse(self.raw_email.as_bytes()) {
             for attachment in message.attachments() {
-                if let PartType::Binary(body) = &attachment.body
-                    && let Some(filename) = attachment
-                        .content_disposition()
-                        .and_then(|c| c.attribute("filename").or_else(|| c.attribute("name")))
+                if let Some(filename) = attachment
+                    .content_disposition()
+                    .and_then(|c| c.attribute("filename").or_else(|| c.attribute("name")))
                 {
+                    let body = attachment.decoded();
                     let s3key = format_sstr!("attachments/{filename}");
                     if attachments.contains(&s3key) {
                         continue;
@@ -684,7 +684,7 @@ impl InboundEmailDB {
                     s3.upload(&filepath, bucket, &s3key).await?;
                     extracted_attachments.push(s3key);
                     if let Some(content_type) = attachment.content_disposition() {
-                        for a in content_type.attributes().unwrap_or(&[]) {
+                        for a in content_type.attributes() {
                             println!("{a:?}");
                         }
                     }

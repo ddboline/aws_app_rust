@@ -1,4 +1,4 @@
-use cached::{LruCache, macros::cached};
+use cached::macros::cached;
 use itertools::Itertools;
 use smallvec::SmallVec;
 use stack_string::{StackString, format_sstr};
@@ -10,10 +10,9 @@ use aws_app_lib::{aws_app_interface::AwsAppInterface, ec2_instance::AmiInfo, err
 use crate::errors::ServiceError as Error;
 
 #[cached(
-    ty = "LruCache<StackString, Option<AmiInfo>>",
-    create = "{ LruCache::with_size(10) }",
-    convert = r#"{ format_sstr!("{}-{}", ubuntu_release, arch) }"#,
-    result = true
+    max_size = 10,
+    key = "StackString",
+    convert = r#"{ format_sstr!("{}-{}", ubuntu_release, arch) }"#
 )]
 async fn get_latest_ubuntu_ami(
     app: &AwsAppInterface,

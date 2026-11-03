@@ -1,7 +1,7 @@
 use flate2::read::GzDecoder;
 use futures::TryStreamExt;
 use mail_parser::{Message, MessageParser, MessagePart};
-use stack_string::{format_sstr, StackString};
+use stack_string::{StackString, format_sstr};
 use std::{
     collections::{HashMap, HashSet},
     convert::{TryFrom, TryInto},
@@ -93,22 +93,22 @@ impl TryFrom<Message<'_>> for InboundEmail {
             .and_then(|d| OffsetDateTime::from_unix_timestamp(d.to_timestamp()).ok())
             .unwrap_or_else(OffsetDateTime::now_utc);
         let text_content = message
-            .text_bodies()
-            .filter_map(MessagePart::text_contents)
+            .text_body()
+            .filter_map(|x| MessagePart::text(&x))
             .fold(StackString::new(), |mut s, t| {
-                s.push_str(t);
+                s.push_str(&t);
                 s.push_str("\n");
                 s
             });
         let html_content = message
-            .html_bodies()
-            .filter_map(MessagePart::text_contents)
+            .html_body()
+            .filter_map(|x| MessagePart::text(&x))
             .fold(StackString::new(), |mut s, h| {
-                s.push_str(h);
+                s.push_str(&h);
                 s.push_str("\r\n");
                 s
             });
-        let raw_email = StackString::from_utf8(message.raw_message())?;
+        let raw_email = StackString::from_utf8(message.raw())?;
         Ok(Self {
             from_address,
             to_address,
@@ -273,6 +273,7 @@ fn extract_zip(filename: &Path, ziptmpdir: &Path) -> Result<Vec<PathBuf>, Error>
 #[cfg(test)]
 mod tests {
     use futures::TryStreamExt;
+    use itertools::Itertools;
     use mail_parser::MessageParser;
     use stack_string::{StackString, format_sstr};
     use std::{convert::TryInto, fmt::Write, path::Path};
@@ -294,7 +295,7 @@ mod tests {
         let parser = MessageParser::default();
         let message = parser.parse(data.as_bytes()).unwrap();
 
-        assert_eq!(message.text_body_count(), 1);
+        assert_eq!(message.text_body().len(), 1);
 
         let email: InboundEmail = message.try_into()?;
 
@@ -311,30 +312,30 @@ mod tests {
         let data = include_str!("../../tests/data/example_html_email");
         let message = parser.parse(data.as_bytes()).unwrap();
 
-        assert_eq!(message.text_body_count(), 1);
+        assert_eq!(message.text_body().len(), 1);
 
         for header in message.headers() {
             let header_name = header.name();
             let mut address_list = Vec::new();
             let mut groups_list = Vec::new();
             if let Some(address) = header.value().as_address() {
-                if let Some(list) = address.as_list() {
-                    for l in list {
-                        address_list.push(l.address().unwrap_or(""));
-                    }
+                for l in address.mailboxes() {
+                    address_list.push(l.address().unwrap_or(""));
                 }
-                if let Some(groups) = address.as_group() {
-                    for g in groups {
-                        let name = g.name.as_ref().map_or("", |s| s.as_ref());
-                        let mut group_addresses = Vec::new();
-                        for a in &g.addresses {
-                            group_addresses.push(a.address().unwrap_or(""));
-                        }
-                        groups_list.push(format_sstr!("{name} {}", group_addresses.join(",")));
+                for (name, addresses) in address.groups() {
+                    let name = name.as_ref().map_or("", |s| s.as_ref());
+                    let mut group_addresses = Vec::new();
+                    for a in addresses {
+                        group_addresses.push(a.address().unwrap_or(""));
                     }
+                    groups_list.push(format_sstr!("{name} {}", group_addresses.join(",")));
                 }
             }
-            let text_list = header.value().as_text_list().unwrap_or_default().join(" ");
+            let text_list: String = if let Some(tl) = header.value().as_text_list() {
+                tl.iter().join(" ")
+            } else {
+                "".into()
+            };
             if let Some(content_type) = header.value().as_content_type() {
                 println!("ctype {}", content_type.ctype());
             }

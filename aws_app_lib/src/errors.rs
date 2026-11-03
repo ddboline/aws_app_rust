@@ -1010,6 +1010,6 @@ mod tests {
         );
 
         println!("AwslibError {}", std::mem::size_of::<AwslibError>());
-        assert_eq!(std::mem::size_of::<AwslibError>(), 32);
+        assert_eq!(std::mem::size_of::<AwslibError>(), 48);
     }
 }
