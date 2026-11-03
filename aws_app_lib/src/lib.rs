@@ -8,6 +8,7 @@
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::default_trait_access)]
 #![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::redundant_field_names)]
 
 pub mod aws_app_interface;
 pub mod aws_app_opts;
