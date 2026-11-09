@@ -182,7 +182,7 @@ struct ServiceLogLine<'a> {
     #[serde(alias = "__REALTIME_TIMESTAMP")]
     timestamp: &'a str,
     #[serde(alias = "MESSAGE")]
-    message: StackString,
+    message: Option<StackString>,
     #[serde(alias = "_HOSTNAME")]
     hostname: &'a str,
 }
@@ -193,7 +193,7 @@ impl<'a> TryFrom<ServiceLogLine<'a>> for ServiceLogEntry {
         let timestamp: i64 = line.timestamp.parse().inspect_err(|e| {
             println!("{e} {}", line.timestamp);
         })?;
-        let message = line.message;
+        let message = line.message.unwrap_or_default();
         let hostname = line.hostname.into();
         let ts = timestamp / 1_000_000;
         let ns = (timestamp % 1_000_000) * 1000;
